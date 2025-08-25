@@ -41,12 +41,12 @@ jobs:
            working-directory: frontend
            run: npm run build --if-present
 
-         - name: Upload artifact (dist)
-           if: success()
-           uses: actions/upload-artifact@v4
-           with:
-              name: dist
-              path: |
-                 frontend/dist/**
-                 frontend/build/**
-              if-no-files-found: ignore
+               - name: Upload artifact (dist)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.node-version }}
+          path: |
+             frontend/dist/**
+             frontend/build/**
+          if-no-files-found: ignore
