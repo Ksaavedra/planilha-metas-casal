@@ -2,7 +2,7 @@ name: Deploy Pages
 
 on:
    push:
-      branches: [master, develop] # Deploy tanto master quanto develop
+      branches: [master] # Deploy apenas do master
    workflow_dispatch:
 
 permissions:
