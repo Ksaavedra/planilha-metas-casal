@@ -11,7 +11,7 @@ describe('ExecutandoMetasComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ExecutandoMetasComponent],
+      imports: [ExecutandoMetasComponent],
     }).compileComponents();
   }));
 

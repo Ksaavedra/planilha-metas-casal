@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { ElaborandoMetasComponent } from './elaborando-metas.component';
 
@@ -8,9 +9,8 @@ describe('ElaborandoMetasComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ElaborandoMetasComponent]
-    })
-    .compileComponents();
+      imports: [ElaborandoMetasComponent, HttpClientTestingModule],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(ElaborandoMetasComponent);
     component = fixture.componentInstance;
