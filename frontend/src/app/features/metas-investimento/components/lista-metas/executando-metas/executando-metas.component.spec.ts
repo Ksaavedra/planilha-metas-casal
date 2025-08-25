@@ -1,5 +1,6 @@
 /* tslint:disable:no-unused-variable */
 import { waitForAsync, ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { By } from '@angular/platform-browser';
 import { DebugElement } from '@angular/core';
 
@@ -11,7 +12,7 @@ describe('ExecutandoMetasComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [ExecutandoMetasComponent],
+      imports: [ExecutandoMetasComponent, HttpClientTestingModule],
     }).compileComponents();
   }));
 
