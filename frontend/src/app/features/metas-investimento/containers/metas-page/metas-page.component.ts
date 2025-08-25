@@ -75,8 +75,6 @@ export class MetasPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.metasService.getMetas().subscribe((metas: Meta[]) => {
-      console.log('🔍 [ngOnInit] Metas recebidas do servidor:', metas);
-
       // Filtrar apenas metas válidas (com ID válido e nome não vazio)
       const metasValidas = metas.filter((meta) => {
         // Aceitar qualquer ID válido (não vazio, não 0, não undefined)
@@ -118,14 +116,7 @@ export class MetasPageComponent implements OnInit {
   }
 
   reloadMetas(): void {
-    console.log('🔍 [reloadMetas] Iniciando recarregamento das metas...');
-
     this.metasService.getMetas().subscribe((metas: Meta[]) => {
-      console.log(
-        '🔍 [reloadMetas] Metas recebidas do servidor:',
-        metas.map((m) => ({ id: m.id, nome: m.nome }))
-      );
-
       const metasValidas = metas.filter((meta) => {
         const idValido =
           meta.id && meta.id !== 0 && String(meta.id).trim() !== '';
@@ -134,10 +125,6 @@ export class MetasPageComponent implements OnInit {
         return idValido && nomeValido;
       });
 
-      console.log(
-        '🔍 [reloadMetas] Metas válidas após filtro:',
-        metasValidas.map((m) => ({ id: m.id, nome: m.nome }))
-      );
       this.metas = metasValidas.map((m) => {
         const metaExtended: MetaExtended = {
           ...m,
@@ -297,7 +284,6 @@ export class MetasPageComponent implements OnInit {
         this.reloadMetas();
       },
       error: (e) => {
-        console.error('❌ [adicionarMeta] Erro ao criar meta', e);
         alert('Erro ao criar meta. Tente novamente.');
       },
     });
@@ -308,13 +294,6 @@ export class MetasPageComponent implements OnInit {
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual';
     withEvent?: Event;
   }): void {
-    console.log('🔍 [onConfirmarCampo] Evento recebido:', {
-      campo: event.campo,
-      metaId: event.meta.id,
-      hasEvent: !!event.withEvent,
-      eventType: event.withEvent?.type,
-    });
-
     if (event.withEvent) {
       this.confirmarCampoComValor(event.meta, event.campo, event.withEvent);
     } else {
@@ -331,12 +310,6 @@ export class MetasPageComponent implements OnInit {
     ev.preventDefault();
     ev.stopPropagation();
 
-    console.log('🔍 [confirmarCampoComValor] Iniciando...', {
-      campo,
-      metaId: meta.id,
-      eventType: ev.type,
-    });
-
     // Marcar como processado
     const chave = `${meta.id}-${campo}`;
     this.camposProcessados.add(chave);
@@ -349,12 +322,6 @@ export class MetasPageComponent implements OnInit {
     meta: MetaExtended,
     campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome'
   ) {
-    console.log('🔍 [confirmarCampo] Iniciando...', {
-      campo,
-      metaId: meta.id,
-      metaNome: meta.nome,
-    });
-
     // valida ID (string do json-server)
     if (!meta.id || String(meta.id).trim() === '') {
       alert('Erro: Meta sem ID válido. Recarregue a página e tente novamente.');
@@ -394,7 +361,6 @@ export class MetasPageComponent implements OnInit {
           this.reloadMetas();
         },
         error: (e) => {
-          console.error('Erro ao atualizar nome:', e);
           alert('Erro ao salvar. Tente novamente.');
         },
       });
@@ -433,7 +399,6 @@ export class MetasPageComponent implements OnInit {
         this.reloadMetas();
       },
       error: (e) => {
-        console.error('Erro ao atualizar valor:', e);
         alert('Erro ao salvar. Tente novamente.');
       },
     });
@@ -491,17 +456,12 @@ export class MetasPageComponent implements OnInit {
   }
 
   removerMeta(id: any): void {
-    console.log('🔍 [removerMeta] Iniciando exclusão da meta:', id);
-
     this.metasService.deleteMeta(id).subscribe({
       next: () => {
-        console.log(
-          '✅ [removerMeta] Meta excluída com sucesso, recarregando...'
-        );
         this.reloadMetas();
       },
       error: (e) => {
-        console.error('❌ [removerMeta] Erro ao excluir meta:', e);
+        // Erro ao remover meta
       },
     });
   }
@@ -551,11 +511,5 @@ export class MetasPageComponent implements OnInit {
   }): void {
     // Aqui você pode adicionar lógica adicional se necessário
     // Por exemplo, mostrar uma notificação, salvar estatísticas, etc.
-    console.log(
-      '🎉 Meta completada:',
-      event.metaNome,
-      'Valor:',
-      event.valorMeta
-    );
   }
 }
