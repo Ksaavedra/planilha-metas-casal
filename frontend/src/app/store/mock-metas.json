@@ -1,0 +1,133 @@
+{
+  "metas": [
+    {
+      "id": 1,
+      "nome": "Sua 1ª Meta aqui",
+      "valorMeta": 10000.0,
+      "valorPorMes": 500.0,
+      "mesesNecessarios": 20,
+      "valorAtual": 1000.0,
+      "contribuicoesMensais": [500, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "statusMensais": [
+        "Programado",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio"
+      ]
+    },
+    {
+      "id": 2,
+      "nome": "Sua 2ª Meta aqui",
+      "valorMeta": 10.0,
+      "valorPorMes": 0.0,
+      "mesesNecessarios": 0,
+      "valorAtual": 0.0,
+      "contribuicoesMensais": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "statusMensais": [
+        "Programado",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio"
+      ]
+    },
+    {
+      "id": 3,
+      "nome": "Sua 3ª Meta aqui",
+      "valorMeta": 10.0,
+      "valorPorMes": 0.0,
+      "mesesNecessarios": 0,
+      "valorAtual": 0.0,
+      "contribuicoesMensais": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "statusMensais": [
+        "Programado",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio"
+      ]
+    },
+    {
+      "id": 4,
+      "nome": "Sua 4ª Meta aqui",
+      "valorMeta": 10.0,
+      "valorPorMes": 0.0,
+      "mesesNecessarios": 0,
+      "valorAtual": 0.0,
+      "contribuicoesMensais": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "statusMensais": [
+        "Programado",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio"
+      ]
+    },
+    {
+      "id": 5,
+      "nome": "Sua 5ª Meta aqui",
+      "valorMeta": 10.0,
+      "valorPorMes": 0.0,
+      "mesesNecessarios": 0,
+      "valorAtual": 0.0,
+      "contribuicoesMensais": [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      "statusMensais": [
+        "Programado",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio"
+      ]
+    }
+  ],
+  "meses": [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro"
+  ]
+}

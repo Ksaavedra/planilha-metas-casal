@@ -1,0 +1,104 @@
+<div class="relatorio-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-banner">
+      <span>Relatório Financeiro</span>
+    </div>
+    <div class="header-content">
+      <div class="title-banner">
+        <span class="material-icons">account_balance_wallet</span>
+        <span>Relatório Financeiro {{ anoSelecionado }}</span>
+        <span class="material-icons">account_balance_wallet</span>
+      </div>
+      <div class="year-selector">
+        <label for="anoSelect" style="margin-right: 10px; color: #fff;">Ano: </label>
+        <select id="anoSelect" [(ngModel)]="anoSelecionado" (change)="onAnoChange()">
+          <option value="2020">2020</option>
+          <option value="2021">2021</option>
+          <option value="2022">2022</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabela de Dados -->
+  <div class="data-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Categoria</th>
+          <th *ngFor="let mes of meses">{{ mes }}</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="receitas-row">
+          <td>Receitas</td>
+          <td *ngFor="let valor of dadosReceitas">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td>{{ totalReceitas | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="despesas-row">
+          <td>Despesas</td>
+          <td *ngFor="let valor of dadosDespesas">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td>{{ totalDespesas | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="dividas-row">
+          <td>Dívidas pagas</td>
+          <td *ngFor="let valor of dadosDividas">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td>{{ totalDividas | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="investimentos-row">
+          <td>Investimentos realizados</td>
+          <td *ngFor="let valor of dadosInvestimentos">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td>{{ totalInvestimentos | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="total-row">
+          <td>Total</td>
+          <td *ngFor="let valor of dadosTotal; let i = index" [class.negative]="valor < 0"
+            [class.positive]="valor >= 0">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td [class.negative]="saldoTotal < 0" [class.positive]="saldoTotal >= 0">
+            {{ saldoTotal | currency : 'BRL' }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Gráfico ECharts - Relatório de Saldo -->
+  <div class="chart-section mt-6">
+    <div class="chart-container">
+      <div echarts [options]="chartOption" [merge]="mergeOptions" class="demo-chart"></div>
+    </div>
+  </div>
+  <br>
+  <br>
+
+  <!-- Gráfico ECharts - Receitas e Despesas -->
+  <div class="chart-section mt-10">
+    <div class="chart-container">
+      <div echarts [options]="chartOptionReceitasDespesas" class="demo-chart"></div>
+    </div>
+  </div>
+  <br>
+  <br>
+
+  <!-- Gráfico ECharts - Dívidas x Investimentos (Projetado) -->
+  <div class="chart-section mt-10">
+    <div class="chart-container">
+      <div echarts [options]="chartOptionDividasInvestimentos" class="demo-chart"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,93 @@
+{
+  "metas": [
+    {
+      "id": 1,
+      "nome": "Comprar uma casa",
+      "valorMeta": 500000.0,
+      "valorPorMes": 5000.0,
+      "mesesNecessarios": 100,
+      "valorAtual": 50000.0,
+      "contribuicoesMensais": [
+        5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000
+      ],
+      "statusMensais": [
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago"
+      ]
+    },
+    {
+      "id": 2,
+      "nome": "Viajar para Europa",
+      "valorMeta": 25000.0,
+      "valorPorMes": 1000.0,
+      "mesesNecessarios": 25,
+      "valorAtual": 5000.0,
+      "contribuicoesMensais": [
+        1000, 1000, 1000, 1000, 1000, 0, 0, 0, 0, 0, 0, 0
+      ],
+      "statusMensais": [
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio"
+      ]
+    },
+    {
+      "id": 3,
+      "nome": "Comprar um carro",
+      "valorMeta": 80000.0,
+      "valorPorMes": 2000.0,
+      "mesesNecessarios": 40,
+      "valorAtual": 10000.0,
+      "contribuicoesMensais": [
+        2000, 2000, 2000, 2000, 2000, 0, 0, 0, 0, 0, 0, 0
+      ],
+      "statusMensais": [
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Pago",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio",
+        "Vazio"
+      ]
+    }
+  ],
+  "meses": [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro"
+  ]
+}

@@ -1,0 +1,523 @@
+{
+  "metas": [
+    {
+      "valorAtual": 50000,
+      "id": "2",
+      "nome": "Viajar para Europa",
+      "valorMeta": 500000,
+      "valorPorMes": 5000,
+      "mesesNecessarios": 10,
+      "editandoNome": false,
+      "nomeTemp": "",
+      "savingNome": false,
+      "savedTick": false,
+      "editandoValorMeta": false,
+      "editandoValorPorMes": false,
+      "editandoValorAtual": false,
+      "savedTickCampo": null,
+      "meses": [
+        {
+          "id": 1,
+          "nome": "Janeiro",
+          "valor": 4000,
+          "status": "Pago"
+        },
+        {
+          "id": 2,
+          "nome": "Fevereiro",
+          "valor": 10000,
+          "status": "Pago"
+        },
+        {
+          "id": 3,
+          "nome": "Março",
+          "valor": 2000,
+          "status": "Pago"
+        },
+        {
+          "id": 4,
+          "nome": "Abril",
+          "valor": 1000,
+          "status": "Pago"
+        },
+        {
+          "id": 5,
+          "nome": "Maio",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 6,
+          "nome": "Junho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 7,
+          "nome": "Julho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 8,
+          "nome": "Agosto",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 9,
+          "nome": "Setembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 10,
+          "nome": "Outubro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 11,
+          "nome": "Novembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 12,
+          "nome": "Dezembro",
+          "valor": 0,
+          "status": "Vazio"
+        }
+      ],
+      "dropdownOpen": 4
+    },
+    {
+      "valorAtual": 3000,
+      "id": "3",
+      "nome": "Comprar um carro",
+      "valorMeta": 80000,
+      "valorPorMes": 2000,
+      "mesesNecessarios": 40,
+      "editandoNome": false,
+      "nomeTemp": "",
+      "savingNome": false,
+      "savedTick": false,
+      "editandoValorMeta": false,
+      "editandoValorPorMes": false,
+      "editandoValorAtual": false,
+      "savedTickCampo": null,
+      "meses": [
+        {
+          "id": 1,
+          "nome": "Janeiro",
+          "valor": 2000,
+          "status": "Pago"
+        },
+        {
+          "id": 2,
+          "nome": "Fevereiro",
+          "valor": 10000,
+          "status": "Pago"
+        },
+        {
+          "id": 3,
+          "nome": "Março",
+          "valor": 500,
+          "status": "Pago"
+        },
+        {
+          "id": 4,
+          "nome": "Abril",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 5,
+          "nome": "Maio",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 6,
+          "nome": "Junho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 7,
+          "nome": "Julho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 8,
+          "nome": "Agosto",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 9,
+          "nome": "Setembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 10,
+          "nome": "Outubro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 11,
+          "nome": "Novembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 12,
+          "nome": "Dezembro",
+          "valor": 0,
+          "status": "Vazio"
+        }
+      ],
+      "dropdownOpen": 3,
+      "_draft": false
+    },
+    {
+      "id": "4",
+      "nome": "",
+      "valorMeta": 0,
+      "valorPorMes": 0,
+      "mesesNecessarios": 0,
+      "valorAtual": 0,
+      "meses": [
+        {
+          "id": 1,
+          "nome": "Janeiro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 2,
+          "nome": "Fevereiro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 3,
+          "nome": "Março",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 4,
+          "nome": "Abril",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 5,
+          "nome": "Maio",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 6,
+          "nome": "Junho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 7,
+          "nome": "Julho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 8,
+          "nome": "Agosto",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 9,
+          "nome": "Setembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 10,
+          "nome": "Outubro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 11,
+          "nome": "Novembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 12,
+          "nome": "Dezembro",
+          "valor": 0,
+          "status": "Vazio"
+        }
+      ]
+    },
+    {
+      "valorMeta": null,
+      "id": "c626"
+    },
+    {
+      "valorMeta": null,
+      "id": "de7f"
+    },
+    {
+      "id": "d5dd",
+      "nome": "Comprar uma casa",
+      "valorMeta": 40000,
+      "valorPorMes": 5000,
+      "mesesNecessarios": 8,
+      "valorAtual": 10000,
+      "meses": [
+        {
+          "id": 1,
+          "nome": "Janeiro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 2,
+          "nome": "Fevereiro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 3,
+          "nome": "Março",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 4,
+          "nome": "Abril",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 5,
+          "nome": "Maio",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 6,
+          "nome": "Junho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 7,
+          "nome": "Julho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 8,
+          "nome": "Agosto",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 9,
+          "nome": "Setembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 10,
+          "nome": "Outubro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 11,
+          "nome": "Novembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 12,
+          "nome": "Dezembro",
+          "valor": 0,
+          "status": "Vazio"
+        }
+      ]
+    },
+    {
+      "id": "da20",
+      "nome": "Comprar uma cama",
+      "valorMeta": 5000,
+      "valorPorMes": 2000,
+      "mesesNecessarios": 3,
+      "valorAtual": 500,
+      "meses": [
+        {
+          "id": 1,
+          "nome": "Janeiro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 2,
+          "nome": "Fevereiro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 3,
+          "nome": "Março",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 4,
+          "nome": "Abril",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 5,
+          "nome": "Maio",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 6,
+          "nome": "Junho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 7,
+          "nome": "Julho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 8,
+          "nome": "Agosto",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 9,
+          "nome": "Setembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 10,
+          "nome": "Outubro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 11,
+          "nome": "Novembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 12,
+          "nome": "Dezembro",
+          "valor": 0,
+          "status": "Vazio"
+        }
+      ]
+    },
+    {
+      "id": "4b83",
+      "nome": "Sua 5ª Meta aqui",
+      "valorMeta": 0,
+      "valorPorMes": 0,
+      "mesesNecessarios": 0,
+      "valorAtual": 0,
+      "meses": [
+        {
+          "id": 1,
+          "nome": "Janeiro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 2,
+          "nome": "Fevereiro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 3,
+          "nome": "Março",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 4,
+          "nome": "Abril",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 5,
+          "nome": "Maio",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 6,
+          "nome": "Junho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 7,
+          "nome": "Julho",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 8,
+          "nome": "Agosto",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 9,
+          "nome": "Setembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 10,
+          "nome": "Outubro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 11,
+          "nome": "Novembro",
+          "valor": 0,
+          "status": "Vazio"
+        },
+        {
+          "id": 12,
+          "nome": "Dezembro",
+          "valor": 0,
+          "status": "Vazio"
+        }
+      ]
+    }
+  ]
+}
