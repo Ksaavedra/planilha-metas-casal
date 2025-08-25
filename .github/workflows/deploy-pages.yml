@@ -33,13 +33,17 @@ jobs:
 
          - name: Build application
            working-directory: frontend
-           run: npm run build
+           run: npm run build:gh
 
-               - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: frontend/dist/frontend/browser # Caminho correto para o build do Angular
-          retention-days: 1
+         - name: Copy 404.html for SPA routing
+           working-directory: frontend
+           run: cp dist/frontend/browser/index.html dist/frontend/browser/404.html
+
+         - name: Upload Pages artifact
+           uses: actions/upload-pages-artifact@v3
+           with:
+              path: frontend/dist/frontend/browser # Caminho correto para o build do Angular
+              retention-days: 1
 
    deploy:
       environment:
