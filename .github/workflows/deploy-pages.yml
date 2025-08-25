@@ -35,10 +35,11 @@ jobs:
            working-directory: frontend
            run: npm run build
 
-         - name: Upload Pages artifact
-           uses: actions/upload-pages-artifact@v3
-           with:
-              path: frontend/dist/frontend # Caminho correto para o build do Angular
+               - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist/frontend/browser # Caminho correto para o build do Angular
+          retention-days: 1
 
    deploy:
       environment:
