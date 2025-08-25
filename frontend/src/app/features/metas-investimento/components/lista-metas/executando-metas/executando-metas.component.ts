@@ -80,18 +80,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    console.log('🔍 [ngOnChanges] Mudanças detectadas:', changes);
-
     if (changes['metas']) {
-      console.log('🔍 [ngOnChanges] Metas mudaram:', {
-        previousValue: changes['metas'].previousValue?.length,
-        currentValue: changes['metas'].currentValue?.length,
-        metas: changes['metas'].currentValue?.map((m: any) => ({
-          id: m.id,
-          nome: m.nome,
-        })),
-      });
-
       if (changes['metas'].currentValue) {
         this.setHeaderMesesFromData();
         this.metas.forEach((m) => this.normalizeMeses(m));
@@ -245,7 +234,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
         JSON.stringify(parabensMostrados)
       );
     } catch (error) {
-      console.error('Erro ao salvar parabéns no localStorage:', error);
+      // Erro ao salvar parabéns no localStorage
     }
   }
 
@@ -255,7 +244,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
       const parabensMostrados = this.getParabensMostrados();
       return parabensMostrados.includes(String(metaId));
     } catch (error) {
-      console.error('Erro ao verificar parabéns no localStorage:', error);
       return false;
     }
   }
@@ -266,7 +254,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
       const stored = localStorage.getItem('metas_parabens_mostrados');
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.error('Erro ao ler parabéns do localStorage:', error);
       return [];
     }
   }
@@ -278,11 +265,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
 
   // Marcar meses restantes como "Finalizado" quando meta atinge 100%
   private marcarMesesComoFinalizado(meta: MetaExtended): void {
-    console.log(
-      '🏁 [marcarMesesComoFinalizado] Marcando meses como finalizado para:',
-      meta.nome
-    );
-
     if (!meta.meses || meta.meses.length === 0) return;
 
     // Encontrar meses que ainda não foram pagos (status diferente de 'Pago')
@@ -291,16 +273,8 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
     );
 
     if (mesesParaFinalizar.length === 0) {
-      console.log(
-        '🏁 [marcarMesesComoFinalizado] Todos os meses já estão pagos'
-      );
       return;
     }
-
-    console.log(
-      '🏁 [marcarMesesComoFinalizado] Meses para finalizar:',
-      mesesParaFinalizar.length
-    );
 
     // Marcar todos os meses restantes como "Finalizado"
     mesesParaFinalizar.forEach((mes) => {
@@ -319,10 +293,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
       })
       .subscribe({
         next: () => {
-          console.log(
-            '✅ [marcarMesesComoFinalizado] Meta finalizada com sucesso!'
-          );
-          // Emitir evento para atualizar a interface
           this.alternarStatus.emit({
             metaId: meta.id,
             mesId: 0, // Não é um mês específico, mas sim a meta toda
@@ -330,10 +300,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
           });
         },
         error: (error) => {
-          console.error(
-            '❌ [marcarMesesComoFinalizado] Erro ao finalizar meta:',
-            error
-          );
+          // Erro ao finalizar meta
         },
       });
   }
@@ -438,10 +405,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
     const i = meta.meses.findIndex((m) => m.id === mesId);
 
     if (i === -1) {
-      console.error('Mês não encontrado para edição', {
-        metaId: meta.id,
-        mesId,
-      });
       alert('Mês não encontrado. Reabra o modal e tente novamente.');
       return;
     }

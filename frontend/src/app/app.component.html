@@ -56,8 +56,8 @@
   <main class="app-main" [class.sidebar-closed]="!sidebarOpen">
     <div class="main-content">
       <router-outlet></router-outlet>
-  </div>
-</main>
+    </div>
+  </main>
 
   <!-- Overlay para fechar sidebar em mobile -->
   <div class="sidebar-overlay" [class.overlay-visible]="sidebarOpen" (click)="closeSidebar()"></div>
