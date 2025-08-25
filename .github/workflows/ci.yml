@@ -31,7 +31,7 @@ jobs:
 
          - name: Install deps (ci)
            working-directory: frontend
-           run: npm ci
+           run: npm ci --no-cache
 
          - name: Test
            working-directory: frontend
