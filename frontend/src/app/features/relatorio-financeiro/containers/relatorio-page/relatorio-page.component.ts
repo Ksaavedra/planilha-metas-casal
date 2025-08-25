@@ -610,7 +610,6 @@ export class RelatorioPageComponent {
   }
 
   testeAno() {
-    console.log('Teste - Ano atual:', this.anoSelecionado);
     alert(`Ano selecionado: ${this.anoSelecionado}`);
   }
 

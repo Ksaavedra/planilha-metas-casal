@@ -99,23 +99,11 @@ export class ElaborandoMetasComponent {
   }
 
   removerMeta(id: any): void {
-    console.log('🔍 [removerMeta] Iniciando...', { id, tipo: typeof id });
-
     const meta = this.metas.find((m) => String(m.id) === String(id));
     if (!meta) {
-      console.error('❌ [removerMeta] Meta não encontrada para ID:', id);
-      console.log(
-        '🔍 [removerMeta] Metas disponíveis:',
-        this.metas.map((m) => ({ id: m.id, nome: m.nome }))
-      );
       alert('Meta não encontrada.');
       return;
     }
-
-    console.log('🔍 [removerMeta] Meta encontrada:', {
-      id: meta.id,
-      nome: meta.nome,
-    });
 
     // Abrir modal de confirmação
     this.metaParaExcluir = meta;
@@ -134,9 +122,6 @@ export class ElaborandoMetasComponent {
 
     // Se a meta tem nome vazio, provavelmente não existe no servidor
     if (!meta.nome || meta.nome.trim() === '') {
-      console.log(
-        '🔍 [confirmarExclusao] Meta parece ser temporária, removendo da lista local'
-      );
       this.metas = this.metas.filter((m) => String(m.id) !== String(id));
       this.recalcResumo();
       this.metasAtualizadas.emit();
@@ -147,7 +132,6 @@ export class ElaborandoMetasComponent {
     if (meta._draft) {
       // não existe no servidor: só remove da lista
       this.metas = this.metas.filter((m) => m !== meta);
-      console.log('✅ [confirmarExclusao] Meta draft removida da lista');
       this.recalcResumo();
       this.metasAtualizadas.emit();
       this.modalSucessoDelete.isOpen = true;
@@ -155,23 +139,14 @@ export class ElaborandoMetasComponent {
     }
 
     // existe no servidor: chama DELETE
-    console.log('🔍 [confirmarExclusao] Chamando DELETE para ID:', id);
     this.metasService.deleteMeta(id).subscribe({
       next: () => {
-        console.log('✅ [confirmarExclusao] Meta excluída com sucesso!');
         this.metasAtualizadas.emit();
         this.modalSucessoDelete.isOpen = true;
       },
       error: (e) => {
-        console.error('❌ [confirmarExclusao] Erro ao excluir meta:', e);
-        console.error('❌ [confirmarExclusao] Status:', e.status);
-        console.error('❌ [confirmarExclusao] URL:', e.url);
-
         // Se for 404, a meta não existe no servidor, então remove da lista local
         if (e.status === 404) {
-          console.log(
-            '🔍 [confirmarExclusao] Meta não existe no servidor (404), removendo da lista local'
-          );
           this.metas = this.metas.filter((m) => String(m.id) !== String(id));
           this.recalcResumo();
           this.metasAtualizadas.emit();
@@ -373,7 +348,6 @@ export class ElaborandoMetasComponent {
         this.reloadMetas();
       },
       error: (e) => {
-        console.error('Erro ao atualizar valor:', e);
         alert('Erro ao salvar. Tente novamente.');
       },
     });
@@ -446,26 +420,8 @@ export class ElaborandoMetasComponent {
     const temMesesPagos = (meta.meses ?? []).some((x) => x.status === 'Pago');
     const jaMostrou = this.jaMostrouParabens(meta.id);
 
-    console.log('🔍 [getProgressoRealMeta] Debug:', {
-      metaId: meta.id,
-      metaNome: meta.nome,
-      valorMeta,
-      valorAtual,
-      valorPago,
-      totalRealizado,
-      progresso,
-      temMesesPagos,
-      jaMostrou,
-      progressoAtingido: progresso >= 100,
-      deveMostrarParabens: progresso >= 100 && temMesesPagos && !jaMostrou,
-    });
-
     // Verificar se atingiu 100% E tem pelo menos um mês pago
     if (progresso >= 100 && temMesesPagos && !jaMostrou) {
-      console.log(
-        '🎉 [getProgressoRealMeta] Mostrando parabéns para:',
-        meta.nome
-      );
       this.mostrarParabens(meta);
 
       // Marcar meses restantes como "Finalizado" quando meta atinge 100%
@@ -521,16 +477,11 @@ export class ElaborandoMetasComponent {
 
   // Mostrar modal de parabéns quando meta atinge 100%
   private mostrarParabens(meta: MetaExtended): void {
-    console.log('🎉 [mostrarParabens] Abrindo modal para:', meta.nome);
-
     this.modalParabens = {
       isOpen: true,
       metaNome: meta.nome,
       valorMeta: meta.valorMeta,
     };
-
-    console.log('🎉 [mostrarParabens] Modal configurado:', this.modalParabens);
-
     // Marcar que já mostrou parabéns para esta meta (persistir no localStorage)
     this.marcarParabensMostrado(meta.id);
   }
@@ -545,7 +496,7 @@ export class ElaborandoMetasComponent {
         JSON.stringify(parabensMostrados)
       );
     } catch (error) {
-      console.error('Erro ao salvar parabéns no localStorage:', error);
+      // Erro ao salvar parabéns no localStorage
     }
   }
 
@@ -555,7 +506,6 @@ export class ElaborandoMetasComponent {
       const parabensMostrados = this.getParabensMostrados();
       return parabensMostrados.includes(String(metaId));
     } catch (error) {
-      console.error('Erro ao verificar parabéns no localStorage:', error);
       return false;
     }
   }
@@ -566,7 +516,6 @@ export class ElaborandoMetasComponent {
       const stored = localStorage.getItem('metas_parabens_mostrados');
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.error('Erro ao ler parabéns do localStorage:', error);
       return [];
     }
   }
@@ -578,11 +527,6 @@ export class ElaborandoMetasComponent {
 
   // Marcar meses restantes como "Finalizado" quando meta atinge 100%
   private marcarMesesComoFinalizado(meta: MetaExtended): void {
-    console.log(
-      '🏁 [marcarMesesComoFinalizado] Marcando meses como finalizado para:',
-      meta.nome
-    );
-
     if (!meta.meses || meta.meses.length === 0) return;
 
     // Encontrar meses que ainda não foram pagos (status diferente de 'Pago')
@@ -591,16 +535,8 @@ export class ElaborandoMetasComponent {
     );
 
     if (mesesParaFinalizar.length === 0) {
-      console.log(
-        '🏁 [marcarMesesComoFinalizado] Todos os meses já estão pagos'
-      );
       return;
     }
-
-    console.log(
-      '🏁 [marcarMesesComoFinalizado] Meses para finalizar:',
-      mesesParaFinalizar.length
-    );
 
     // Marcar todos os meses restantes como "Finalizado"
     mesesParaFinalizar.forEach((mes) => {
@@ -615,16 +551,10 @@ export class ElaborandoMetasComponent {
       })
       .subscribe({
         next: () => {
-          console.log(
-            '✅ [marcarMesesComoFinalizado] Meta finalizada com sucesso!'
-          );
           this.metasAtualizadas.emit();
         },
         error: (error) => {
-          console.error(
-            '❌ [marcarMesesComoFinalizado] Erro ao finalizar meta:',
-            error
-          );
+          // Erro ao finalizar meta
         },
       });
   }
