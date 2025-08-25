@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, feature/**]
+  pull_request:
+    branches: [develop, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest # grátis; evite macos/windows
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 20]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm' # cache grátis
+
+      - name: Install deps (ci)
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Test
+        run: npm test --if-present -- --ci --reporters=default
+
+      - name: Build
+        run: npm run build --if-present
+
+      - name: Upload artifact (dist)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: |
+            dist/**
+            build/**
+          if-no-files-found: ignore
