@@ -7,7 +7,11 @@
     "build": "ng build",
     "build:gh": "ng build --configuration production --base-href /planilha-metas-casal/",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "test:jest": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false"
   },
   "private": true,
   "dependencies": {
@@ -29,11 +33,15 @@
     "zone.js": "~0.14.3"
   },
   "devDependencies": {
+    "@angular-builders/jest": "^20.0.0",
     "@angular-devkit/build-angular": "^18.0.2",
     "@angular/cli": "^18.0.2",
     "@angular/compiler-cli": "^18.0.0",
     "@types/jasmine": "~5.1.0",
+    "@types/jest": "^30.0.0",
     "jasmine-core": "~5.1.0",
+    "jest": "^30.0.5",
+    "jest-preset-angular": "^15.0.0",
     "json-server": "^1.0.0-beta.3",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
