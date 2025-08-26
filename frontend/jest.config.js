@@ -7,7 +7,13 @@ module.exports = {
     "**/*.(test|spec).+(ts|tsx|js)",
   ],
   transform: {
-    "^.+\\.(ts|tsx)$": "ts-jest",
+    "^.+\\.(ts|tsx)$": [
+      "ts-jest",
+      {
+        tsconfig: "<rootDir>/tsconfig.spec.json",
+        stringifyContentPathRegex: "\\.html$",
+      },
+    ],
     "^.+\\.html$": "<rootDir>/html-transform.js",
   },
   collectCoverageFrom: [
@@ -36,12 +42,11 @@ module.exports = {
     "^src/(.*)$": "<rootDir>/src/$1",
   },
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
+  transformIgnorePatterns: ["node_modules/(?!@angular|rxjs)"],
   collectCoverage: true,
   verbose: true,
   setupFilesAfterEnv: ["<rootDir>/setup-jest.ts"],
-  globals: {
-    "ts-jest": {
-      tsconfig: "<rootDir>/tsconfig.spec.json",
-    },
+  testEnvironmentOptions: {
+    customExportConditions: [""],
   },
 };

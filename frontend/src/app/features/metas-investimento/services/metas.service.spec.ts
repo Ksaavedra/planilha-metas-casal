@@ -88,27 +88,14 @@ describe('MetasService', () => {
     req.flush(mockMeta);
   });
 
-  it('should update mes valor', () => {
-    service.updateMes(1, 1, 150).subscribe((meta) => {
+  it('should update meta with PUT', () => {
+    service.updateMetaFull(1, mockMeta).subscribe((meta) => {
       expect(meta).toEqual(mockMeta);
     });
 
-    const req = httpMock.expectOne('http://localhost:3000/metas/1/meses/1');
+    const req = httpMock.expectOne('http://localhost:3000/metas/1');
     expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({ valor: 150 });
-    req.flush(mockMeta);
-  });
-
-  it('should update mes status', () => {
-    service.updateStatusMes(1, 1, 'Pago').subscribe((meta) => {
-      expect(meta).toEqual(mockMeta);
-    });
-
-    const req = httpMock.expectOne(
-      'http://localhost:3000/metas/1/meses/1/status'
-    );
-    expect(req.request.method).toBe('PUT');
-    expect(req.request.body).toEqual({ status: 'Pago' });
+    expect(req.request.body).toEqual(mockMeta);
     req.flush(mockMeta);
   });
 
