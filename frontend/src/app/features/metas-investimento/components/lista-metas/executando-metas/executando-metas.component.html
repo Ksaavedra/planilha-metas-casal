@@ -15,28 +15,29 @@
         <tr *ngFor="let meta of metas; let i = index;" [class.alternate]="i % 2 === 1">
           <td>{{ meta.nome }}</td>
           <td *ngFor="let mes of meta.meses" class="status-cell" [attr.data-meta-id]="meta.id"
-            [attr.data-mes-id]="mes.id">
+            [attr.data-mes-id]="getMesId(mes)">
             <div class="status-dropdown-container">
-              <span class="valor-display" (click)="abrirModalEdicao(meta, mes.id)"
+              <span class="valor-display" (click)="abrirModalEdicao(meta, getMesId(mes))"
                 [class.valor-programado]="mes.status === 'Programado'" [class.valor-pago]="mes.status === 'Pago'"
                 [class.valor-vazio]="mes.status === 'Vazio'" title="Clique para editar o valor">
                 {{ formatBR(mes.valor) }}
               </span>
-              <div class="status-indicator" (click)="toggleDropdown(meta, mes.id)"
+              <div class="status-indicator" (click)="toggleDropdown(meta, getMesId(mes))"
                 [class.status-programado]="mes.status === 'Programado'" [class.status-pago]="mes.status === 'Pago'"
                 [class.status-vazio]="mes.status === 'Vazio'" title="Clique para alterar o status">
                 <span class="material-icons">expand_more</span>
               </div>
-              <div class="status-dropdown" *ngIf="meta.dropdownOpen === mes.id" (click)="$event.stopPropagation()">
-                <div class="dropdown-option" (click)="selecionarStatus(meta, mes.id, 'Programado')"
+              <div class="status-dropdown" *ngIf="meta.dropdownOpen === getMesId(mes)"
+                (click)="$event.stopPropagation()">
+                <div class="dropdown-option" (click)="selecionarStatus(meta, getMesId(mes), 'Programado')"
                   [class.selected]="mes.status === 'Programado'">
                   Programado
                 </div>
-                <div class="dropdown-option" (click)="selecionarStatus(meta, mes.id, 'Pago')"
+                <div class="dropdown-option" (click)="selecionarStatus(meta, getMesId(mes), 'Pago')"
                   [class.selected]="mes.status === 'Pago'">
                   Pago
                 </div>
-                <div class="dropdown-option" (click)="selecionarStatus(meta, mes.id, 'Vazio')"
+                <div class="dropdown-option" (click)="selecionarStatus(meta, getMesId(mes), 'Vazio')"
                   [class.selected]="mes.status === 'Vazio'">
                   Vazio
                 </div>

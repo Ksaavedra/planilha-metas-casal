@@ -1,6 +1,6 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MetaExtended } from '../../../../core/interfaces/mes-meta';
+import { Meta } from '../../../../core/interfaces/mes-meta';
 
 @Component({
   selector: 'app-progress-table',
@@ -10,35 +10,48 @@ import { MetaExtended } from '../../../../core/interfaces/mes-meta';
   styleUrls: ['./progress-table.component.scss'],
 })
 export class ProgressTableComponent implements OnInit, OnDestroy {
-  @Input() metas: MetaExtended[] = [];
+  @Input() metas: Meta[] = [];
 
-  currentIndex = 0;
-  private interval: any;
+  constructor() {}
 
-  getProgressoRealMeta(meta: MetaExtended): number {
-    const valorAtual = meta.valorAtual || 0;
-    const valorPago = meta.meses
-      .filter((mes) => mes.status === 'Pago')
-      .reduce((total, mes) => total + (mes.valor || 0), 0);
-
-    const totalRealizado = valorAtual + valorPago;
-    const percentual = (totalRealizado / meta.valorMeta) * 100;
-
-    return Math.min(percentual, 100);
+  ngOnInit(): void {
+    // Inicialização se necessário
   }
 
-  getValorRealizadoMeta(meta: MetaExtended): number {
+  ngOnDestroy(): void {
+    // Cleanup se necessário
+  }
+
+  getProgressoRealMeta(meta: Meta): number {
+    if (!meta || !meta.meses) return 0;
+
+    const totalMeta = meta.valorMeta;
     const valorAtual = meta.valorAtual || 0;
     const valorPago = meta.meses
       .filter((mes) => mes.status === 'Pago')
-      .reduce((total, mes) => total + (mes.valor || 0), 0);
+      .reduce((sum, mes) => sum + (mes.valor || 0), 0);
+
+    const totalRealizado = valorAtual + valorPago;
+    const progresso = totalMeta > 0 ? (totalRealizado / totalMeta) * 100 : 0;
+
+    return Math.min(progresso, 100);
+  }
+
+  getValorRealizadoMeta(meta: Meta): number {
+    if (!meta || !meta.meses) return 0;
+
+    const valorAtual = meta.valorAtual || 0;
+    const valorPago = meta.meses
+      .filter((mes) => mes.status === 'Pago')
+      .reduce((sum, mes) => sum + (mes.valor || 0), 0);
 
     return valorAtual + valorPago;
   }
 
-  getValorFaltanteMeta(meta: MetaExtended): number {
+  getValorFaltanteMeta(meta: Meta): number {
+    const totalMeta = meta.valorMeta;
     const valorRealizado = this.getValorRealizadoMeta(meta);
-    return Math.max(meta.valorMeta - valorRealizado, 0);
+    return Math.max(0, totalMeta - valorRealizado);
   }
 
   formatarMoeda(valor: number): string {
@@ -48,53 +61,24 @@ export class ProgressTableComponent implements OnInit, OnDestroy {
     }).format(valor);
   }
 
-  ngOnInit(): void {
-    this.startCarousel();
-  }
-
-  ngOnDestroy(): void {
-    if (this.interval) {
-      clearInterval(this.interval);
+  // Métodos para o carrossel CSS puro
+  scrollLeft(): void {
+    const carousel = document.querySelector('.carousel') as HTMLElement;
+    if (carousel) {
+      carousel.scrollBy({
+        left: -320,
+        behavior: 'smooth',
+      });
     }
   }
 
-  startCarousel(): void {
-    this.interval = setInterval(() => {
-      this.nextSlide();
-    }, 5000);
-  }
-
-  nextSlide(): void {
-    if (this.metas.length <= 2) return;
-
-    this.currentIndex = (this.currentIndex + 2) % this.metas.length;
-    if (this.currentIndex >= this.metas.length - 1) {
-      this.currentIndex = 0;
+  scrollRight(): void {
+    const carousel = document.querySelector('.carousel') as HTMLElement;
+    if (carousel) {
+      carousel.scrollBy({
+        left: 320,
+        behavior: 'smooth',
+      });
     }
-  }
-
-  prevSlide(): void {
-    if (this.metas.length <= 2) return;
-
-    this.currentIndex = this.currentIndex - 2;
-    if (this.currentIndex < 0) {
-      this.currentIndex = Math.max(0, this.metas.length - 2);
-    }
-  }
-
-  goToSlide(index: number): void {
-    this.currentIndex = index;
-  }
-
-  getVisibleMetas(): MetaExtended[] {
-    return this.metas.slice(this.currentIndex, this.currentIndex + 2);
-  }
-
-  getTotalSlides(): number {
-    return Math.ceil(this.metas.length / 2);
-  }
-
-  getCurrentSlideNumber(): number {
-    return Math.floor(this.currentIndex / 2) + 1;
   }
 }

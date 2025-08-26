@@ -18,7 +18,8 @@
     [totalValorMetaView]="totalValorMetaView" [totalValorPorMesView]="totalValorPorMesView"
     [totalMesesNecessariosView]="totalMesesNecessariosView" [totalValorAtualView]="totalValorAtualView"
     [totalContribuicoesView]="totalContribuicoesView" (metasAtualizadas)="reloadMetas()" (addMeta)="adicionarMeta()"
-    (confirmar)="onConfirmarCampo($event)" (remover)="removerMeta($event)">
+    (confirmar)="onConfirmarCampo($event)" (remover)="removerMeta($event)"
+    (valorAtualFixado)="onValorAtualFixado($event)">
   </app-elaborando-metas>
 
   <!-- Tabela de Progresso -->

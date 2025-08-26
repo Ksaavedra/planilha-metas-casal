@@ -27,6 +27,26 @@ export class MetasService {
     return this.http.patch<Meta>(`${this.apiUrl}/metas/${id}`, patch);
   }
 
+  // Atualizar valor de um mês específico
+  updateMes(metaId: number, mesId: number, valor: number): Observable<Meta> {
+    return this.http.put<Meta>(
+      `${this.apiUrl}/metas/${metaId}/meses/${mesId}`,
+      { valor }
+    );
+  }
+
+  // Atualizar status de um mês específico
+  updateStatusMes(
+    metaId: number,
+    mesId: number,
+    status: string
+  ): Observable<Meta> {
+    return this.http.put<Meta>(
+      `${this.apiUrl}/metas/${metaId}/meses/${mesId}/status`,
+      { status }
+    );
+  }
+
   // Deletar meta
   deleteMeta(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/metas/${id}`);

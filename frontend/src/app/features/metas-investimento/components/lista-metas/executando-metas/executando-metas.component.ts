@@ -1,12 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
   OnChanges,
-  OnInit,
   Output,
   SimpleChanges,
 } from '@angular/core';
@@ -25,7 +23,7 @@ import { MetasService } from '../../../services/metas.service';
   templateUrl: './executando-metas.component.html',
   styleUrls: ['./executando-metas.component.scss'],
 })
-export class ExecutandoMetasComponent implements OnInit, OnChanges {
+export class ExecutandoMetasComponent implements OnChanges {
   @Input() meses: string[] = [];
   @Input() metas: MetaExtended[] = [];
   @Input() percentualPagoView = 0;
@@ -75,16 +73,10 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
     'Dezembro',
   ];
 
-  ngOnInit() {
-    // Componente de apresentação - dados vêm via @Input()
-  }
-
   ngOnChanges(changes: SimpleChanges) {
     if (changes['metas']) {
       if (changes['metas'].currentValue) {
         this.setHeaderMesesFromData();
-        this.metas.forEach((m) => this.normalizeMeses(m));
-        this.recalcResumo();
       }
     }
   }
@@ -95,24 +87,22 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
     this.meses = unicos.length ? unicos : [...this.MESES_PADRAO];
   }
 
-  private normalizeMeses(meta: MetaExtended): void {
-    const header = this.meses.length ? this.meses : this.MESES_PADRAO;
-    const byName = new Map((meta.meses ?? []).map((m) => [m.nome, m]));
-    meta.meses = header.map(
-      (nome, i) =>
-        byName.get(nome) ?? { id: i + 1, nome, valor: 0, status: 'Vazio' }
-    );
-  }
-
-  private toNum(v: any): number {
-    return typeof v === 'number' ? v : Number(v ?? 0) || 0;
+  // Método helper para obter mes_id no template
+  getMesId(mes: any): number {
+    return (mes as any).mes_id || mes.id;
   }
 
   // Métodos para edição de valores
   abrirModalEdicao(meta: MetaExtended, mesId: number): void {
-    const mes = meta.meses.find((m) => m.id === mesId);
+    const mes = meta.meses.find((m) => (m as any).mes_id === mesId);
     if (!mes) return;
-    this.modalEdicao = { meta, mesId, valor: mes.valor, isOpen: true };
+
+    this.modalEdicao = {
+      meta,
+      mesId: (mes as any).mes_id,
+      valor: mes.valor,
+      isOpen: true,
+    };
   }
 
   // Métodos para formatação de moeda
@@ -124,21 +114,28 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
   }
 
   toggleDropdown(meta: MetaExtended, mesId: number): void {
+    // mesId aqui é o mes_id (1-12)
+    const mes = meta.meses.find((m) => (m as any).mes_id === mesId);
+    if (!mes) return;
+
+    const actualMesId = (mes as any).mes_id;
+
     // Fechar todos os outros dropdowns primeiro
     this.metas.forEach((m) => {
-      if (String(m.id) !== String(meta.id) || m.dropdownOpen !== mesId) {
+      if (String(m.id) !== String(meta.id) || m.dropdownOpen !== actualMesId) {
         m.dropdownOpen = undefined;
       }
     });
 
     // Toggle do dropdown atual
-    meta.dropdownOpen = meta.dropdownOpen === mesId ? undefined : mesId;
+    meta.dropdownOpen =
+      meta.dropdownOpen === actualMesId ? undefined : actualMesId;
 
-    if (meta.dropdownOpen !== mesId) return;
+    if (meta.dropdownOpen !== actualMesId) return;
 
     setTimeout(() => {
       const anchor = document.querySelector(
-        `[data-meta-id="${meta.id}"][data-mes-id="${mesId}"] .status-dropdown-container`
+        `[data-meta-id="${meta.id}"][data-mes-id="${actualMesId}"] .status-dropdown-container`
       ) as HTMLElement;
 
       const dd = document.querySelector('.status-dropdown') as HTMLElement;
@@ -174,15 +171,40 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
     mesId: number,
     status: StatusMeta
   ): void {
-    const mes = meta.meses.find((m) => m.id === mesId);
-    if (!mes) return;
+    console.log('🔄 selecionarStatus chamado:', {
+      metaId: meta.id,
+      mesId,
+      status,
+    });
 
+    // mesId aqui é o mes_id (1-12)
+    const mes = meta.meses.find((m) => (m as any).mes_id === mesId);
+    if (!mes) {
+      console.error('❌ Mês não encontrado:', mesId);
+      return;
+    }
+
+    const actualMesId = (mes as any).mes_id;
+
+    console.log('📊 Mês antes da alteração:', {
+      valor: mes.valor,
+      status: mes.status,
+    });
     mes.status = status;
+    console.log('📊 Mês após alteração:', {
+      valor: mes.valor,
+      status: mes.status,
+    });
 
     // Emitir evento para o pai
+    console.log('📤 Emitindo alternarStatus:', {
+      metaId: meta.id,
+      mesId: actualMesId,
+      status,
+    });
     this.alternarStatus.emit({
       metaId: meta.id,
-      mesId: mesId,
+      mesId: actualMesId,
       status: status as any,
     });
 
@@ -199,12 +221,12 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
     const valorMeta = Number(meta.valorMeta) || 0;
     if (valorMeta <= 0) return;
 
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
+    // CORREÇÃO: Usar apenas a soma dos meses com status "Pago"
     const valorPago = (meta.meses ?? [])
       .filter((x) => x.status === 'Pago')
       .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
 
-    const totalRealizado = valorAtual + valorPago;
+    const totalRealizado = valorPago; // REMOVIDO: valorAtual
     const progresso = Number(((totalRealizado * 100) / valorMeta).toFixed(2));
 
     // Se atingiu 100% E tem pelo menos um mês pago E ainda não foi marcada como completa
@@ -256,11 +278,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
     } catch (error) {
       return [];
     }
-  }
-
-  private recalcResumo(): void {
-    // Componente de apresentação - os totais são calculados via getters
-    // Este método é chamado apenas para forçar a detecção de mudanças
   }
 
   // Marcar meses restantes como "Finalizado" quando meta atinge 100%
@@ -321,13 +338,13 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
 
     if (valorMeta <= 0 || valorPorMes <= 0) return 0;
 
-    // Calcular total realizado (quanto já temos + quanto já pagamos)
-    const valorAtual = Number(meta.valorAtual) || 0;
+    // CORREÇÃO: Usar apenas a soma dos meses com status "Pago"
+    // O valorAtual (quanto já temos) é dinheiro guardado separadamente
     const valorPago = (meta.meses ?? [])
       .filter((x) => x.status === 'Pago')
       .reduce((s, x) => s + (Number(x.valor) || 0), 0);
 
-    const totalRealizado = valorAtual + valorPago;
+    const totalRealizado = valorPago; // CORREÇÃO: Não somar valorAtual
     const valorRestante = Math.max(0, valorMeta - totalRealizado);
 
     // Calcular quantos meses ainda faltam pagar
@@ -402,20 +419,33 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
 
   salvarValorModal(): void {
     const { meta, mesId, valor } = this.modalEdicao;
-    const i = meta.meses.findIndex((m) => m.id === mesId);
+    // mesId aqui é o mes_id (1-12)
+    const i = meta.meses.findIndex((m) => (m as any).mes_id === mesId);
 
     if (i === -1) {
+      console.error('❌ Mês não encontrado:', mesId);
       alert('Mês não encontrado. Reabra o modal e tente novamente.');
       return;
     }
 
+    const actualMesId = (meta.meses[i] as any).mes_id;
+
     meta.meses[i].valor = valor;
     meta.meses[i].status = valor > 0 ? 'Programado' : 'Vazio';
+    console.log('📊 Mês após alteração:', {
+      valor: meta.meses[i].valor,
+      status: meta.meses[i].status,
+    });
 
     // Emitir evento para o pai
+    console.log('📤 Emitindo salvarValor:', {
+      metaId: meta.id,
+      mesId: actualMesId,
+      valor,
+    });
     this.salvarValor.emit({
       metaId: meta.id,
-      mesId: mesId,
+      mesId: actualMesId,
       valor: valor,
     });
 

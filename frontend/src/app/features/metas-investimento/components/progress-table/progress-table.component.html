@@ -2,36 +2,24 @@
   <div class="section-header">
     <h2>EVOLUÇÃO DAS METAS DO CASAL</h2>
   </div>
+
   <div class="carousel-container">
-    <div class="carousel-wrapper">
-      <div class="carousel-content">
-        <div class="progress-item" *ngFor="let meta of getVisibleMetas()">
-          <div class="meta-info">
-            <div class="meta-name">{{ meta.nome }}</div>
-            <div class="progress-percentage">{{ getProgressoRealMeta(meta) | number:'1.1-1' }}%</div>
-            <div class="progress-bar">
-              <div class="progress-fill" [style.width.%]="getProgressoRealMeta(meta)"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Controles de navegação -->
-      <div class="carousel-controls" *ngIf="metas.length > 2">
-        <button class="control-btn prev" (click)="prevSlide()">
-          <span class="material-icons">chevron_left</span>
-        </button>
-        <button class="control-btn next" (click)="nextSlide()">
-          <span class="material-icons">chevron_right</span>
-        </button>
-      </div>
-
-      <!-- Indicadores -->
-      <div class="carousel-indicators" *ngIf="metas.length > 2">
-        <div class="indicator" *ngFor="let slide of [].constructor(getTotalSlides()); let i = index"
-          [class.active]="i === getCurrentSlideNumber() - 1" (click)="goToSlide(i * 2)">
+    <div class="carousel">
+      <div class="card" *ngFor="let meta of metas">
+        <h3>{{ meta.nome }}</h3>
+        <div class="progress">{{ getProgressoRealMeta(meta).toFixed(1) }}%</div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="getProgressoRealMeta(meta)"></div>
         </div>
       </div>
     </div>
+
+    <!-- Controles -->
+    <button class="control-btn prev" (click)="scrollLeft()">
+      <span class="material-icons">chevron_left</span>
+    </button>
+    <button class="control-btn next" (click)="scrollRight()">
+      <span class="material-icons">chevron_right</span>
+    </button>
   </div>
 </div>

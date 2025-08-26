@@ -75,6 +75,8 @@ export class MetasPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.metasService.getMetas().subscribe((metas: Meta[]) => {
+      console.log('📥 Todas as metas recebidas do servidor:', metas);
+
       // Filtrar apenas metas válidas (com ID válido e nome não vazio)
       const metasValidas = metas.filter((meta) => {
         // Aceitar qualquer ID válido (não vazio, não 0, não undefined)
@@ -116,44 +118,51 @@ export class MetasPageComponent implements OnInit {
   }
 
   reloadMetas(): void {
-    this.metasService.getMetas().subscribe((metas: Meta[]) => {
-      const metasValidas = metas.filter((meta) => {
-        const idValido =
-          meta.id && meta.id !== 0 && String(meta.id).trim() !== '';
-        const nomeValido =
-          meta.nome && meta.nome.trim().length > 0 && meta.nome !== 'undefined';
-        return idValido && nomeValido;
-      });
+    const cacheTela = new Map<number | string, number>();
+    this.metas.forEach((m) => cacheTela.set(m.id, this.toNum(m.valorAtual)));
 
-      this.metas = metasValidas.map((m) => {
-        const metaExtended: MetaExtended = {
-          ...m,
-          id: m.id,
-          valorMeta: this.toNum(m.valorMeta),
-          valorPorMes: this.toNum(m.valorPorMes),
-          valorAtual: this.toNum(m.valorAtual),
-          mesesNecessarios: this.toNum(m.mesesNecessarios),
-          editandoNome: false,
-          nomeTemp: '',
-          savingNome: false,
-          savedTick: false,
-          editandoValorMeta: false,
-          editandoValorPorMes: false,
-          editandoValorAtual: false,
-          savedTickCampo: false,
-          dropdownOpen: undefined,
-        };
-        return metaExtended;
-      });
+    this.metasService.getMetas().subscribe({
+      next: (metas) => {
+        const metasValidas = metas.filter((m) => {
+          const idValido = m.id && m.id > 0;
+          const nomeValido = m.nome && m.nome.trim().length > 0;
+          return idValido && nomeValido;
+        });
 
-      this.setHeaderMesesFromData();
-      this.metas.forEach((m) => this.normalizeMeses(m));
-      this.recalcResumo();
+        this.metas = metasValidas.map((m) => {
+          const doPai = this.valorAtualCache.get(m.id);
+          const daTela = cacheTela.get(m.id);
+          const doServidor = this.toNum(m.valorAtual);
+
+          return {
+            ...m,
+            valorMeta: this.toNum(m.valorMeta),
+            valorPorMes: this.toNum(m.valorPorMes),
+            mesesNecessarios: this.toNum(m.mesesNecessarios),
+            valorAtual: doPai ?? daTela ?? doServidor,
+            meses: m.meses ?? [],
+          } as MetaExtended;
+        });
+
+        this.setHeaderMesesFromData();
+        this.metas.forEach((m) => this.normalizeMeses(m));
+        this.recalcResumo();
+      },
+      error: (error) => {
+        console.error('❌ Erro ao carregar metas:', error);
+      },
     });
   }
 
   private toNum(v: any): number {
-    return typeof v === 'number' ? v : Number(v ?? 0) || 0;
+    if (v === null || v === undefined) return 0;
+
+    // Se já é número, retorna
+    if (typeof v === 'number') return v;
+
+    // Converte string para número
+    const num = parseFloat(String(v));
+    return isNaN(num) ? 0 : num;
   }
 
   setHeaderMesesFromData(): void {
@@ -165,31 +174,47 @@ export class MetasPageComponent implements OnInit {
   private normalizeMeses(meta: MetaExtended): void {
     const header = this.meses.length ? this.meses : this.MESES_PADRAO;
     const byName = new Map((meta.meses ?? []).map((m) => [m.nome, m]));
-    meta.meses = header.map(
-      (nome, i) =>
-        byName.get(nome) ?? { id: i + 1, nome, valor: 0, status: 'Vazio' }
-    );
+
+    meta.meses = header.map((nome, i) => {
+      const existing = byName.get(nome);
+      if (existing) {
+        return existing;
+      } else {
+        return {
+          id: i + 1,
+          nome,
+          valor: 0,
+          status: 'Vazio',
+          mes_id: i + 1,
+        };
+      }
+    });
+
+    // Normalizar valores numéricos
+    meta.meses.forEach((mes) => {
+      mes.valor = this.toNum(mes.valor);
+    });
   }
 
   private recalcResumo(): void {
     // Calcular todos os totais de uma vez
     this.totalValorMetaView = this.metas.reduce(
-      (t, m) => t + (Number(m.valorMeta) || 0),
+      (t, m) => t + this.toNum(m.valorMeta),
       0
     );
 
     this.totalValorPorMesView = this.metas.reduce(
-      (t, m) => t + (Number(m.valorPorMes) || 0),
+      (t, m) => t + this.toNum(m.valorPorMes),
       0
     );
 
     this.totalMesesNecessariosView = this.metas.reduce(
-      (t, m) => t + (Number(m.mesesNecessarios) || 0),
+      (t, m) => t + this.toNum(m.mesesNecessarios),
       0
     );
 
     this.totalValorAtualView = this.metas.reduce(
-      (t, m) => t + (Number(m.valorAtual) || 0),
+      (t, m) => t + this.toNum(m.valorAtual),
       0
     );
 
@@ -200,11 +225,11 @@ export class MetasPageComponent implements OnInit {
 
     // Calcular percentual pago (considerando "quanto já temos" + "quanto já pagamos")
     const totalRealizado = this.metas.reduce((t, m) => {
-      const valorAtual = Number(m.valorAtual) || 0; // "Quanto já temos"
       const valorPago = (m.meses ?? [])
         .filter((x) => x.status === 'Pago')
-        .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
-      return t + valorAtual + valorPago;
+        .reduce((s, x) => s + this.toNum(x.valor), 0);
+      const valorGuardado = this.toNum(m.valorAtual);
+      return t + valorPago + valorGuardado;
     }, 0);
 
     this.percentualPagoView =
@@ -215,43 +240,107 @@ export class MetasPageComponent implements OnInit {
 
   getTotalContribuicoesMeta(meta: Meta): number {
     if (!meta.meses) return 0;
-    return meta.meses.reduce((total, mes) => total + mes.valor, 0);
+    return meta.meses
+      .filter((mes) => mes.status === 'Pago') // CORREÇÃO: Somar apenas meses Pago
+      .reduce((total, mes) => {
+        const valor =
+          typeof mes.valor === 'number'
+            ? mes.valor
+            : parseFloat(String(mes.valor)) || 0;
+        return total + valor;
+      }, 0);
   }
 
   // Calcular progresso real de uma meta (quanto já temos + quanto já pagamos)
   getProgressoRealMeta(meta: MetaExtended): number {
-    const valorMeta = Number(meta.valorMeta) || 0;
+    const valorMeta = this.toNum(meta.valorMeta);
     if (valorMeta <= 0) return 0;
 
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
+    // CORREÇÃO: Usar apenas a soma dos meses com status "Pago"
     const valorPago = (meta.meses ?? [])
       .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
+      .reduce((s, x) => s + this.toNum(x.valor), 0); // "Quanto já pagamos"
 
-    const totalRealizado = valorAtual + valorPago;
-    return Number(((totalRealizado * 100) / valorMeta).toFixed(2));
+    const totalRealizado = valorPago;
+    const progresso = Number(((totalRealizado * 100) / valorMeta).toFixed(2));
+
+    // DEBUG: Log detalhado para debugar o problema
+    console.log(
+      `🔍 DEBUG getProgressoRealMeta para meta ${meta.id} (${meta.nome}):`,
+      {
+        valorMeta: valorMeta,
+        valorAtual: meta.valorAtual,
+        mesesPagos: (meta.meses ?? [])
+          .filter((x) => x.status === 'Pago')
+          .map((m) => ({
+            nome: m.nome,
+            valor: m.valor,
+            status: m.status,
+          })),
+        valorPago: valorPago,
+        totalRealizado: totalRealizado,
+        progresso: progresso,
+      }
+    );
+
+    return progresso;
   }
 
   // Calcular valor que ainda falta pagar
   getValorFaltanteMeta(meta: MetaExtended): number {
-    const valorMeta = Number(meta.valorMeta) || 0;
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
+    const valorMeta = this.toNum(meta.valorMeta || 0);
+
+    // Somar somente meses com status Pago
     const valorPago = (meta.meses ?? [])
       .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
+      .reduce((s, x) => s + this.toNum(x.valor), 0);
 
-    const totalRealizado = valorAtual + valorPago;
-    return Math.max(0, valorMeta - totalRealizado);
+    // Dinheiro guardado (Quanto já temos)
+    const valorGuardado = this.toNum(meta.valorAtual || 0);
+
+    // Total realizado = meses pagos + guardado
+    const valorTotal = valorPago + valorGuardado;
+
+    // Faltante
+    const faltante = Math.max(0, valorMeta - valorTotal);
+
+    return faltante;
   }
 
-  // Calcular valor total realizado (quanto já temos + quanto já pagamos)
+  // ja pago
   getValorRealizadoMeta(meta: MetaExtended): number {
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
-    const valorPago = (meta.meses ?? [])
-      .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
+    // CORREÇÃO: Usar apenas a soma dos meses com status "Pago"
+    // O valorAtual (quanto já temos) é dinheiro guardado separadamente
+    // Para o progresso, contamos apenas o que foi efetivamente pago nos meses
+    // const valorPago = (meta.meses ?? [])
+    //   .filter((x) => x.status === 'Pago')
+    //   .reduce((s, x) => s + this.toNum(x.valor), 0); // "Quanto já pagamos"
 
-    return valorAtual + valorPago;
+    // DEBUG: Log detalhado para debugar o problema
+    // console.log(
+    //   `🔍 DEBUG getValorRealizadoMeta para meta ${meta.id} (${meta.nome}):`,
+    //   {
+    //     valorAtual: meta.valorAtual,
+    //     mesesPagos: (meta.meses ?? [])
+    //       .filter((x) => x.status === 'Pago')
+    //       .map((m) => ({
+    //         nome: m.nome,
+    //         valor: m.valor,
+    //         status: m.status,
+    //       })),
+    //     valorPago: valorPago,
+    //     resultado: valorPago,
+    //   }
+    // );
+
+    return (meta.meses ?? [])
+      .filter((x) => x.status === 'Pago')
+      .reduce((s, x) => s + this.toNum(x.valor), 0);
+  }
+
+  // ja pago + guardado
+  getValorTotalComGuardado(meta: MetaExtended): number {
+    return this.getValorRealizadoMeta(meta) + (meta.valorAtual || 0);
   }
 
   adicionarMeta(): void {
@@ -471,16 +560,47 @@ export class MetasPageComponent implements OnInit {
     mesId: number;
     status: StatusMeta;
   }) {
-    const meta = this.metas.find((m) => String(m.id) === String(e.metaId));
-    if (!meta) return;
-    const mes = meta.meses.find((m) => m.id === e.mesId);
-    if (!mes) return;
+    console.log('🎯 onAlterarStatus recebido:', e);
 
+    const meta = this.metas.find((m) => String(m.id) === String(e.metaId));
+    if (!meta) {
+      console.error('❌ Meta não encontrada:', e.metaId);
+      return;
+    }
+    // Corrigir: usar mes_id em vez de id
+    const mes = meta.meses.find((m) => (m as any).mes_id === e.mesId);
+    if (!mes) {
+      console.error('❌ Mês não encontrado:', e.mesId);
+      return;
+    }
+
+    console.log('📊 Meta e mês encontrados:', {
+      metaId: meta.id,
+      mesId: e.mesId,
+      statusAtual: mes.status,
+    });
+
+    // Atualizar localmente primeiro
     mes.status = e.status;
+
+    // Usar o endpoint específico para atualizar o status
+    console.log('📤 Chamando updateStatusMes:', {
+      metaId: Number(meta.id),
+      mesId: e.mesId,
+      status: e.status,
+    });
     this.metasService
-      .updateMeta(meta.id, { meses: meta.meses })
-      .subscribe(() => {
-        this.recalcResumo();
+      .updateStatusMes(Number(meta.id), e.mesId, e.status)
+      .subscribe({
+        next: (metaAtualizada) => {
+          console.log('✅ updateStatusMes sucesso:', metaAtualizada);
+          // Recarregar todas as metas para garantir sincronização
+          this.reloadMetas();
+        },
+        error: (error) => {
+          console.error('❌ Erro ao alterar status:', error);
+          alert('Erro ao alterar status. Tente novamente.');
+        },
       });
   }
 
@@ -489,18 +609,79 @@ export class MetasPageComponent implements OnInit {
     mesId: number;
     valor: number;
   }) {
-    const meta = this.metas.find((m) => String(m.id) === String(e.metaId));
-    if (!meta) return;
-    const i = meta.meses.findIndex((m) => m.id === e.mesId);
-    if (i < 0) return;
+    // console.log('🔍 DEBUG: onSalvarValorMes - INÍCIO:', {
+    //   metaId: e.metaId,
+    //   mesId: e.mesId,
+    //   valor: e.valor,
+    // });
 
+    const meta = this.metas.find((m) => m.id == e.metaId);
+    if (!meta) return;
+
+    // console.log('🔍 DEBUG: onSalvarValorMes - META ENCONTRADA:', {
+    //   metaId: meta.id,
+    //   metaNome: meta.nome,
+    //   valorAtualAntes: meta.valorAtual,
+    // });
+
+    const i = meta.meses.findIndex((m) => (m as any).mes_id === e.mesId);
+    if (i === -1) return;
+
+    // Determinar o novo status baseado no valor
+    const novoStatus = e.valor > 0 ? 'Programado' : 'Vazio';
+
+    // Atualizar localmente primeiro
     meta.meses[i].valor = e.valor;
-    meta.meses[i].status = e.valor > 0 ? 'Programado' : 'Vazio';
-    this.metasService
-      .updateMeta(meta.id, { meses: meta.meses })
-      .subscribe(() => {
-        this.recalcResumo();
-      });
+    meta.meses[i].status = novoStatus;
+
+    // console.log('🔍 DEBUG: onSalvarValorMes - ANTES DE CHAMAR updateMes:', {
+    //   metaId: meta.id,
+    //   metaNome: meta.nome,
+    //   valorAtualAntes: meta.valorAtual,
+    //   mesId: e.mesId,
+    //   valorNovo: e.valor,
+    //   novoStatus: novoStatus,
+    // });
+
+    // Usar o endpoint específico para atualizar o valor do mês
+    this.metasService.updateMes(Number(meta.id), e.mesId, e.valor).subscribe({
+      next: (metaAtualizada) => {
+        // console.log('🔍 DEBUG: onSalvarValorMes - updateMes SUCESSO:', {
+        //   metaId: metaAtualizada.id,
+        //   metaNome: metaAtualizada.nome,
+        //   valorAtualRetornado: metaAtualizada.valorAtual,
+        // });
+
+        // Também atualizar o status se necessário
+        if (novoStatus !== 'Vazio') {
+          this.metasService
+            .updateStatusMes(Number(meta.id), e.mesId, novoStatus)
+            .subscribe({
+              next: (statusAtualizado) => {
+                // console.log(
+                //   '🔍 DEBUG: onSalvarValorMes - updateStatusMes SUCESSO:',
+                //   {
+                //     metaId: statusAtualizado.id,
+                //     metaNome: statusAtualizado.nome,
+                //     valorAtualRetornado: statusAtualizado.valorAtual,
+                //   }
+                // );
+                this.reloadMetas();
+              },
+              error: (error) => {
+                console.error('❌ Erro ao atualizar status:', error);
+                this.reloadMetas();
+              },
+            });
+        } else {
+          this.reloadMetas();
+        }
+      },
+      error: (error) => {
+        console.error('❌ Erro ao salvar valor do mês:', error);
+        alert('Erro ao salvar valor. Tente novamente.');
+      },
+    });
   }
 
   // Receber evento quando uma meta for completada (atingir 100%)
@@ -511,5 +692,11 @@ export class MetasPageComponent implements OnInit {
   }): void {
     // Aqui você pode adicionar lógica adicional se necessário
     // Por exemplo, mostrar uma notificação, salvar estatísticas, etc.
+  }
+
+  private valorAtualCache = new Map<number | string, number>();
+
+  onValorAtualFixado(e: { id: string | number; valor: number }) {
+    this.valorAtualCache.set(e.id, e.valor);
   }
 }
