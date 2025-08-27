@@ -1,9 +1,4 @@
-import {
-  Component,
-  HostListener,
-  OnInit,
-  ChangeDetectorRef,
-} from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
@@ -12,7 +7,6 @@ import {
   Meta,
   MetaExtended,
   ModalEdicao,
-  ModalEdicaoNome,
 } from '../../../../core/interfaces/mes-meta';
 import { ElaborandoMetasComponent } from '../../components/lista-metas/elaborando-metas/elaborando-metas.component';
 import { ExecutandoMetasComponent } from '../../components/lista-metas/executando-metas/executando-metas.component';
@@ -53,10 +47,7 @@ export class MetasPageComponent implements OnInit {
   totalContribuicoesView = 0;
   camposProcessados = new Set<string>();
 
-  constructor(
-    private metasService: MetasService,
-    private cdr: ChangeDetectorRef
-  ) {}
+  constructor(private metasService: MetasService) {}
 
   private readonly MESES_PADRAO = [
     'Janeiro',
@@ -279,11 +270,11 @@ export class MetasPageComponent implements OnInit {
 
     // Usar POST simples para deixar o json-server gerar o ID
     this.metasService.createMeta(body).subscribe({
-      next: (created) => {
+      next: (_created) => {
         // Recarregar as metas do servidor para ter o ID correto
         this.reloadMetas();
       },
-      error: (e) => {
+      error: (_e) => {
         alert('Erro ao criar meta. Tente novamente.');
       },
     });
@@ -360,7 +351,7 @@ export class MetasPageComponent implements OnInit {
           setTimeout(() => (meta.savedTickCampo = false), 1200);
           this.reloadMetas();
         },
-        error: (e) => {
+        error: (_e) => {
           alert('Erro ao salvar. Tente novamente.');
         },
       });
@@ -398,7 +389,7 @@ export class MetasPageComponent implements OnInit {
         this.recalcResumo();
         this.reloadMetas();
       },
-      error: (e) => {
+      error: (_e) => {
         alert('Erro ao salvar. Tente novamente.');
       },
     });
@@ -460,7 +451,7 @@ export class MetasPageComponent implements OnInit {
       next: () => {
         this.reloadMetas();
       },
-      error: (e) => {
+      error: (_e) => {
         // Erro ao remover meta
       },
     });
@@ -504,7 +495,7 @@ export class MetasPageComponent implements OnInit {
   }
 
   // Receber evento quando uma meta for completada (atingir 100%)
-  onMetaCompleta(event: {
+  onMetaCompleta(_event: {
     metaId: string | number;
     metaNome: string;
     valorMeta: number;

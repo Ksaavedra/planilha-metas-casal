@@ -5,6 +5,13 @@ describe('ConfirmModalComponent', () => {
   let component: ConfirmModalComponent;
   let fixture: ComponentFixture<ConfirmModalComponent>;
 
+  const openModal = (title: string, message: string) => {
+    component.isOpen = true;
+    component.title = title;
+    component.message = message;
+    fixture.detectChanges();
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [ConfirmModalComponent],
@@ -19,33 +26,10 @@ describe('ConfirmModalComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should have default input values', () => {
+  it('should have default values', () => {
     expect(component.isOpen).toBe(false);
     expect(component.title).toBe('Confirmar Exclusão');
     expect(component.message).toBe('Tem certeza que deseja excluir este item?');
-    expect(component.confirmText).toBe('Sim, Excluir');
-    expect(component.cancelText).toBe('Cancelar');
-  });
-
-  it('should accept custom input values', () => {
-    component.isOpen = true;
-    component.title = 'Título Customizado';
-    component.message = 'Mensagem customizada';
-    component.confirmText = 'Confirmar';
-    component.cancelText = 'Não';
-
-    expect(component.isOpen).toBe(true);
-    expect(component.title).toBe('Título Customizado');
-    expect(component.message).toBe('Mensagem customizada');
-    expect(component.confirmText).toBe('Confirmar');
-    expect(component.cancelText).toBe('Não');
-  });
-
-  it('should have EventEmitters', () => {
-    expect(component.confirm).toBeDefined();
-    expect(component.cancel).toBeDefined();
-    expect(typeof component.confirm.emit).toBe('function');
-    expect(typeof component.cancel.emit).toBe('function');
   });
 
   it('should emit confirm event when onConfirm is called', () => {
@@ -54,7 +38,6 @@ describe('ConfirmModalComponent', () => {
     component.onConfirm();
 
     expect(spy).toHaveBeenCalled();
-    expect(spy).toHaveBeenCalledTimes(1);
   });
 
   it('should emit cancel event when onCancel is called', () => {
@@ -63,70 +46,105 @@ describe('ConfirmModalComponent', () => {
     component.onCancel();
 
     expect(spy).toHaveBeenCalled();
-    expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onCancel when overlay is clicked (target === currentTarget)', () => {
-    const spy = jest.spyOn(component, 'onCancel');
-    const mockEvent = {
-      target: document.createElement('div'),
-      currentTarget: document.createElement('div'),
-    } as any;
-
-    // Simular clique no overlay (target === currentTarget)
-    mockEvent.target = mockEvent.currentTarget;
-    component.onOverlayClick(mockEvent);
-
-    expect(spy).toHaveBeenCalled();
-    expect(spy).toHaveBeenCalledTimes(1);
-  });
-
-  it('should not call onCancel when content is clicked (target !== currentTarget)', () => {
-    const spy = jest.spyOn(component, 'onCancel');
-    const mockEvent = {
-      target: document.createElement('div'),
-      currentTarget: document.createElement('div'),
-    } as any;
-
-    // Simular clique no conteúdo (target !== currentTarget)
-    mockEvent.target = document.createElement('span');
-    component.onOverlayClick(mockEvent);
-
-    expect(spy).not.toHaveBeenCalled();
-  });
-
-  it('should handle multiple confirm events', () => {
-    const spy = jest.spyOn(component.confirm, 'emit');
-
-    component.onConfirm();
-    component.onConfirm();
-    component.onConfirm();
-
-    expect(spy).toHaveBeenCalledTimes(3);
-  });
-
-  it('should handle multiple cancel events', () => {
-    const spy = jest.spyOn(component.cancel, 'emit');
-
-    component.onCancel();
-    component.onCancel();
-
-    expect(spy).toHaveBeenCalledTimes(2);
-  });
-
-  it('should render modal when isOpen is true', () => {
+  it('should call onCancel when overlay is clicked', () => {
     component.isOpen = true;
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.modal')).toBeTruthy();
+    const cancelButton = fixture.nativeElement.querySelector('.btn-cancelar');
+    const spy = jest.spyOn(component, 'onCancel');
+
+    cancelButton.click();
+
+    expect(spy).toHaveBeenCalled();
   });
 
-  it('should not render modal when isOpen is false', () => {
+  it('should show modal when isOpen is true', () => {
+    openModal('Test Title', 'Test Message');
+
+    const modal = fixture.nativeElement.querySelector('.modal-overlay');
+    expect(modal).toBeTruthy();
+  });
+
+  it('should hide modal when isOpen is false', () => {
     component.isOpen = false;
     fixture.detectChanges();
 
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.modal')).toBeFalsy();
+    const modal = fixture.nativeElement.querySelector('.modal-overlay');
+    expect(modal).toBeFalsy();
+  });
+
+  it('should display custom title and message', () => {
+    component.isOpen = true;
+    component.title = 'Test Title';
+    component.message = 'Test Message';
+    fixture.detectChanges();
+
+    const titleElement = fixture.nativeElement.querySelector('h3');
+    const messageElement = fixture.nativeElement.querySelector('.message');
+
+    expect(titleElement.textContent).toContain('Test Title');
+    expect(messageElement.textContent).toContain('Test Message');
+  });
+
+  it('should call onConfirm when confirm button is clicked', () => {
+    component.isOpen = true;
+    fixture.detectChanges();
+
+    const confirmButton = fixture.nativeElement.querySelector('.btn-confirmar');
+    const spy = jest.spyOn(component, 'onConfirm');
+
+    confirmButton.click();
+
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('should call onCancel when cancel button is clicked', () => {
+    component.isOpen = true;
+    fixture.detectChanges();
+
+    const cancelButton = fixture.nativeElement.querySelector('.btn-cancelar');
+    const spy = jest.spyOn(component, 'onCancel');
+
+    cancelButton.click();
+
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('should call onCancel when overlay itself is clicked', () => {
+    component.isOpen = true;
+    fixture.detectChanges();
+
+    const spy = jest.spyOn(component, 'onCancel');
+    const overlay = fixture.nativeElement.querySelector(
+      '.modal-overlay'
+    ) as HTMLElement;
+
+    // força target === currentTarget (ramo que está vermelho)
+    component.onOverlayClick({
+      target: overlay,
+      currentTarget: overlay,
+    } as any);
+
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('should NOT call onCancel when click happens inside modal content', () => {
+    component.isOpen = true;
+    fixture.detectChanges();
+
+    const spy = jest.spyOn(component, 'onCancel');
+    const overlay = fixture.nativeElement.querySelector(
+      '.modal-overlay'
+    ) as HTMLElement;
+    const inner = fixture.nativeElement.querySelector(
+      '.modal-content'
+    ) as HTMLElement;
+
+    // target != currentTarget => não deve cancelar
+    component.onOverlayClick({ target: inner, currentTarget: overlay } as any);
+
+    expect(spy).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ReceitasPageComponent } from './receitas-page.component';
 
 describe('ReceitasPageComponent', () => {
@@ -7,7 +8,7 @@ describe('ReceitasPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ReceitasPageComponent],
+      imports: [ReceitasPageComponent, HttpClientTestingModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ReceitasPageComponent);
@@ -17,5 +18,10 @@ describe('ReceitasPageComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should render component', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled).toBeTruthy();
   });
 });

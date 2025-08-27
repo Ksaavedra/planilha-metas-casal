@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  ChangeDetectorRef,
   Component,
   EventEmitter,
   Input,
@@ -102,10 +101,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
       (nome, i) =>
         byName.get(nome) ?? { id: i + 1, nome, valor: 0, status: 'Vazio' }
     );
-  }
-
-  private toNum(v: any): number {
-    return typeof v === 'number' ? v : Number(v ?? 0) || 0;
   }
 
   // Métodos para edição de valores
@@ -299,7 +294,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
             status: 'Finalizado' as any,
           });
         },
-        error: (error) => {
+        error: (_error) => {
           // Erro ao finalizar meta
         },
       });

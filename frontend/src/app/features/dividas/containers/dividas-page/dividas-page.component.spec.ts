@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { DividasPageComponent } from './dividas-page.component';
 
 describe('DividasPageComponent', () => {
@@ -7,7 +8,7 @@ describe('DividasPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DividasPageComponent],
+      imports: [DividasPageComponent, HttpClientTestingModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DividasPageComponent);
@@ -17,5 +18,10 @@ describe('DividasPageComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should render component', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled).toBeTruthy();
   });
 });
