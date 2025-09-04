@@ -3,7 +3,7 @@ import { BaseEntity, Categoria } from './common';
 export interface Despesa extends BaseEntity {
   tipoDespesa: TipoDespesa;
   recorrente: boolean;
-  frequencia?: FrequenciaRecorrencia;
+  frequencia?: DespesaFrequenciaRecorrencia;
   dataFimRecorrencia?: Date;
   parcelada: boolean;
   numeroParcelas?: number;
@@ -22,7 +22,7 @@ export enum TipoDespesa {
   OUTROS = 'outros',
 }
 
-export enum FrequenciaRecorrencia {
+export enum DespesaFrequenciaRecorrencia {
   SEMANAL = 'semanal',
   QUINZENAL = 'quinzenal',
   MENSAL = 'mensal',
@@ -39,7 +39,7 @@ export interface DespesaForm {
   categoria: Categoria;
   tipoDespesa: TipoDespesa;
   recorrente: boolean;
-  frequencia?: FrequenciaRecorrencia;
+  frequencia?: DespesaFrequenciaRecorrencia;
   dataFimRecorrencia?: Date;
   parcelada: boolean;
   numeroParcelas?: number;
@@ -59,12 +59,12 @@ export const TIPOS_DESPESA = [
   { value: TipoDespesa.OUTROS, label: 'Outros' },
 ];
 
-export const FREQUENCIAS_RECORRENCIA = [
-  { value: FrequenciaRecorrencia.SEMANAL, label: 'Semanal' },
-  { value: FrequenciaRecorrencia.QUINZENAL, label: 'Quinzenal' },
-  { value: FrequenciaRecorrencia.MENSAL, label: 'Mensal' },
-  { value: FrequenciaRecorrencia.BIMESTRAL, label: 'Bimestral' },
-  { value: FrequenciaRecorrencia.TRIMESTRAL, label: 'Trimestral' },
-  { value: FrequenciaRecorrencia.SEMESTRAL, label: 'Semestral' },
-  { value: FrequenciaRecorrencia.ANUAL, label: 'Anual' },
+export const DESPESA_FREQUENCIAS_RECORRENCIA = [
+  { value: DespesaFrequenciaRecorrencia.SEMANAL, label: 'Semanal' },
+  { value: DespesaFrequenciaRecorrencia.QUINZENAL, label: 'Quinzenal' },
+  { value: DespesaFrequenciaRecorrencia.MENSAL, label: 'Mensal' },
+  { value: DespesaFrequenciaRecorrencia.BIMESTRAL, label: 'Bimestral' },
+  { value: DespesaFrequenciaRecorrencia.TRIMESTRAL, label: 'Trimestral' },
+  { value: DespesaFrequenciaRecorrencia.SEMESTRAL, label: 'Semestral' },
+  { value: DespesaFrequenciaRecorrencia.ANUAL, label: 'Anual' },
 ];

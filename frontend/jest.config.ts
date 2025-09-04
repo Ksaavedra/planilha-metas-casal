@@ -15,35 +15,41 @@ const config: Config = {
     '!src/environments/**',
     '!src/**/index.ts',
   ],
-
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
+  },
   transform: {
-    '^.+\\.(ts|mjs|js|html|svg)$': [
+    '^.+\\.(ts|mjs|js|html)$': [
       'jest-preset-angular',
       {
         tsconfig: '<rootDir>/tsconfig.spec.json',
         useESM: true,
-        stringifyContentPathRegex: '\\.(html|svg)$', // <- inline HTML/SVG
+        stringifyContentPathRegex: '\\.(html|svg)$',
       },
     ],
   },
-
-  // Somente .ts aqui
   extensionsToTreatAsEsm: ['.ts'],
-
   moduleFileExtensions: ['ts', 'html', 'js', 'mjs', 'json'],
-
   transformIgnorePatterns: [
     'node_modules/(?!(@angular|rxjs|tslib|ngx-echarts|echarts)/)',
   ],
-
   testEnvironmentOptions: {
     customExportConditions: ['node', 'jest', 'browser'],
   },
-
-  // (opcional) se algum estilo escapar do strip-styles, faça um stub:
   moduleNameMapper: {
     '\\.(css|scss)$': '<rootDir>/style.stub.js',
+    '^ngx-echarts$': '<rootDir>/__mocks__/ngx-echarts.ts',
     '^echarts$': '<rootDir>/__mocks__/echarts.ts',
+  },
+  globals: {
+    'ts-jest': {
+      useESM: true,
+    },
   },
 };
 
