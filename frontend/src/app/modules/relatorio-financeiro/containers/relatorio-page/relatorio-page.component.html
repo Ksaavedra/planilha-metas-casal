@@ -1,0 +1,76 @@
+<div class="relatorio-container">
+  <!-- Header -->
+  <div class="header" style="background: #2196F3; color: white; padding: 20px; text-align: center;">
+    <h1>💰 Relatório Financeiro {{ anoSelecionado }}</h1>
+    <div class="year-selector">
+      <label for="anoSelect" style="margin-right: 10px;">Ano: </label>
+      <select id="anoSelect" [(ngModel)]="anoSelecionado" (change)="onAnoChange()">
+        <option value="2020">2020</option>
+        <option value="2021">2021</option>
+        <option value="2022">2022</option>
+        <option value="2023">2023</option>
+        <option value="2024">2024</option>
+        <option value="2025">2025</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Tabela de Dados -->
+  <div class="data-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Categoria</th>
+          <th *ngFor="let mes of meses">{{ mes }}</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="receitas-row">
+          <td>Receitas</td>
+          <td *ngFor="let valor of dadosReceitas">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td>{{ totalReceitas | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="despesas-row">
+          <td>Despesas</td>
+          <td *ngFor="let valor of dadosDespesas">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td>{{ totalDespesas | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="dividas-row">
+          <td>Dívidas pagas</td>
+          <td *ngFor="let valor of dadosDividas">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td>{{ totalDividas | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="investimentos-row">
+          <td>Investimentos realizados</td>
+          <td *ngFor="let valor of dadosInvestimentos">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td>{{ totalInvestimentos | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="total-row">
+          <td>Total</td>
+          <td *ngFor="let valor of dadosTotal; let i = index" [class.negative]="valor < 0"
+            [class.positive]="valor >= 0">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td [class.negative]="saldoTotal < 0" [class.positive]="saldoTotal >= 0">
+            {{ saldoTotal | currency : 'BRL' }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Gráficos em Desenvolvimento -->
+  <div style="padding: 20px; text-align: center; background: #f5f5f5; margin: 20px 0;">
+    <h2>📊 Gráficos em Desenvolvimento</h2>
+    <p>Os gráficos serão implementados em breve!</p>
+  </div>
+</div>

@@ -1,0 +1,31 @@
+<div class="metas-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-banner">
+      <span>PLANO DE METAS DO CASAL</span>
+    </div>
+    <div class="header-content">
+      <div class="title-banner">
+        <span class="material-icons">trending_up</span>
+        <span>Aqui os sonhos de vocês se tornam realidade</span>
+        <span class="material-icons">trending_up</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seção 1: Elaborando as Metas do Casal -->
+  <app-elaborando-metas [metas]="metas" [percentualPagoView]="percentualPagoView"
+    [totalValorMetaView]="totalValorMetaView" [totalValorPorMesView]="totalValorPorMesView"
+    [totalMesesNecessariosView]="totalMesesNecessariosView" [totalValorAtualView]="totalValorAtualView"
+    [totalContribuicoesView]="totalContribuicoesView" (metasAtualizadas)="reloadMetas()" (addMeta)="adicionarMeta()"
+    (confirmar)="onConfirmarCampo($event)" (remover)="removerMeta($event)">
+  </app-elaborando-metas>
+
+  <!-- Tabela de Progresso -->
+  <app-progress-table [metas]="metas"></app-progress-table>
+
+  <!-- Seção 2: Executando as Metas do Casal -->
+  <app-executando-metas [meses]="meses" [metas]="metas" [totalContribuicoesView]="totalContribuicoesView"
+    (alternarStatus)="onAlterarStatus($event)" (salvarValor)="onSalvarValorMes($event)"
+    (metaCompleta)="onMetaCompleta($event)">
+  </app-executando-metas>
