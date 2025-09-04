@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL_MYSQL")
+}
+
+/* ================== Enums ================== */
+enum StatusMes {
+  VAZIO
+  PROGRAMADO
+  PAGO
+}
+
+enum StatusReceita {
+  VAZIO
+  PROGRAMADO
+  RECEBIDO
+}
+
+enum StatusDespesa {
+  VAZIO
+  PROGRAMADO
+  PAGO
+}
+
+enum StatusDivida {
+  ABERTA
+  FECHADA
+  PROGRAMADO
+  PAGO
+}
+
+enum StatusParcela {
+  PROGRAMADO
+  PAGO
+  ATRASO
+  CANCELADO
+}
+
+enum StatusAporte {
+  VAZIO
+  PROGRAMADO
+  REALIZADO
+}
+
+enum StatusRetirada {
+  VAZIO
+  PROGRAMADO
+  RETIRADO
+  SEM_RETIRADA
+}
+
+enum TipoRenda {
+  ATIVA
+  PASSIVA
+  EXTRA
+}
+
+enum CategoriaInvestimento {
+  reserva_emergencia
+  renda_fixa
+  fii
+  acoes
+  bdrs
+  etf
+  poupanca
+  exterior
+  dolar
+}
+
+/* ================== Tabelas de apoio ================== */
+model Meses {
+  id              Int             @id @map("id") // 1..12 (seed)
+  nome            String          @db.VarChar(12)
+  numero          Int             @unique @map("numero")
+
+  mesesMeta       MesesMeta[]
+  receitas        Receita[]
+  despesas        Despesa[]
+  investAportes   InvestAporte[]
+  investRetiradas InvestRetirada[]
+
+  @@map("meses")
+}
+
+model Conjuge {
+  codigo    String   @id @db.VarChar(2) // 'C1','C2','C3'
+  descricao String   @db.VarChar(50)
+
+  receitas Receita[]
+  despesas Despesa[]
+  dividas  Divida[]
+
+  @@map("conjuge")
+}
+
+model Categoria {
+  id         Int       @id @default(autoincrement())
+  grupo      String    @db.VarChar(30)
+  nome       String    @db.VarChar(60)
+  ativo      Boolean   @default(true)
+  created_at DateTime  @default(now()) @db.DateTime(6)
+  updated_at DateTime  @updatedAt @db.DateTime(6)
+
+  despesas   Despesa[]
+
+  @@unique([grupo, nome])
+  @@map("categoria")
+}
+
+/* ================== Metas ================== */
+model MetaCasal {
+  id               Int        @id @default(autoincrement())
+  nome             String     @db.VarChar(120)
+  valorMeta        Decimal    @db.Decimal(12, 2)
+  valorPorMes      Decimal    @db.Decimal(12, 2)
+  mesesNecessario  Int
+  valorAtual       Decimal    @default(0) @db.Decimal(12, 2)
+  created_at       DateTime   @default(now()) @db.DateTime(6)
+  updated_at       DateTime   @updatedAt @db.DateTime(6)
+
+  mesesMeta        MesesMeta[]
+
+  @@map("metaCasal")
+}
+
+model MesesMeta {
+  id           Int        @id @default(autoincrement())
+  metaCasal_id Int
+  meses_id     Int
+  valor        Decimal    @default(0) @db.Decimal(12, 2)
+  status       StatusMes?
+  created_at   DateTime   @default(now()) @db.DateTime(6)
+  updated_at   DateTime   @updatedAt @db.DateTime(6)
+
+  metaCasal MetaCasal @relation(fields: [metaCasal_id], references: [id])
+  mes      Meses     @relation(fields: [meses_id], references: [id])
+
+  @@unique([metaCasal_id, meses_id])
+  @@map("mesesMeta")
+}
+
+/* ================== Receitas ================== */
+model Receita {
+  id             Int           @id @default(autoincrement())
+  descricao      String        @db.VarChar(120)
+  tipo_renda     TipoRenda
+  conjuge_codigo String?       @db.VarChar(2)
+  dia            Int?
+  meses_id       Int
+  valor          Decimal       @db.Decimal(12, 2)
+  status         StatusReceita?
+  created_at     DateTime      @default(now()) @db.DateTime(6)
+  updated_at     DateTime      @updatedAt @db.DateTime(6)
+
+  conjuge Conjuge? @relation(fields: [conjuge_codigo], references: [codigo])
+  mes     Meses    @relation(fields: [meses_id], references: [id])
+
+  @@index([meses_id])
+  @@index([conjuge_codigo])
+  @@index([status])
+  @@map("receita")
+}
+
+/* ================== Despesas ================== */
+model Despesa {
+  id             Int           @id @default(autoincrement())
+  descricao      String        @db.VarChar(120)
+  conjuge_codigo String?       @db.VarChar(2)
+  meses_id       Int
+  categoria_id   Int
+  valor          Decimal       @db.Decimal(12, 2)
+  status         StatusDespesa?
+  created_at     DateTime      @default(now()) @db.DateTime(6)
+  updated_at     DateTime      @updatedAt @db.DateTime(6)
+
+  conjuge   Conjuge?  @relation(fields: [conjuge_codigo], references: [codigo])
+  mes       Meses     @relation(fields: [meses_id], references: [id])
+  categoria Categoria @relation(fields: [categoria_id], references: [id])
+
+  @@index([meses_id])
+  @@index([categoria_id])
+  @@index([conjuge_codigo])
+  @@index([status])
+  @@map("despesa")
+}
+
+/* ================== Dívidas ================== */
+model Divida {
+  id             Int          @id @default(autoincrement())
+  descricao      String       @db.VarChar(120)
+  conjuge_codigo String?      @db.VarChar(2)
+  valor_total    Decimal      @db.Decimal(12, 2)
+  parcelas_total Int
+  valor_parcela  Decimal      @db.Decimal(12, 2)
+  data_inicio    DateTime?    @db.Date
+  status         StatusDivida?
+  created_at     DateTime     @default(now()) @db.DateTime(6)
+  updated_at     DateTime     @updatedAt @db.DateTime(6)
+
+  conjuge  Conjuge?        @relation(fields: [conjuge_codigo], references: [codigo])
+  parcelas DividaParcela[]
+
+  @@map("divida")
+}
+
+model DividaParcela {
+  id         Int           @id @default(autoincrement())
+  divida_id  Int
+  numero     Int
+  valor      Decimal       @db.Decimal(12, 2)
+  vencimento DateTime?     @db.Date
+  pago_em    DateTime?     @db.Date
+  status     StatusParcela?
+
+  divida Divida @relation(fields: [divida_id], references: [id])
+
+  @@unique([divida_id, numero])
+  @@index([status])
+  @@map("divida_parcela")
+}
+
+/* ================== Investimentos ================== */
+model Investimento {
+  id         Int                    @id @default(autoincrement())
+  descricao  String                 @db.VarChar(120)
+  categoria  CategoriaInvestimento
+  meta_valor Decimal?               @db.Decimal(12, 2)
+  created_at DateTime               @default(now()) @db.DateTime(6)
+  updated_at DateTime               @updatedAt @db.DateTime(6)
+
+  aportes   InvestAporte[]
+  retiradas InvestRetirada[]
+
+  @@map("investimento")
+}
+
+model InvestAporte {
+  id              Int         @id @default(autoincrement())
+  investimento_id Int
+  meses_id        Int
+  valor           Decimal     @db.Decimal(12, 2)
+  status          StatusAporte?
+  data            DateTime?   @db.Date
+
+  investimento Investimento @relation(fields: [investimento_id], references: [id])
+  mes          Meses        @relation(fields: [meses_id], references: [id])
+
+  @@index([investimento_id])
+  @@index([meses_id])
+  @@index([status])
+  @@map("invest_aporte")
+}
+
+model InvestRetirada {
+  id              Int           @id @default(autoincrement())
+  investimento_id Int
+  meses_id        Int
+  valor           Decimal       @db.Decimal(12, 2)
+  status          StatusRetirada?
+  data            DateTime?     @db.Date
+
+  investimento Investimento @relation(fields: [investimento_id], references: [id])
+  mes          Meses        @relation(fields: [meses_id], references: [id])
+
+  @@index([investimento_id])
+  @@index([meses_id])
+  @@index([status])
+  @@map("invest_retirada")
+}

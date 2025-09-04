@@ -1,0 +1,160 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum StatusMes {
+  Vazio
+  Programado
+  Pago
+}
+
+enum StatusReceita {
+  Vazio
+  Programado
+  Recebido
+}
+
+enum StatusDespesa {
+  Vazio
+  Programado
+  Pago
+}
+
+enum TipoRenda {
+  Ativa
+  Passiva
+  Extra
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  nome      String
+  senha     String
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  metas     Meta[]
+  receitas  Receita[]
+  despesas  Despesa[]
+  categorias Categoria[]
+
+  @@map("usuarios")
+}
+
+model Meta {
+  id                 Int         @id @default(autoincrement())
+  nome               String
+  valorMeta          Float
+  valorPorMes        Float
+  mesesNecessarios   Int
+  valorAtual         Float       @default(0)
+  usuarioId          Int
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  // Relacionamentos
+  usuario            Usuario     @relation(fields: [usuarioId], references: [id])
+  meses              MesesMeta[]
+
+  @@map("metas")
+}
+
+model MesesMeta {
+  id       Int      @id @default(autoincrement())
+  metaId   Int
+  mes_id   Int
+  valor    Float    @default(0)
+  status   StatusMes @default(Vazio)
+
+  // Relacionamentos
+  meta    Meta     @relation(fields: [metaId], references: [id], onDelete: Cascade)
+  mes     Meses    @relation(fields: [mes_id], references: [id])
+
+  @@unique([metaId, mes_id])
+  @@map("meses_meta")
+}
+
+model Categoria {
+  id          Int      @id @default(autoincrement())
+  nome        String
+  tipo        String   // 'receita' ou 'despesa'
+  descricao   String?
+  ativo       Boolean  @default(true)
+  usuarioId   Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
+  receitas   Receita[]
+  despesas   Despesa[]
+
+  @@map("categorias")
+}
+
+model Meses {
+  id     Int    @id @default(autoincrement())
+  nome   String
+  numero Int
+
+  // Relacionamentos
+  mesesMeta MesesMeta[]
+  receitas  Receita[]
+  despesas  Despesa[]
+
+  @@map("meses")
+}
+
+model Receita {
+  id           Int           @id @default(autoincrement())
+  mes_id       Int
+  categoriaId  Int
+  descricao    String
+  valor        Float
+  status       StatusReceita @default(Vazio)
+  tipo         TipoRenda
+  data         DateTime?
+  observacao   String?
+  usuarioId    Int
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relacionamentos
+  categoria   Categoria     @relation(fields: [categoriaId], references: [id])
+  mes         Meses         @relation(fields: [mes_id], references: [id])
+  usuario     Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@map("receitas")
+}
+
+model Despesa {
+  id           Int           @id @default(autoincrement())
+  mes_id       Int
+  categoriaId  Int
+  descricao    String
+  valor        Float
+  status       StatusDespesa @default(Vazio)
+  data         DateTime?
+  observacao   String?
+  usuarioId    Int
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  // Relacionamentos
+  categoria   Categoria     @relation(fields: [categoriaId], references: [id])
+  mes         Meses         @relation(fields: [mes_id], references: [id])
+  usuario     Usuario       @relation(fields: [usuarioId], references: [id])
+
+  @@map("despesas")
+}
