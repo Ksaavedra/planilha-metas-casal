@@ -1,0 +1,12 @@
+<main id="logged">
+  <app-header (showOverlay)="onShowOverlay($event)"></app-header>
+
+  <div class="content-wrapper">
+    <app-sidebar></app-sidebar>
+
+    <div class="main-content" [class.mobile-layout]="isMobile" [class.sidebar-open]="sidebarStatus"
+      [class.sidebar-closed]="!sidebarStatus" [class.show-overlay]="sidebarStatus">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</main>
