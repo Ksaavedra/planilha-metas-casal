@@ -17,11 +17,11 @@ describe('AppComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create the app', () => {
+  it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should start with sidebar closed', () => {
+  it('should have sidebar closed by default', () => {
     expect(component.sidebarOpen).toBe(false);
   });
 
@@ -36,8 +36,15 @@ describe('AppComponent', () => {
   });
 
   it('should close sidebar when closeSidebar is called', () => {
-    component.sidebarOpen = true;
+    component.toggleSidebar(); // Open sidebar first
     expect(component.sidebarOpen).toBe(true);
+
+    component.closeSidebar();
+    expect(component.sidebarOpen).toBe(false);
+  });
+
+  it('should keep sidebar closed when closeSidebar is called on already closed sidebar', () => {
+    expect(component.sidebarOpen).toBe(false);
 
     component.closeSidebar();
     expect(component.sidebarOpen).toBe(false);

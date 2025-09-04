@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './parabens-modal.component.html',
-  styleUrl: './parabens-modal.component.scss',
+  styleUrls: ['./parabens-modal.component.scss'],
 })
 export class ParabensModalComponent {
   @Input() isOpen = false;

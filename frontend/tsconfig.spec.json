@@ -1,14 +1,16 @@
-/* To learn more about this file see: https://angular.io/config/tsconfig. */
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/spec",
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
-  "include": [
-    "src/**/*.spec.ts",
-    "src/**/*.test.ts",
-    "src/**/*.d.ts",
-    "setup-jest.ts"
-  ]
+  "files": ["setup-jest.ts", "src/polyfills.ts"],
+  "include": ["src/**/*.spec.ts", "src/**/*.d.ts"]
 }

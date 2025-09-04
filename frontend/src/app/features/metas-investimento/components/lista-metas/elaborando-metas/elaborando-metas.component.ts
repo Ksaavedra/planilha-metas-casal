@@ -22,7 +22,7 @@ import { ParabensModalComponent } from '../../modals/parabens-modal/parabens-mod
     ParabensModalComponent,
   ],
   templateUrl: './elaborando-metas.component.html',
-  styleUrl: './elaborando-metas.component.scss',
+  styleUrls: ['./elaborando-metas.component.scss'],
 })
 export class ElaborandoMetasComponent {
   @Input() metas: MetaExtended[] = [];
@@ -309,7 +309,7 @@ export class ElaborandoMetasComponent {
           setTimeout(() => (meta.savedTickCampo = false), 1200);
           this.metasAtualizadas.emit();
         },
-        error: (e) => {
+        error: (_e) => {
           alert('Erro ao salvar. Tente novamente.');
         },
       });
@@ -347,7 +347,7 @@ export class ElaborandoMetasComponent {
         this.recalcResumo();
         this.reloadMetas();
       },
-      error: (e) => {
+      error: (_e) => {
         alert('Erro ao salvar. Tente novamente.');
       },
     });
@@ -553,7 +553,7 @@ export class ElaborandoMetasComponent {
         next: () => {
           this.metasAtualizadas.emit();
         },
-        error: (error) => {
+        error: (_error) => {
           // Erro ao finalizar meta
         },
       });

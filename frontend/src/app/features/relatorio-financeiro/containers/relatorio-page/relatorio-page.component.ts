@@ -1,10 +1,8 @@
-import { Component, inject, ViewChild } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgxEchartsModule, NGX_ECHARTS_CONFIG } from 'ngx-echarts';
 import { EChartsOption } from 'echarts';
-import { AppStore } from '../../../../store/app.store';
-import { NgxEchartsDirective } from 'ngx-echarts';
 
 @Component({
   selector: 'app-relatorio-page',
@@ -22,8 +20,6 @@ import { NgxEchartsDirective } from 'ngx-echarts';
   styleUrls: ['./relatorio-page.component.scss'],
 })
 export class RelatorioPageComponent {
-  private store = inject(AppStore);
-
   meses = [
     'Janeiro',
     'Fevereiro',
@@ -668,52 +664,5 @@ export class RelatorioPageComponent {
     });
 
     return source;
-  }
-
-  private updateChart() {
-    // Atualizar o primeiro gráfico (Relatório de Saldo)
-    this.chartOption = {
-      ...this.chartOption,
-      dataset: {
-        source: this.getDatasetSource(),
-      },
-    };
-
-    // Atualizar o segundo gráfico (Receitas e Despesas)
-    this.chartOptionReceitasDespesas = {
-      ...this.chartOptionReceitasDespesas,
-      series: [
-        {
-          name: 'Receitas',
-          type: 'bar',
-          data: this.dadosReceitas,
-          itemStyle: { color: '#4CAF50' },
-          label: {
-            show: true,
-            position: 'top',
-            formatter: function (params: any) {
-              return `R$ ${params.value.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-              })}`;
-            },
-          },
-        },
-        {
-          name: 'Despesas',
-          type: 'bar',
-          data: this.dadosDespesas,
-          itemStyle: { color: '#F44336' },
-          label: {
-            show: true,
-            position: 'bottom',
-            formatter: function (params: any) {
-              return `R$ ${params.value.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-              })}`;
-            },
-          },
-        },
-      ],
-    };
   }
 }

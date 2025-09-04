@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './success-modal.component.html',
-  styleUrl: './success-modal.component.scss',
+  styleUrls: ['./success-modal.component.scss'],
 })
 export class SuccessModalComponent {
   @Input() isOpen = false;
@@ -29,7 +29,7 @@ export class SuccessModalComponent {
     this.close.emit();
   }
 
-  onBackdropClick(e?: MouseEvent): void {
+  onBackdropClick(_e?: MouseEvent): void {
     if (this.closeOnBackdrop) this.handleClose();
   }
 

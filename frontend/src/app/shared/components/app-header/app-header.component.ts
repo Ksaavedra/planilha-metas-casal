@@ -9,9 +9,11 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./app-header.component.scss'],
 })
 export class AppHeaderComponent {
-  @Output() sidebarToggle = new EventEmitter<void>();
+  @Output() sidebarToggle = new EventEmitter<boolean>();
+  private isSidebarOpen = false;
 
   toggleSidebar() {
-    this.sidebarToggle.emit();
+    this.isSidebarOpen = !this.isSidebarOpen;
+    this.sidebarToggle.emit(this.isSidebarOpen);
   }
 }
