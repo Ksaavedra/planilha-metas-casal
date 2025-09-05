@@ -27,3 +27,7 @@ README-JSON-SERVER.md
 *.tmp
 .DS_Store
 Thumbs.db
+
+# Database files
+*.db
+backend/prisma/dev.db
