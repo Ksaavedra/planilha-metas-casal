@@ -1,0 +1,102 @@
+<div class="section-execucao">
+  <div class="section-header">
+    <h2>EXECUTANDO AS METAS DO CASAL</h2>
+  </div>
+  <div class="table-container">
+    <table class="execucao-table">
+      <thead>
+        <tr>
+          <th>QUAL É A META?</th>
+          <th *ngFor="let mes of meses">{{ mes }}</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let meta of metas; let i = index;" [class.alternate]="i % 2 === 1">
+          <td>{{ meta.nome }}</td>
+          <td *ngFor="let mes of meta.meses" class="status-cell" [attr.data-meta-id]="meta.id"
+            [attr.data-mes-id]="mes.id">
+            <div class="status-dropdown-container">
+              <span class="valor-display" (click)="abrirModalEdicao(meta, mes.id)"
+                [class.valor-programado]="mes.status === 'Programado'" [class.valor-pago]="mes.status === 'Pago'"
+                [class.valor-vazio]="mes.status === 'Vazio'" title="Clique para editar o valor">
+                {{ formatBR(mes.valor) }}
+              </span>
+              <div class="status-indicator" (click)="toggleDropdown(meta, mes.id)"
+                [class.status-programado]="mes.status === 'Programado'" [class.status-pago]="mes.status === 'Pago'"
+                [class.status-vazio]="mes.status === 'Vazio'" title="Clique para alterar o status">
+                <span class="material-icons">expand_more</span>
+              </div>
+              <div class="status-dropdown" *ngIf="meta.dropdownOpen === mes.id" (click)="$event.stopPropagation()">
+                <div class="dropdown-option" (click)="selecionarStatus(meta, mes.id, 'Programado')"
+                  [class.selected]="mes.status === 'Programado'">
+                  Programado
+                </div>
+                <div class="dropdown-option" (click)="selecionarStatus(meta, mes.id, 'Pago')"
+                  [class.selected]="mes.status === 'Pago'">
+                  Pago
+                </div>
+                <div class="dropdown-option" (click)="selecionarStatus(meta, mes.id, 'Vazio')"
+                  [class.selected]="mes.status === 'Vazio'">
+                  Vazio
+                </div>
+              </div>
+            </div>
+          </td>
+          <td><strong>{{ getTotalContribuicoesMetaExtended(meta) | currency:'BRL' }}</strong></td>
+        </tr>
+        <tr class="total-row">
+          <td><strong>Total</strong></td>
+          <td *ngFor="let total of totalContribuicoesPorMes">
+            <strong>{{ total | currency:'BRL' }}</strong>
+          </td>
+          <td><strong>{{ totalContribuicoesView | currency:'BRL' }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="modal-overlay" *ngIf="modalEdicao.isOpen" (click)="fecharModalEdicao()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Editar Valor</h3>
+        <button class="modal-close" (click)="fecharModalEdicao()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="modal-info">
+          <p><strong>Meta:</strong> {{ modalEdicao.meta.nome }}</p>
+          <p><strong>Mês:</strong> {{ meses[modalEdicao.mesId - 1] }}</p>
+        </div>
+
+        <div class="modal-input-group">
+          <label for="valor-input">Valor:</label>
+          <div class="input-with-prefix">
+            <input id="valor-input" type="text" inputmode="decimal"
+              [ngModel]="modalEdicao.valor === 0 ? '' : modalEdicao.valor" (ngModelChange)="onValorChange($event)"
+              (keydown.enter)="salvarValorModal()" (blur)="onValorBlur()" (keypress)="validarApenasNumeros($event)"
+              class="modal-input" placeholder="0,00" autofocus>
+          </div>
+        </div>
+
+        <div class="modal-input-group">
+          <label>Resultado:</label>
+          <div class="resultado-formatado">
+            <span class="valor-formatado">{{ formatarMoeda(modalEdicao.valor) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-cancelar" (click)="cancelarEdicao()">
+          Cancelar
+        </button>
+        <button class="btn-salvar" (click)="salvarValorModal()">
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
