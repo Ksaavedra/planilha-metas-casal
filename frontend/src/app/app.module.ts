@@ -8,6 +8,7 @@ import { AppRoutingModule } from './app.routing';
 import { HttpClientModule } from '@angular/common/http';
 import { BrowserModule } from '@angular/platform-browser';
 import { ComponentsModule } from './core/components/components.module';
+import { RouterModule } from '@angular/router';
 
 @NgModule({
   declarations: [AppComponent],
@@ -16,6 +17,7 @@ import { ComponentsModule } from './core/components/components.module';
     HttpClientModule,
     BrowserModule,
     ComponentsModule,
+    RouterModule,
   ],
   providers: [],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
