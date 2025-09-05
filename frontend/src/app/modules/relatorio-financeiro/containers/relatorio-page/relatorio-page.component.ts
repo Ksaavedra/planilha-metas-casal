@@ -25,6 +25,17 @@ export class RelatorioPageComponent {
   anosDisponiveis = [2020, 2021, 2022, 2023, 2024, 2025];
   anoSelecionado = 2024;
 
+  // Propriedades de dados
+  dadosReceitas: number[] = [];
+  dadosDespesas: number[] = [];
+  dadosDividas: number[] = [];
+  dadosInvestimentos: number[] = [];
+  dadosTotal: number[] = [];
+  totalReceitas = 0;
+  totalDespesas = 0;
+  totalDividas = 0;
+  totalInvestimentos = 0;
+
   // Dados organizados por ano
   dadosPorAno: {
     [ano: number]: {
@@ -119,7 +130,7 @@ export class RelatorioPageComponent {
       textStyle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#6b7280',
       },
     },
     legend: {
@@ -138,10 +149,10 @@ export class RelatorioPageComponent {
         const cor = params.color;
 
         let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
-        result += `<div style="font-size: 14px; color: #333; margin-bottom: 4px;">${mes} - ${ano}</div>`;
+        result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${mes} - ${ano}</div>`;
         result += `<div style="display: flex; align-items: center; gap: 8px;">`;
         result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
-        result += `<span style="color: #333; font-weight: bold; font-size: 16px;">Total: R$ ${valor.toLocaleString(
+        result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">Total: R$ ${valor.toLocaleString(
           'pt-BR',
           { minimumFractionDigits: 2 }
         )}</span>`;
@@ -221,7 +232,7 @@ export class RelatorioPageComponent {
       textStyle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#6b7280',
       },
     },
     legend: {
@@ -240,10 +251,10 @@ export class RelatorioPageComponent {
         const cor = params.color;
 
         let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
-        result += `<div style="font-size: 14px; color: #333; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
+        result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
         result += `<div style="display: flex; align-items: center; gap: 8px;">`;
         result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
-        result += `<span style="color: #333; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
+        result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
           'pt-BR',
           { minimumFractionDigits: 2 }
         )}</span>`;
@@ -283,7 +294,7 @@ export class RelatorioPageComponent {
       {
         name: 'Receitas',
         type: 'bar',
-        data: this.dadosReceitas,
+        data: [],
         itemStyle: { color: '#4CAF50' }, // Verde
         label: {
           show: true,
@@ -298,7 +309,7 @@ export class RelatorioPageComponent {
       {
         name: 'Despesas',
         type: 'bar',
-        data: this.dadosDespesas,
+        data: [],
         itemStyle: { color: '#F44336' }, // Vermelho
         label: {
           show: true,
@@ -316,12 +327,12 @@ export class RelatorioPageComponent {
   // Configuração do terceiro gráfico - Dívidas x Investimentos (Projetado)
   chartOptionDividasInvestimentos: EChartsOption = {
     title: {
-      text: 'Dívidas x Investimentos (Projetado para o Período)',
+      text: 'Dívidas x Investimentos',
       left: 'center',
       textStyle: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#6b7280',
       },
     },
     legend: {
@@ -335,7 +346,7 @@ export class RelatorioPageComponent {
       },
       formatter: function (params: any) {
         let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
-        result += `<div style="font-size: 14px; color: #333; margin-bottom: 8px;">${params[0].name}</div>`;
+        result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">${params[0].name}</div>`;
 
         params.forEach((param: any) => {
           const valor = param.value;
@@ -344,7 +355,7 @@ export class RelatorioPageComponent {
 
           result += `<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">`;
           result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 50%;"></div>`;
-          result += `<span style="color: #333; font-weight: bold;">${nome}: R$ ${valor.toLocaleString(
+          result += `<span style="color: #6b7280; font-weight: bold;">${nome}: R$ ${valor.toLocaleString(
             'pt-BR',
             { minimumFractionDigits: 2 }
           )}</span>`;
@@ -424,60 +435,6 @@ export class RelatorioPageComponent {
     ],
   };
 
-  get dadosReceitas() {
-    return this.dadosPorAno[this.anoSelecionado]?.receitas || [];
-  }
-
-  get dadosDespesas() {
-    return this.dadosPorAno[this.anoSelecionado]?.despesas || [];
-  }
-
-  get dadosDividas() {
-    return this.dadosPorAno[this.anoSelecionado]?.dividas || [];
-  }
-
-  get dadosInvestimentos() {
-    return this.dadosPorAno[this.anoSelecionado]?.investimentos || [];
-  }
-
-  get dadosTotal() {
-    return this.dadosReceitas.map(
-      (receita: number, i: number) =>
-        receita -
-        this.dadosDespesas[i] -
-        this.dadosDividas[i] -
-        this.dadosInvestimentos[i]
-    );
-  }
-
-  get totalReceitas() {
-    return this.dadosReceitas.reduce(
-      (sum: number, valor: number) => sum + valor,
-      0
-    );
-  }
-
-  get totalDespesas() {
-    return this.dadosDespesas.reduce(
-      (sum: number, valor: number) => sum + valor,
-      0
-    );
-  }
-
-  get totalDividas() {
-    return this.dadosDividas.reduce(
-      (sum: number, valor: number) => sum + valor,
-      0
-    );
-  }
-
-  get totalInvestimentos() {
-    return this.dadosInvestimentos.reduce(
-      (sum: number, valor: number) => sum + valor,
-      0
-    );
-  }
-
   get saldoTotal() {
     return (
       this.totalReceitas -
@@ -487,7 +444,44 @@ export class RelatorioPageComponent {
     );
   }
 
+  calcularTotais() {
+    const dadosAno = this.dadosPorAno[this.anoSelecionado];
+    if (dadosAno) {
+      this.dadosReceitas = dadosAno.receitas;
+      this.dadosDespesas = dadosAno.despesas;
+      this.dadosDividas = dadosAno.dividas;
+      this.dadosInvestimentos = dadosAno.investimentos;
+
+      this.totalReceitas = this.dadosReceitas.reduce(
+        (sum, valor) => sum + valor,
+        0
+      );
+      this.totalDespesas = this.dadosDespesas.reduce(
+        (sum, valor) => sum + valor,
+        0
+      );
+      this.totalDividas = this.dadosDividas.reduce(
+        (sum, valor) => sum + valor,
+        0
+      );
+      this.totalInvestimentos = this.dadosInvestimentos.reduce(
+        (sum, valor) => sum + valor,
+        0
+      );
+
+      this.dadosTotal = this.dadosReceitas.map(
+        (receita, index) =>
+          receita -
+          this.dadosDespesas[index] -
+          this.dadosDividas[index] -
+          this.dadosInvestimentos[index]
+      );
+    }
+  }
+
   onAnoChange() {
+    this.calcularTotais();
+    this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
   }
 
@@ -499,7 +493,7 @@ export class RelatorioPageComponent {
         textStyle: {
           fontSize: 18,
           fontWeight: 'bold',
-          color: '#333',
+          color: '#6b7280',
         },
       },
       legend: {
@@ -518,10 +512,10 @@ export class RelatorioPageComponent {
           const cor = params.color;
 
           let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
-          result += `<div style="font-size: 14px; color: #333; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
+          result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
           result += `<div style="display: flex; align-items: center; gap: 8px;">`;
           result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
-          result += `<span style="color: #333; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
+          result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
             'pt-BR',
             { minimumFractionDigits: 2 }
           )}</span>`;
@@ -651,5 +645,119 @@ export class RelatorioPageComponent {
     });
 
     return source;
+  }
+
+  // Configurações dos gráficos para cada card
+  chartOptionReceitas: EChartsOption = {};
+  chartOptionDespesas: EChartsOption = {};
+  chartOptionDividas: EChartsOption = {};
+  chartOptionInvestimentos: EChartsOption = {};
+  chartOptionSaldo: EChartsOption = {};
+
+  constructor() {
+    this.calcularTotais();
+    this.configurarGraficosCards();
+    this.atualizarGraficoReceitasDespesas();
+  }
+
+  configurarGraficosCards() {
+    // Gráfico de Receitas - Barras
+    this.chartOptionReceitas = {
+      grid: { left: 10, right: 10, top: 10, bottom: 10 },
+      xAxis: { type: 'category', data: this.meses.slice(0, 6), show: false },
+      yAxis: { type: 'value', show: false },
+      series: [
+        {
+          type: 'bar',
+          data: this.dadosReceitas.slice(0, 6),
+          itemStyle: { color: '#28a745' },
+          barWidth: '60%',
+        },
+      ],
+      tooltip: { show: false },
+      animation: false,
+    };
+
+    // Gráfico de Despesas - Barras
+    this.chartOptionDespesas = {
+      grid: { left: 10, right: 10, top: 10, bottom: 10 },
+      xAxis: { type: 'category', data: this.meses.slice(0, 6), show: false },
+      yAxis: { type: 'value', show: false },
+      series: [
+        {
+          type: 'bar',
+          data: this.dadosDespesas.slice(0, 6),
+          itemStyle: { color: '#dc3545' },
+          barWidth: '60%',
+        },
+      ],
+      tooltip: { show: false },
+      animation: false,
+    };
+
+    // Gráfico de Dívidas - Linha
+    this.chartOptionDividas = {
+      grid: { left: 10, right: 10, top: 10, bottom: 10 },
+      xAxis: { type: 'category', data: this.meses.slice(0, 6), show: false },
+      yAxis: { type: 'value', show: false },
+      series: [
+        {
+          type: 'line',
+          data: this.dadosDividas.slice(0, 6),
+          itemStyle: { color: '#ffc107' },
+          lineStyle: { color: '#ffc107', width: 3 },
+          symbol: 'circle',
+          symbolSize: 4,
+        },
+      ],
+      tooltip: { show: false },
+      animation: false,
+    };
+
+    // Gráfico de Investimentos - Área
+    this.chartOptionInvestimentos = {
+      grid: { left: 10, right: 10, top: 10, bottom: 10 },
+      xAxis: { type: 'category', data: this.meses.slice(0, 6), show: false },
+      yAxis: { type: 'value', show: false },
+      series: [
+        {
+          type: 'line',
+          data: this.dadosInvestimentos.slice(0, 6),
+          areaStyle: { color: 'rgba(23, 162, 184, 0.3)' },
+          itemStyle: { color: '#17a2b8' },
+          lineStyle: { color: '#17a2b8', width: 2 },
+          symbol: 'circle',
+          symbolSize: 3,
+        },
+      ],
+      tooltip: { show: false },
+      animation: false,
+    };
+
+    // Gráfico de Saldo - Pizza
+    const saldoPositivo = this.saldoTotal >= 0;
+    this.chartOptionSaldo = {
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['50%', '50%'],
+          data: [
+            {
+              value: Math.abs(this.saldoTotal),
+              itemStyle: { color: saldoPositivo ? '#28a745' : '#dc3545' },
+            },
+            {
+              value: Math.max(0, 1000 - Math.abs(this.saldoTotal)),
+              itemStyle: { color: '#f8f9fa' },
+            },
+          ],
+          label: { show: false },
+          labelLine: { show: false },
+        },
+      ],
+      tooltip: { show: false },
+      animation: false,
+    };
   }
 }

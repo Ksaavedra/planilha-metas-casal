@@ -1,19 +1,19 @@
 .metas-container {
   max-width: 1800px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 5rem 0rem 5rem;
   background-color: #f8fafc;
   min-height: 100vh;
 }
 
 /* Header */
-.header {
+.title-container {
   margin-bottom: 2rem;
 }
 
-.header-banner {
+.title {
   background: #364152;
-  color: white;
+  color: #ffffff;
   padding: 2rem;
   text-align: center;
   border-radius: 16px;
@@ -23,7 +23,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.header-content {
+.title-content {
   background: #475569;
   padding: 1.5rem;
   border-radius: 12px;
@@ -37,10 +37,10 @@
   gap: 1rem;
   font-size: 1.3rem;
   font-weight: 600;
-  color: white;
+  color: #ffffff;
 }
 
 .title-banner .material-icons {
   font-size: 1.8rem;
-  color: white;
+  color: #ffffff;
 }

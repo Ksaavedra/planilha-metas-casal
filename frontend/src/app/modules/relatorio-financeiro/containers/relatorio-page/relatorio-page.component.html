@@ -1,17 +1,29 @@
 <div class="relatorio-container">
-  <!-- Header -->
-  <div class="header" style="background: #2196F3; color: white; padding: 20px; text-align: center;">
-    <h1>💰 Relatório Financeiro {{ anoSelecionado }}</h1>
-    <div class="year-selector">
-      <label for="anoSelect" style="margin-right: 10px;">Ano: </label>
-      <select id="anoSelect" [(ngModel)]="anoSelecionado" (change)="onAnoChange()">
-        <option value="2020">2020</option>
-        <option value="2021">2021</option>
-        <option value="2022">2022</option>
-        <option value="2023">2023</option>
-        <option value="2024">2024</option>
-        <option value="2025">2025</option>
-      </select>
+  <!-- Title -->
+  <div class="title-container">
+    <div class="title">
+      <h1>💰 Relatório Financeiro {{ anoSelecionado }}</h1>
+    </div>
+    <div class="title-content">
+      <div class="categorias-btn">
+        <span>📊</span>
+        <span>Categorias</span>
+      </div>
+      <div class="title-banner">
+        <span>📈</span>
+        <span>Relatório {{ anoSelecionado }}</span>
+      </div>
+      <div class="year-selector">
+        <label for="anoSelect">Ano: </label>
+        <select id="anoSelect" [(ngModel)]="anoSelecionado" (change)="onAnoChange()">
+          <option value="2020">2020</option>
+          <option value="2021">2021</option>
+          <option value="2022">2022</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -68,9 +80,18 @@
     </table>
   </div>
 
-  <!-- Gráficos em Desenvolvimento -->
-  <div style="padding: 20px; text-align: center; background: #f5f5f5; margin: 20px 0;">
-    <h2>📊 Gráficos em Desenvolvimento</h2>
-    <p>Os gráficos serão implementados em breve!</p>
+  <!-- Gráficos ECharts -->
+  <div class="charts-container">
+    <div class="chart-section">
+      <div echarts [options]="chartOption" [merge]="mergeOptions" class="demo-chart"></div>
+    </div>
+
+    <div class="chart-section">
+      <div echarts [options]="chartOptionReceitasDespesas" class="demo-chart"></div>
+    </div>
+
+    <div class="chart-section">
+      <div echarts [options]="chartOptionDividasInvestimentos" class="demo-chart"></div>
+    </div>
   </div>
 </div>
