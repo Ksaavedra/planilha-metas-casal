@@ -56,7 +56,8 @@ describe('ElaborandoMetasComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ElaborandoMetasComponent, HttpClientTestingModule],
+      declarations: [ElaborandoMetasComponent],
+      imports: [HttpClientTestingModule],
       providers: [MetasService],
     }).compileComponents();
 
@@ -802,7 +803,7 @@ describe('ElaborandoMetasComponent', () => {
 
     it('should return early when metaParaExcluir is null in confirmarExclusao', () => {
       component.metaParaExcluir = null;
-      const deleteSpy = jest.spyOn(metasService, 'deleteMeta');
+      jest.spyOn(metasService, 'deleteMeta');
 
       component.confirmarExclusao();
 

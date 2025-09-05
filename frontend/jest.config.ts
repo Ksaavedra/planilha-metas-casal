@@ -1,69 +1,70 @@
-// jest.config.ts
-import type { Config } from 'jest';
+const esModule = [
+  '@angular',
+  '@ngrx',
+  'd3',
+  '@ngx-translate',
+  '@ds',
+  'angular2-text-mask',
+];
 
-const config: Config = {
+module.exports = {
   verbose: true,
   preset: 'jest-preset-angular',
   globalSetup: '',
   collectCoverage: true,
   coverageDirectory: '<rootDir>/coverage',
-  reporters: [
-    'default',
-    [
-      'jest-junit',
-      { outputDirectory: 'dist/test-results', outputName: 'test.results.xml' },
-    ],
-    [
-      'jest-sonar',
-      {
-        outputDirectory: 'dist/test-coverage',
-        outputName: 'test.reporter.xml',
-      },
-    ],
-  ],
+  reporters: ['default'],
   collectCoverageFrom: ['src/**/*.ts'],
-
-  testRunner: 'jest-jasmine2',
-  testMatch: ['**/*.spec.ts'],
-  testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
-  coverageReporters: ['text', 'text-summary', 'html', 'lcov', 'json-summary'],
+  coveragePathIgnorePatterns: [
+    'setup-jest.ts',
+    'public_api.ts',
+    'module.ts',
+    'interfaces.ts',
+    'utils.ts',
+    'models.ts',
+    'routing.ts',
+    'index.ts',
+  ],
   coverageThreshold: {
     global: {
+      statements: 80,
       branches: 80,
       functions: 80,
       lines: 80,
-      statements: 80,
     },
   },
+  transformIgnorePatterns: [
+    `<rootDir>/node_modules/(?!.\\.mjs$|${esModule.join('|')})`,
+  ],
+
+  testPathIgnorePatterns: [
+    '<rootDir>/dist',
+    '<rootDir>/node_modules',
+    '<rootDir>/cypress/integration',
+    '<rootDir>/src/app/code/interfaces',
+  ],
+  moduleNameMapper: {
+    '^/opt/nodejs/(.*)$': '<rootDir>/test/_mocks_/layerMock.js',
+    'src(.*)$': '<rootDir>/src$1',
+    'code/(.*)$': '<rootDir>/src/app/code/$1',
+    'core/components/(.*)$': '<rootDir>/src/app/core/components/$1',
+    'core/interces/(.*)$': '<rootDir>/src/app/core/interfaces/$1',
+    'core/services/(.*)$': '<rootDir>/src/app/core/services/$1',
+    '@ds(.*)$': '<rootDir>/src/app/ds/$1',
+    'shared(.*)$': '<rootDir>/src/app/shared/$1',
+    'shared/components(.*)$': '<rootDir>/src/app/shared/components/$1',
+    'store(.*)$': '<rootDir>/src/app/store/$1',
+    'store/models(.*)$': '<rootDir>/src/app/store/models/$1',
+    'src/environments(.*)$': '<rootDir>/src/environments/environment.test.ts',
+  },
+  moduleDirectories: ['node_modules', 'src'],
   transform: {
-    '^.+\\.(ts|mjs|js|html)$': [
-      'jest-preset-angular',
+    '^.+\\.{ts|tsx}?$': [
+      'ts-jest',
       {
         tsconfig: '<rootDir>/tsconfig.spec.json',
-        useESM: true,
-        stringifyContentPathRegex: '\\.(html|svg)$',
       },
     ],
   },
-  extensionsToTreatAsEsm: ['.ts'],
-  moduleFileExtensions: ['ts', 'html', 'js', 'mjs', 'json'],
-  transformIgnorePatterns: [
-    'node_modules/(?!(@angular|rxjs|tslib|ngx-echarts|echarts)/)',
-  ],
-  testEnvironmentOptions: {
-    customExportConditions: ['node', 'jest', 'browser'],
-  },
-  moduleNameMapper: {
-    '\\.(css|scss)$': '<rootDir>/style.stub.js',
-    '^ngx-echarts$': '<rootDir>/__mocks__/ngx-echarts.ts',
-    '^echarts$': '<rootDir>/__mocks__/echarts.ts',
-  },
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
-  },
 };
-
-export default config;
