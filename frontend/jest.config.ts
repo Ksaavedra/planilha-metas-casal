@@ -26,6 +26,9 @@ module.exports = {
     'routing.ts',
     'index.ts',
     'main.ts',
+    'environments',
+    'app/store',
+    'app/store/models',
   ],
   coverageThreshold: {
     global: {
