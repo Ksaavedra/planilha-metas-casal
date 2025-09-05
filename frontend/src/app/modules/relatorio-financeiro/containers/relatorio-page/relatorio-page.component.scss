@@ -1,0 +1,438 @@
+.relatorio-container {
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 2rem 5rem 0rem 5rem;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.title-container {
+  margin-bottom: 2rem;
+}
+
+.title {
+  background: #364152;
+  color: #ffffff;
+  padding: 1rem;
+  text-align: center;
+  border-radius: 8px 8px 0 0;
+  font-size: 1.1rem;
+  font-weight: bold;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+  text-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+
+  h1 {
+    color: #ffffff;
+    margin: 0;
+  }
+}
+
+.title-content {
+  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.categorias-btn {
+  background: linear-gradient(135deg, #9ca3af 0%, #d1d5db 100%);
+  border: none;
+  color: #374151;
+  padding: 1rem 2rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.1);
+
+  &:hover {
+    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+  }
+}
+
+.title-banner {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  color: #ffffff;
+  // padding: 1rem 2rem;
+  // border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-weight: 700;
+  font-size: 1.3rem;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.year-selector {
+  margin-left: auto;
+
+  select {
+    background: #f3f4f6;
+    border: 2px solid #d1d5db;
+    border-radius: 10px;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.1);
+
+    &:hover {
+      background: #e5e7eb;
+      border-color: #8b5cf6;
+      transform: translateY(-1px);
+    }
+
+    &:focus {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+    }
+  }
+}
+
+.data-table {
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+  width: 100%;
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  min-width: 500px;
+  border-collapse: collapse;
+  background: #f9fafb;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.1);
+  font-size: 0.7rem;
+  border: 1px solid #e5e7eb;
+}
+
+th,
+td {
+  padding: 0.3rem;
+  text-align: center;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  white-space: nowrap;
+  font-size: 0.7rem;
+}
+
+th {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 0.8rem;
+  text-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+}
+
+.receitas-row {
+  background: rgba(34, 197, 94, 0.1);
+  font-weight: 500;
+  color: #22c55e;
+}
+
+.despesas-row {
+  background: rgba(239, 68, 68, 0.1);
+  font-weight: 500;
+  color: #ef4444;
+}
+
+.dividas-row {
+  background: rgba(245, 158, 11, 0.1);
+  font-weight: 500;
+  color: #f59e0b;
+}
+
+.investimentos-row {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+  font-weight: 500;
+}
+
+.total-row {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #374151;
+  font-weight: 700;
+  font-size: 1.1rem;
+  border-top: 2px solid #8b5cf6;
+}
+
+.positive {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #16a34a !important;
+  font-weight: 700;
+}
+
+.negative {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #dc2626 !important;
+  font-weight: 700;
+}
+
+
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .chart-container {
+    height: 300px;
+  }
+
+  .relatorio-container {
+    padding: 1rem;
+  }
+
+  .main-content {
+    padding: 1rem;
+  }
+
+  .header-banner {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+
+  .title-banner {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+
+  .categorias-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+// Estilos para os cards de resumo
+.summary-cards {
+  margin-top: 3rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  @media (min-width: 1200px) {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.summary-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+  border: 1px solid #dee2e6;
+  transition: all 0.2s ease;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+  }
+
+  .card-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .card-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0;
+  }
+
+  .card-chart {
+    flex: 1;
+    width: 100%;
+    margin: 1rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card-echart {
+    width: 100%;
+    height: 120px;
+  }
+
+  .card-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #6c5ce7;
+    margin-top: 0.5rem;
+  }
+
+  &.receitas-card {
+    border-left: 4px solid #28a745;
+
+    .card-value {
+      color: #28a745;
+    }
+  }
+
+  &.despesas-card {
+    border-left: 4px solid #dc3545;
+
+    .card-value {
+      color: #dc3545;
+    }
+  }
+
+  &.dividas-card {
+    border-left: 4px solid #ffc107;
+
+    .card-value {
+      color: #ffc107;
+    }
+  }
+
+  &.investimentos-card {
+    border-left: 4px solid #17a2b8;
+
+    .card-value {
+      color: #17a2b8;
+    }
+  }
+
+  &.saldo-card {
+    border-left: 4px solid #6c5ce7;
+
+    &.positive {
+      border-left-color: #28a745;
+
+      .card-value {
+        color: #28a745;
+      }
+    }
+
+    &.negative {
+      border-left-color: #dc3545;
+
+      .card-value {
+        color: #dc3545;
+      }
+    }
+  }
+}
+
+.charts-container {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.chart-section {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.1);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.chart-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 1rem;
+  text-align: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #8b5cf6;
+}
+
+.demo-chart {
+  height: 350px;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+// Media queries para telas menores
+@media (max-width: 1200px) {
+  table {
+    font-size: 0.6rem;
+    min-width: 400px;
+  }
+
+  th,
+  td {
+    padding: 0.2rem;
+  }
+
+  .demo-chart {
+    height: 300px;
+  }
+}
+
+// Media queries para telas grandes
+@media (min-width: 1400px) {
+  .relatorio-container {
+    padding: 1.5rem;
+  }
+
+  .demo-chart {
+    height: 400px;
+  }
+
+  table {
+    font-size: 0.8rem;
+  }
+
+  th,
+  td {
+    padding: 0.5rem;
+  }
+}
+
+@media (min-width: 1800px) {
+  .relatorio-container {
+    padding: 2rem 5rem 0rem 5rem;
+  }
+
+  .demo-chart {
+    height: 450px;
+  }
+
+  .chart-section {
+    padding: 1.5rem;
+  }
+}

@@ -111,9 +111,11 @@
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-      border-left-color: #8b5cf6;
+      background: rgba(255, 255, 255, 0.15) !important;
+      color: #ffffff !important;
+      border-left-color: #8b5cf6 !important;
+      transform: translateX(4px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
 
       &::before {
         opacity: 1;

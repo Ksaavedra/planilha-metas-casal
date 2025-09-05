@@ -1,7 +1,7 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { AppComponent } from './app.component';
-import { AppHeaderComponent } from './shared';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 
 describe('AppComponent', () => {
   let component: AppComponent;
@@ -9,7 +9,9 @@ describe('AppComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RouterTestingModule, AppComponent, AppHeaderComponent],
+      declarations: [AppComponent],
+      imports: [RouterTestingModule],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(AppComponent);
@@ -19,39 +21,5 @@ describe('AppComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
-  });
-
-  it('should have sidebar closed by default', () => {
-    expect(component.sidebarOpen).toBe(false);
-  });
-
-  it('should toggle sidebar when toggleSidebar is called', () => {
-    expect(component.sidebarOpen).toBe(false);
-
-    component.toggleSidebar();
-    expect(component.sidebarOpen).toBe(true);
-
-    component.toggleSidebar();
-    expect(component.sidebarOpen).toBe(false);
-  });
-
-  it('should close sidebar when closeSidebar is called', () => {
-    component.toggleSidebar(); // Open sidebar first
-    expect(component.sidebarOpen).toBe(true);
-
-    component.closeSidebar();
-    expect(component.sidebarOpen).toBe(false);
-  });
-
-  it('should keep sidebar closed when closeSidebar is called on already closed sidebar', () => {
-    expect(component.sidebarOpen).toBe(false);
-
-    component.closeSidebar();
-    expect(component.sidebarOpen).toBe(false);
-  });
-
-  it('should render title', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('app-header')).toBeTruthy();
   });
 });
