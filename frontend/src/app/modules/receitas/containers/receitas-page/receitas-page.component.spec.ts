@@ -8,7 +8,8 @@ describe('ReceitasPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ReceitasPageComponent, HttpClientTestingModule],
+      declarations: [ReceitasPageComponent],
+      imports: [HttpClientTestingModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ReceitasPageComponent);

@@ -7,7 +7,7 @@ describe('InvestimentosPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [InvestimentosPageComponent],
+      declarations: [InvestimentosPageComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(InvestimentosPageComponent);

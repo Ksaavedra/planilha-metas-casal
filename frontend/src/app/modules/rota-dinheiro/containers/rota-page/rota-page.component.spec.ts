@@ -8,7 +8,8 @@ describe('RotaPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RotaPageComponent, HttpClientTestingModule],
+      declarations: [RotaPageComponent],
+      imports: [HttpClientTestingModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RotaPageComponent);

@@ -240,12 +240,26 @@ describe('RelatorioPageComponent', () => {
     }
   });
 
-  it('getters retornam [] quando o ano não existe (fallback)', () => {
-    component.anoSelecionado = 1999; // ano inexistente
-    expect(component.dadosReceitas).toEqual([]);
-    expect(component.dadosDespesas).toEqual([]);
-    expect(component.dadosDividas).toEqual([]);
-    expect(component.dadosInvestimentos).toEqual([]);
+  it('propriedades mantêm valores anteriores quando o ano não existe (fallback)', () => {
+    // Primeiro define um ano válido para ter dados
+    component.anoSelecionado = 2024;
+    component.onAnoChange();
+    
+    // Salva os valores atuais
+    const receitasAtuais = [...component.dadosReceitas];
+    const despesasAtuais = [...component.dadosDespesas];
+    const dividasAtuais = [...component.dadosDividas];
+    const investimentosAtuais = [...component.dadosInvestimentos];
+    
+    // Muda para ano inexistente
+    component.anoSelecionado = 1999;
+    component.onAnoChange();
+    
+    // As propriedades devem manter os valores anteriores (não são limpas)
+    expect(component.dadosReceitas).toEqual(receitasAtuais);
+    expect(component.dadosDespesas).toEqual(despesasAtuais);
+    expect(component.dadosDividas).toEqual(dividasAtuais);
+    expect(component.dadosInvestimentos).toEqual(investimentosAtuais);
   });
 
   it('provider NGX_ECHARTS_CONFIG.echarts é chamável', async () => {

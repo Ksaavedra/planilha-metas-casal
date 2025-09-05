@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ExecutandoMetasComponent } from './executando-metas.component';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { Meta, StatusMeta } from '../../../../../core/interfaces/mes-meta';
@@ -94,8 +95,10 @@ describe('ExecutandoMetasComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ExecutandoMetasComponent, HttpClientTestingModule],
+      declarations: [ExecutandoMetasComponent],
+      imports: [HttpClientTestingModule],
       providers: [MetasService],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ExecutandoMetasComponent);

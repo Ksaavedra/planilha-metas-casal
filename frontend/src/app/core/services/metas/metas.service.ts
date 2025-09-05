@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Meta, MesMeta } from '../../interfaces/mes-meta';
-import { ApiService } from '../api.service';
+import { ApiService } from '../api/api.service';
 
 export interface CreateMetaRequest {
   nome: string;

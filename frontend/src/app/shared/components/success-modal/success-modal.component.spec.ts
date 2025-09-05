@@ -7,7 +7,7 @@ describe('SuccessModalComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SuccessModalComponent],
+      declarations: [SuccessModalComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SuccessModalComponent);

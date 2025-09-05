@@ -8,7 +8,8 @@ describe('DividasPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DividasPageComponent, HttpClientTestingModule],
+      declarations: [DividasPageComponent],
+      imports: [HttpClientTestingModule],
     }).compileComponents();
 
     fixture = TestBed.createComponent(DividasPageComponent);
