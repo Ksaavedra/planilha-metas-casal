@@ -88,12 +88,12 @@ describe('MetasService', () => {
   it('should update meta with PUT', () => {
     const updatedMeta = { ...mockMeta, valorAtual: 7000 };
 
-    service.updateMetaFull(1, updatedMeta).subscribe((meta) => {
+    service.updateMeta(1, updatedMeta).subscribe((meta: any) => {
       expect(meta).toEqual(updatedMeta);
     });
 
     const req = httpMock.expectOne('http://localhost:3000/metas/1');
-    expect(req.request.method).toBe('PUT');
+    expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual(updatedMeta);
     req.flush(updatedMeta);
   });
