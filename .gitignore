@@ -19,6 +19,10 @@ package-server.json
 README-API.md
 README-JSON-SERVER.md
 
+# Database
+*.db
+backend/prisma/dev.db
+
 # IDE
 .vscode/
 .idea/
