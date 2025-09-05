@@ -4,7 +4,7 @@ import {
   HttpTestingController,
 } from '@angular/common/http/testing';
 import { MetasService } from './metas.service';
-import { Meta } from '../interfaces/mes-meta';
+import { Meta } from '../../interfaces/mes-meta';
 
 describe('MetasService', () => {
   let service: MetasService;

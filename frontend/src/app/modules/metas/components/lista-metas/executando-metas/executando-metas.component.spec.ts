@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ExecutandoMetasComponent } from './executando-metas.component';
-import { MetasService } from '../../../../../core/services/metas.service';
+import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { Meta, StatusMeta } from '../../../../../core/interfaces/mes-meta';
 
 describe('ExecutandoMetasComponent', () => {

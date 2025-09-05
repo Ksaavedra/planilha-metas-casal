@@ -13,7 +13,7 @@ import {
   ModalEdicao,
   StatusMeta,
 } from '../../../../../core/interfaces/mes-meta';
-import { MetasService } from '../../../../../core/services/metas.service';
+import { MetasService } from '../../../../../core/services/metas/metas.service';
 
 @Component({
   selector: 'app-executando-metas',

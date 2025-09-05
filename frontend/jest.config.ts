@@ -43,6 +43,7 @@ module.exports = {
     '<rootDir>/node_modules',
     '<rootDir>/cypress/integration',
     '<rootDir>/src/app/code/interfaces',
+    '<rootDir>/src/app/store',
   ],
   moduleNameMapper: {
     '^/opt/nodejs/(.*)$': '<rootDir>/test/_mocks_/layerMock.js',

@@ -18,7 +18,7 @@ describe('ParabensModalComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ParabensModalComponent],
+      declarations: [ParabensModalComponent],
       providers: [{ provide: LOCALE_ID, useValue: 'pt-BR' }],
     }).compileComponents();
 

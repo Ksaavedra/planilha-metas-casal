@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Observable, forkJoin } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { ApiService } from './api.service';
-import { DespesasService } from './despesas.service';
-import { ReceitasService } from './receitas.service';
+import { ApiService } from '../api.service';
+import { DespesasService } from '../despesas/despesas.service';
+import { ReceitasService } from '../relatorios/receitas.service';
 
 export interface ResumoFinanceiro {
   receitas: number;

@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { MetasService } from '../../../../core/services/metas.service';
+import { MetasService } from '../../../../core/services/metas/metas.service';
 import {
   Meta,
   MetaExtended,

@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ElaborandoMetasComponent } from './elaborando-metas.component';
-import { MetasService } from '../../../../../core/services/metas.service';
+import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { MetaExtended } from '../../../../../core/interfaces/mes-meta';
 
 describe('ElaborandoMetasComponent', () => {
@@ -59,6 +60,7 @@ describe('ElaborandoMetasComponent', () => {
       declarations: [ElaborandoMetasComponent],
       imports: [HttpClientTestingModule],
       providers: [MetasService],
+      schemas: [NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ElaborandoMetasComponent);
@@ -384,7 +386,9 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarCampo(meta, 'nome');
 
-      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, { nome: 'Novo Nome' });
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, {
+        nome: 'Novo Nome',
+      });
       expect(meta.nome).toBe('Novo Nome');
       expect(meta.editandoNome).toBe(false);
     });
@@ -403,7 +407,9 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarCampo(meta, 'valorMeta');
 
-      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, { valorMeta: 15000 });
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, {
+        valorMeta: 15000,
+      });
       expect(meta.valorMeta).toBe(15000);
       expect(meta.editandoValorMeta).toBe(false);
     });
@@ -477,7 +483,9 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarCampo(meta, 'valorMeta');
 
-      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, { valorMeta: 15000 });
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, {
+        valorMeta: 15000,
+      });
     });
 
     it('should handle valorPorMes with zero value', () => {

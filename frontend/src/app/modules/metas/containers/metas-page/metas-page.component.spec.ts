@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { MetasPageComponent } from './metas-page.component';
-import { MetasService } from '../../../../core/services/metas.service';
+import { MetasService } from '../../../../core/services/metas/metas.service';
 import { Meta, StatusMeta } from '../../../../core/interfaces/mes-meta';
 
 describe('MetasPageComponent', () => {
@@ -46,7 +46,8 @@ describe('MetasPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MetasPageComponent, HttpClientTestingModule],
+      declarations: [MetasPageComponent],
+      imports: [HttpClientTestingModule],
       providers: [MetasService],
     }).compileComponents();
 

@@ -8,7 +8,7 @@ describe('RelatorioPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [RelatorioPageComponent],
+      declarations: [RelatorioPageComponent],
     })
       .overrideComponent(RelatorioPageComponent, {
         set: {
