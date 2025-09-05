@@ -1,5 +1,4 @@
-import 'zone.js';
-import 'zone.js/testing';
+import 'jest-preset-angular/setup-jest';
 
 // Mock para window.scrollTo
 Object.defineProperty(window, 'scrollTo', { value: () => {}, writable: true });

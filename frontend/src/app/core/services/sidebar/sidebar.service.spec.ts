@@ -5,7 +5,9 @@ describe('SidebarService', () => {
   let service: SidebarService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [SidebarService]
+    });
     service = TestBed.inject(SidebarService);
   });
 
