@@ -375,7 +375,7 @@ describe('ElaborandoMetasComponent', () => {
         editandoNome: true,
         nomeTemp: 'Novo Nome',
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -383,7 +383,7 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarCampo(meta, 'nome');
 
-      expect(updateSpy).toHaveBeenCalledWith(meta.id, { nome: 'Novo Nome' });
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, { nome: 'Novo Nome' });
       expect(meta.nome).toBe('Novo Nome');
       expect(meta.editandoNome).toBe(false);
     });
@@ -394,7 +394,7 @@ describe('ElaborandoMetasComponent', () => {
         editandoValorMeta: true,
         valorMetaTemp: '15000',
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -402,7 +402,7 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarCampo(meta, 'valorMeta');
 
-      expect(updateSpy).toHaveBeenCalledWith(meta.id, { valorMeta: 15000 });
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, { valorMeta: 15000 });
       expect(meta.valorMeta).toBe(15000);
       expect(meta.editandoValorMeta).toBe(false);
     });
@@ -413,7 +413,7 @@ describe('ElaborandoMetasComponent', () => {
         editandoValorPorMes: true,
         valorPorMesTemp: '2000',
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -421,7 +421,7 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarCampo(meta, 'valorPorMes');
 
-      expect(updateSpy).toHaveBeenCalledWith(meta.id, {
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, {
         valorPorMes: 2000,
         mesesNecessarios: 5, // 10000 / 2000
       });
@@ -449,7 +449,7 @@ describe('ElaborandoMetasComponent', () => {
         nomeTemp: 'Novo Nome',
       };
       const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.error) callbacks.error(new Error('Test error'));
         },
@@ -468,7 +468,7 @@ describe('ElaborandoMetasComponent', () => {
         valorMetaTemp: '15000',
         valorMeta: null as any, // Test the || 0 fallback
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -476,7 +476,7 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarCampo(meta, 'valorMeta');
 
-      expect(updateSpy).toHaveBeenCalledWith(meta.id, { valorMeta: 15000 });
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, { valorMeta: 15000 });
     });
 
     it('should handle valorPorMes with zero value', () => {
@@ -485,7 +485,7 @@ describe('ElaborandoMetasComponent', () => {
         editandoValorPorMes: true,
         valorPorMesTemp: '0',
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -493,7 +493,7 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarCampo(meta, 'valorPorMes');
 
-      expect(updateSpy).toHaveBeenCalledWith(meta.id, {
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, {
         valorPorMes: 0,
         mesesNecessarios: 0, // 10000 / 0 = Infinity, Math.ceil(Infinity) = Infinity, but 0 > 0 is false
       });
@@ -506,7 +506,7 @@ describe('ElaborandoMetasComponent', () => {
         editandoNome: true,
         nomeTemp: 'Novo Nome',
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -531,7 +531,7 @@ describe('ElaborandoMetasComponent', () => {
         valorPorMesTemp: '2000',
         valorMeta: null as any, // Test the || 0 fallback in mesesNecessarios calculation
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -539,7 +539,7 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarCampo(meta, 'valorPorMes');
 
-      expect(updateSpy).toHaveBeenCalledWith(meta.id, {
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, {
         valorPorMes: 2000,
         mesesNecessarios: 0, // (0 || 0) / 2000 = 0
       });
@@ -669,7 +669,7 @@ describe('ElaborandoMetasComponent', () => {
 
     it('should handle marcarMesesComoFinalizado with empty meses', () => {
       const meta = { ...mockMetas[0], meses: [] };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -677,12 +677,12 @@ describe('ElaborandoMetasComponent', () => {
 
       (component as any).marcarMesesComoFinalizado(meta);
 
-      expect(updateSpy).not.toHaveBeenCalled();
+      expect(metasService.updateMeta).not.toHaveBeenCalled();
     });
 
     it('should handle marcarMesesComoFinalizado with null meses', () => {
       const meta = { ...mockMetas[0], meses: null as any };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -690,7 +690,7 @@ describe('ElaborandoMetasComponent', () => {
 
       (component as any).marcarMesesComoFinalizado(meta);
 
-      expect(updateSpy).not.toHaveBeenCalled();
+      expect(metasService.updateMeta).not.toHaveBeenCalled();
     });
 
     it('should handle marcarMesesComoFinalizado with all months paid', () => {
@@ -701,7 +701,7 @@ describe('ElaborandoMetasComponent', () => {
           { id: 2, nome: 'Fevereiro', valor: 1000, status: 'Pago' as const },
         ],
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -709,7 +709,7 @@ describe('ElaborandoMetasComponent', () => {
 
       (component as any).marcarMesesComoFinalizado(meta);
 
-      expect(updateSpy).not.toHaveBeenCalled();
+      expect(metasService.updateMeta).not.toHaveBeenCalled();
     });
 
     it('should handle marcarMesesComoFinalizado with mixed status months', () => {
@@ -721,7 +721,7 @@ describe('ElaborandoMetasComponent', () => {
           { id: 3, nome: 'Março', valor: 1000, status: 'Pendente' as const },
         ],
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -730,7 +730,7 @@ describe('ElaborandoMetasComponent', () => {
 
       (component as any).marcarMesesComoFinalizado(meta);
 
-      expect(updateSpy).toHaveBeenCalledWith(meta.id, {
+      expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, {
         meses: [
           { id: 1, nome: 'Janeiro', valor: 1000, status: 'Pago' },
           { id: 2, nome: 'Fevereiro', valor: 0, status: 'Finalizado' },
@@ -747,7 +747,7 @@ describe('ElaborandoMetasComponent', () => {
           { id: 1, nome: 'Janeiro', valor: 1000, status: 'Vazio' as const },
         ],
       };
-      const updateSpy = jest.spyOn(metasService, 'updateMeta').mockReturnValue({
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.error) callbacks.error(new Error('Update error'));
         },
@@ -755,7 +755,7 @@ describe('ElaborandoMetasComponent', () => {
 
       (component as any).marcarMesesComoFinalizado(meta);
 
-      expect(updateSpy).toHaveBeenCalled();
+      expect(metasService.updateMeta).toHaveBeenCalled();
     });
 
     it('should call marcarMesesComoFinalizado when progress reaches 100%', () => {
@@ -806,13 +806,13 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarExclusao();
 
-      expect(deleteSpy).not.toHaveBeenCalled();
+      expect(metasService.deleteMeta).not.toHaveBeenCalled();
     });
 
     it('should call confirmarExclusao when confirmarExclusao is called', () => {
       const mockMeta = { ...mockMetas[0], nome: 'Meta válida' };
       component.metaParaExcluir = mockMeta;
-      const deleteSpy = jest.spyOn(metasService, 'deleteMeta').mockReturnValue({
+      jest.spyOn(metasService, 'deleteMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
         },
@@ -820,7 +820,7 @@ describe('ElaborandoMetasComponent', () => {
 
       component.confirmarExclusao();
 
-      expect(deleteSpy).toHaveBeenCalledWith(mockMeta.id);
+      expect(metasService.deleteMeta).toHaveBeenCalledWith(mockMeta.id);
     });
 
     it('should handle empty name meta in confirmarExclusao', () => {
@@ -852,7 +852,7 @@ describe('ElaborandoMetasComponent', () => {
     it('should handle 404 error in confirmarExclusao', () => {
       const mockMeta = { ...mockMetas[0], nome: 'Meta válida' };
       component.metaParaExcluir = mockMeta;
-      const deleteSpy = jest.spyOn(metasService, 'deleteMeta').mockReturnValue({
+      jest.spyOn(metasService, 'deleteMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.error) {
             const error = new Error('Not Found');
@@ -873,7 +873,7 @@ describe('ElaborandoMetasComponent', () => {
       const mockMeta = { ...mockMetas[0], nome: 'Meta válida' };
       component.metaParaExcluir = mockMeta;
       const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
-      const deleteSpy = jest.spyOn(metasService, 'deleteMeta').mockReturnValue({
+      jest.spyOn(metasService, 'deleteMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.error) {
             const error = new Error('Server Error');
@@ -926,7 +926,7 @@ describe('ElaborandoMetasComponent', () => {
       component.modalAdicionarMeta.valorPorMes = 500;
       component.modalAdicionarMeta.valorAtual = 1000;
 
-      const createSpy = jest.spyOn(metasService, 'createMeta').mockReturnValue({
+      jest.spyOn(metasService, 'createMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
           if (callbacks.complete) callbacks.complete();
@@ -936,7 +936,7 @@ describe('ElaborandoMetasComponent', () => {
 
       component.salvarMetaModal();
 
-      expect(createSpy).toHaveBeenCalled();
+      expect(metasService.createMeta).toHaveBeenCalled();
       expect(emitSpy).toHaveBeenCalled();
       expect(component.modalSucessoAdd.isOpen).toBe(true);
     });
@@ -952,7 +952,7 @@ describe('ElaborandoMetasComponent', () => {
     it('should handle error in salvarMetaModal', () => {
       component.modalAdicionarMeta.nome = 'Nova Meta';
       const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
-      const createSpy = jest.spyOn(metasService, 'createMeta').mockReturnValue({
+      jest.spyOn(metasService, 'createMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.error) callbacks.error(new Error('Create error'));
         },
@@ -968,7 +968,7 @@ describe('ElaborandoMetasComponent', () => {
 
     it('should handle complete callback in salvarMetaModal', () => {
       component.modalAdicionarMeta.nome = 'Nova Meta';
-      const createSpy = jest.spyOn(metasService, 'createMeta').mockReturnValue({
+      jest.spyOn(metasService, 'createMeta').mockReturnValue({
         subscribe: (callbacks: any) => {
           if (callbacks.next) callbacks.next();
           if (callbacks.complete) callbacks.complete();
@@ -977,7 +977,7 @@ describe('ElaborandoMetasComponent', () => {
 
       component.salvarMetaModal();
 
-      expect(createSpy).toHaveBeenCalled();
+      expect(metasService.createMeta).toHaveBeenCalled();
     });
   });
 

@@ -39,7 +39,7 @@ describe('ProgressTableComponent', () => {
   beforeEach(async () => {
     jest.useFakeTimers();
     await TestBed.configureTestingModule({
-      imports: [ProgressTableComponent],
+      declarations: [ProgressTableComponent],
       providers: [{ provide: LOCALE_ID, useValue: 'pt-BR' }],
     }).compileComponents();
 

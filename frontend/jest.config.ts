@@ -2,19 +2,32 @@
 import type { Config } from 'jest';
 
 const config: Config = {
+  verbose: true,
   preset: 'jest-preset-angular',
-  testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
+  globalSetup: '',
   collectCoverage: true,
   coverageDirectory: '<rootDir>/coverage',
-  coverageReporters: ['text', 'text-summary', 'html', 'lcov', 'json-summary'],
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.spec.ts',
-    '!src/main.ts',
-    '!src/environments/**',
-    '!src/**/index.ts',
+  reporters: [
+    'default',
+    [
+      'jest-junit',
+      { outputDirectory: 'dist/test-results', outputName: 'test.results.xml' },
+    ],
+    [
+      'jest-sonar',
+      {
+        outputDirectory: 'dist/test-coverage',
+        outputName: 'test.reporter.xml',
+      },
+    ],
   ],
+  collectCoverageFrom: ['src/**/*.ts'],
+
+  testRunner: 'jest-jasmine2',
+  testMatch: ['**/*.spec.ts'],
+  testEnvironment: 'jsdom',
+  setupFilesAfterEnv: ['<rootDir>/setup-jest.ts'],
+  coverageReporters: ['text', 'text-summary', 'html', 'lcov', 'json-summary'],
   coverageThreshold: {
     global: {
       branches: 80,
