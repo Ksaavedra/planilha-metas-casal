@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { SidebarComponent } from './sidebar.component';
+import { CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA } from '@angular/core';
 import { SidebarService } from '../../services/sidebar/sidebar.service';
 
 describe('SidebarComponent', () => {
@@ -12,6 +13,7 @@ describe('SidebarComponent', () => {
       declarations: [SidebarComponent],
       imports: [RouterTestingModule],
       providers: [SidebarService],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SidebarComponent);
