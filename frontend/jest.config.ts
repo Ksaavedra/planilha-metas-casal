@@ -25,6 +25,7 @@ module.exports = {
     'models.ts',
     'routing.ts',
     'index.ts',
+    'main.ts',
   ],
   coverageThreshold: {
     global: {
