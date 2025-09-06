@@ -1,4 +1,15 @@
-import 'jest-preset-angular/setup-jest';
+import 'zone.js';
+import { TestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
+
+// Initialize TestBed
+TestBed.initTestEnvironment(
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting()
+);
 
 // Mock para window.scrollTo
 Object.defineProperty(window, 'scrollTo', { value: () => {}, writable: true });
