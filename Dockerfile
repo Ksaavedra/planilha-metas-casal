@@ -7,8 +7,9 @@ WORKDIR /app
 # Copiar package.json e package-lock.json
 COPY frontend/package*.json ./
 
-# Instalar dependências com --legacy-peer-deps para resolver conflitos
-RUN npm ci --legacy-peer-deps --only=production
+# Limpar e instalar dependências para resolver problemas com @rollup
+RUN rm -rf node_modules package-lock.json && \
+    npm install --legacy-peer-deps --only=production
 
 # Copiar código fonte
 COPY frontend/ ./
