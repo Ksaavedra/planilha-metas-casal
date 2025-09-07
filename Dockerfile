@@ -7,8 +7,8 @@ WORKDIR /app
 # Copiar package.json e package-lock.json
 COPY frontend/package*.json ./
 
-# Instalar dependências
-RUN npm ci --only=production
+# Instalar dependências com --legacy-peer-deps para resolver conflitos
+RUN npm ci --legacy-peer-deps --only=production
 
 # Copiar código fonte
 COPY frontend/ ./
