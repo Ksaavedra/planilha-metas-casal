@@ -9,7 +9,7 @@ COPY frontend/package*.json ./
 
 # Limpar e instalar dependências para resolver problemas com @rollup
 RUN rm -rf node_modules package-lock.json && \
-    npm install --legacy-peer-deps --only=production
+    npm install --legacy-peer-deps
 
 # Copiar código fonte
 COPY frontend/ ./
