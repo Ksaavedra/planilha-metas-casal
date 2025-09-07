@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -100,13 +100,14 @@ model Categoria {
   receitas   Receita[]
   despesas   Despesa[]
 
+  @@unique([usuarioId, nome])
   @@map("categorias")
 }
 
 model Meses {
   id     Int    @id @default(autoincrement())
   nome   String
-  numero Int
+  numero Int    @unique
 
   // Relacionamentos
   mesesMeta MesesMeta[]
