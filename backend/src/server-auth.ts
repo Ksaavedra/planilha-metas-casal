@@ -256,6 +256,406 @@ app.post(
    }
 );
 
+// ===== ROTAS DE RECEITAS =====
+app.get(
+   '/receitas',
+   verificarToken,
+   verificarPermissao,
+   async (req: AuthRequest, res) => {
+      try {
+         const usuarioId = req.usuario!.id;
+         const { mes_id, categoriaId, tipo } = req.query;
+
+         const where: any = { usuarioId };
+         if (mes_id) where.mes_id = Number(mes_id);
+         if (categoriaId) where.categoriaId = Number(categoriaId);
+         if (tipo) where.tipo = tipo;
+
+         const receitas = await prisma.receita.findMany({
+            where,
+            include: {
+               categoria: true,
+               mes: true,
+            },
+            orderBy: { createdAt: 'desc' },
+         });
+
+         const receitasFormatadas = receitas.map((r: any) => ({
+            id: r.id,
+            mes_id: r.mes_id,
+            categoriaId: r.categoriaId,
+            descricao: r.descricao,
+            valor: toNum(r.valor),
+            status: r.status,
+            tipo: r.tipo,
+            data: r.data,
+            observacao: r.observacao,
+            categoria: r.categoria,
+            mes: r.mes,
+         }));
+
+         res.json(receitasFormatadas);
+      } catch (error) {
+         console.error('Erro ao buscar receitas:', error);
+         res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+   }
+);
+
+app.post(
+   '/receitas',
+   verificarToken,
+   verificarPermissao,
+   async (req: AuthRequest, res) => {
+      try {
+         const usuarioId = req.usuario!.id;
+         const {
+            mes_id,
+            categoriaId,
+            descricao,
+            valor,
+            status = 'Vazio',
+            tipo = 'Ativa',
+            data,
+            observacao,
+         } = req.body;
+
+         if (!mes_id || !categoriaId || !descricao || valor === undefined) {
+            return res.status(400).json({
+               error: 'mes_id, categoriaId, descricao e valor são obrigatórios',
+            });
+         }
+
+         const receita = await prisma.receita.create({
+            data: {
+               mes_id: Number(mes_id),
+               categoriaId: Number(categoriaId),
+               descricao: descricao.trim(),
+               valor: Number(valor),
+               status,
+               tipo,
+               data: data ? new Date(data) : null,
+               observacao: observacao?.trim(),
+               usuarioId,
+            },
+            include: {
+               categoria: true,
+               mes: true,
+            },
+         });
+
+         res.status(201).json({
+            id: receita.id,
+            mes_id: receita.mes_id,
+            categoriaId: receita.categoriaId,
+            descricao: receita.descricao,
+            valor: toNum(receita.valor),
+            status: receita.status,
+            tipo: receita.tipo,
+            data: receita.data,
+            observacao: receita.observacao,
+            categoria: receita.categoria,
+            mes: receita.mes,
+         });
+      } catch (error) {
+         console.error('Erro ao criar receita:', error);
+         res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+   }
+);
+
+app.put(
+   '/receitas/:id',
+   verificarToken,
+   verificarPermissao,
+   async (req: AuthRequest, res) => {
+      try {
+         const usuarioId = req.usuario!.id;
+         const { id } = req.params;
+         const {
+            mes_id,
+            categoriaId,
+            descricao,
+            valor,
+            status,
+            tipo,
+            data,
+            observacao,
+         } = req.body;
+
+         const receita = await prisma.receita.findFirst({
+            where: { id: Number(id), usuarioId },
+         });
+
+         if (!receita) {
+            return res.status(404).json({ error: 'Receita não encontrada' });
+         }
+
+         const receitaAtualizada = await prisma.receita.update({
+            where: { id: Number(id) },
+            data: {
+               ...(mes_id && { mes_id: Number(mes_id) }),
+               ...(categoriaId && { categoriaId: Number(categoriaId) }),
+               ...(descricao && { descricao: descricao.trim() }),
+               ...(valor !== undefined && { valor: Number(valor) }),
+               ...(status && { status }),
+               ...(tipo && { tipo }),
+               ...(data && { data: new Date(data) }),
+               ...(observacao !== undefined && {
+                  observacao: observacao?.trim(),
+               }),
+            },
+            include: {
+               categoria: true,
+               mes: true,
+            },
+         });
+
+         res.json({
+            id: receitaAtualizada.id,
+            mes_id: receitaAtualizada.mes_id,
+            categoriaId: receitaAtualizada.categoriaId,
+            descricao: receitaAtualizada.descricao,
+            valor: toNum(receitaAtualizada.valor),
+            status: receitaAtualizada.status,
+            tipo: receitaAtualizada.tipo,
+            data: receitaAtualizada.data,
+            observacao: receitaAtualizada.observacao,
+            categoria: receitaAtualizada.categoria,
+            mes: receitaAtualizada.mes,
+         });
+      } catch (error) {
+         console.error('Erro ao atualizar receita:', error);
+         res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+   }
+);
+
+app.delete(
+   '/receitas/:id',
+   verificarToken,
+   verificarPermissao,
+   async (req: AuthRequest, res) => {
+      try {
+         const usuarioId = req.usuario!.id;
+         const { id } = req.params;
+
+         const receita = await prisma.receita.findFirst({
+            where: { id: Number(id), usuarioId },
+         });
+
+         if (!receita) {
+            return res.status(404).json({ error: 'Receita não encontrada' });
+         }
+
+         await prisma.receita.delete({
+            where: { id: Number(id) },
+         });
+
+         res.status(204).send();
+      } catch (error) {
+         console.error('Erro ao deletar receita:', error);
+         res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+   }
+);
+
+// ===== ROTAS DE DESPESAS =====
+app.get(
+   '/despesas',
+   verificarToken,
+   verificarPermissao,
+   async (req: AuthRequest, res) => {
+      try {
+         const usuarioId = req.usuario!.id;
+         const { mes_id, categoriaId } = req.query;
+
+         const where: any = { usuarioId };
+         if (mes_id) where.mes_id = Number(mes_id);
+         if (categoriaId) where.categoriaId = Number(categoriaId);
+
+         const despesas = await prisma.despesa.findMany({
+            where,
+            include: {
+               categoria: true,
+               mes: true,
+            },
+            orderBy: { createdAt: 'desc' },
+         });
+
+         const despesasFormatadas = despesas.map((d: any) => ({
+            id: d.id,
+            mes_id: d.mes_id,
+            categoriaId: d.categoriaId,
+            descricao: d.descricao,
+            valor: toNum(d.valor),
+            status: d.status,
+            data: d.data,
+            observacao: d.observacao,
+            categoria: d.categoria,
+            mes: d.mes,
+         }));
+
+         res.json(despesasFormatadas);
+      } catch (error) {
+         console.error('Erro ao buscar despesas:', error);
+         res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+   }
+);
+
+app.post(
+   '/despesas',
+   verificarToken,
+   verificarPermissao,
+   async (req: AuthRequest, res) => {
+      try {
+         const usuarioId = req.usuario!.id;
+         const {
+            mes_id,
+            categoriaId,
+            descricao,
+            valor,
+            status = 'Vazio',
+            data,
+            observacao,
+         } = req.body;
+
+         if (!mes_id || !categoriaId || !descricao || valor === undefined) {
+            return res.status(400).json({
+               error: 'mes_id, categoriaId, descricao e valor são obrigatórios',
+            });
+         }
+
+         const despesa = await prisma.despesa.create({
+            data: {
+               mes_id: Number(mes_id),
+               categoriaId: Number(categoriaId),
+               descricao: descricao.trim(),
+               valor: Number(valor),
+               status,
+               data: data ? new Date(data) : null,
+               observacao: observacao?.trim(),
+               usuarioId,
+            },
+            include: {
+               categoria: true,
+               mes: true,
+            },
+         });
+
+         res.status(201).json({
+            id: despesa.id,
+            mes_id: despesa.mes_id,
+            categoriaId: despesa.categoriaId,
+            descricao: despesa.descricao,
+            valor: toNum(despesa.valor),
+            status: despesa.status,
+            data: despesa.data,
+            observacao: despesa.observacao,
+            categoria: despesa.categoria,
+            mes: despesa.mes,
+         });
+      } catch (error) {
+         console.error('Erro ao criar despesa:', error);
+         res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+   }
+);
+
+app.put(
+   '/despesas/:id',
+   verificarToken,
+   verificarPermissao,
+   async (req: AuthRequest, res) => {
+      try {
+         const usuarioId = req.usuario!.id;
+         const { id } = req.params;
+         const {
+            mes_id,
+            categoriaId,
+            descricao,
+            valor,
+            status,
+            data,
+            observacao,
+         } = req.body;
+
+         const despesa = await prisma.despesa.findFirst({
+            where: { id: Number(id), usuarioId },
+         });
+
+         if (!despesa) {
+            return res.status(404).json({ error: 'Despesa não encontrada' });
+         }
+
+         const despesaAtualizada = await prisma.despesa.update({
+            where: { id: Number(id) },
+            data: {
+               ...(mes_id && { mes_id: Number(mes_id) }),
+               ...(categoriaId && { categoriaId: Number(categoriaId) }),
+               ...(descricao && { descricao: descricao.trim() }),
+               ...(valor !== undefined && { valor: Number(valor) }),
+               ...(status && { status }),
+               ...(data && { data: new Date(data) }),
+               ...(observacao !== undefined && {
+                  observacao: observacao?.trim(),
+               }),
+            },
+            include: {
+               categoria: true,
+               mes: true,
+            },
+         });
+
+         res.json({
+            id: despesaAtualizada.id,
+            mes_id: despesaAtualizada.mes_id,
+            categoriaId: despesaAtualizada.categoriaId,
+            descricao: despesaAtualizada.descricao,
+            valor: toNum(despesaAtualizada.valor),
+            status: despesaAtualizada.status,
+            data: despesaAtualizada.data,
+            observacao: despesaAtualizada.observacao,
+            categoria: despesaAtualizada.categoria,
+            mes: despesaAtualizada.mes,
+         });
+      } catch (error) {
+         console.error('Erro ao atualizar despesa:', error);
+         res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+   }
+);
+
+app.delete(
+   '/despesas/:id',
+   verificarToken,
+   verificarPermissao,
+   async (req: AuthRequest, res) => {
+      try {
+         const usuarioId = req.usuario!.id;
+         const { id } = req.params;
+
+         const despesa = await prisma.despesa.findFirst({
+            where: { id: Number(id), usuarioId },
+         });
+
+         if (!despesa) {
+            return res.status(404).json({ error: 'Despesa não encontrada' });
+         }
+
+         await prisma.despesa.delete({
+            where: { id: Number(id) },
+         });
+
+         res.status(204).send();
+      } catch (error) {
+         console.error('Erro ao deletar despesa:', error);
+         res.status(500).json({ error: 'Erro interno do servidor' });
+      }
+   }
+);
+
 app.get(
    '/relatorios/resumo',
    verificarToken,
@@ -313,6 +713,14 @@ async function startServer() {
          console.log(`   POST /metas - Criar meta (autenticado)`);
          console.log(`   GET /categorias - Listar categorias (autenticado)`);
          console.log(`   POST /categorias - Criar categoria (autenticado)`);
+         console.log(`   GET /receitas - Listar receitas (autenticado)`);
+         console.log(`   POST /receitas - Criar receita (autenticado)`);
+         console.log(`   PUT /receitas/:id - Atualizar receita (autenticado)`);
+         console.log(`   DELETE /receitas/:id - Deletar receita (autenticado)`);
+         console.log(`   GET /despesas - Listar despesas (autenticado)`);
+         console.log(`   POST /despesas - Criar despesa (autenticado)`);
+         console.log(`   PUT /despesas/:id - Atualizar despesa (autenticado)`);
+         console.log(`   DELETE /despesas/:id - Deletar despesa (autenticado)`);
          console.log(
             `   GET /relatorios/resumo - Relatório financeiro (autenticado)`
          );
