@@ -169,9 +169,9 @@
               "Properties": {
                 "Code": {
                   "S3Bucket": "serverless-framework-deployments-sa-east-1-42e97e4e-5620",
-                  "S3Key": "serverless/planilha-organizacao-api/prod/1757675661766-2025-09-12T11:14:21.766Z/planilha-organizacao-api.zip"
+                  "S3Key": "serverless/planilha-organizacao-api/prod/1757676689984-2025-09-12T11:31:29.984Z/planilha-organizacao-api.zip"
                 },
-                "Handler": "dist/src/lambda-organized.handler",
+                "Handler": "dist/src/lambda-fix.handler",
                 "Runtime": "nodejs18.x",
                 "FunctionName": "planilha-organizacao-api-prod-api",
                 "MemorySize": 512,
@@ -208,14 +208,14 @@
                 "ApiLogGroup"
               ]
             },
-            "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY": {
+            "ApiLambdaVersionbZVQLGq3S65H28nxsGpfHjMRqoNKRW9FOGDOPfM": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "ApiLambdaFunction"
                 },
-                "CodeSha256": "vYmsDQm6ApY4tjXKYSESCvCrgzO6FjljqVT8QPTwLiI="
+                "CodeSha256": "kuQathWQoYYp+x790R545THzc0Bd2CXYncX6yLx/IPc="
               }
             },
             "ApiGatewayRestApi": {
@@ -437,7 +437,7 @@
                 "ApiLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1757675642645": {
+            "ApiGatewayDeployment1757676671169": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -523,7 +523,7 @@
             "ApiLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY"
+                "Ref": "ApiLambdaVersionbZVQLGq3S65H28nxsGpfHjMRqoNKRW9FOGDOPfM"
               },
               "Export": {
                 "Name": "sls-planilha-organizacao-api-prod-ApiLambdaFunctionQualifiedArn"
@@ -560,7 +560,7 @@
       },
       "functions": {
         "api": {
-          "handler": "dist/src/lambda-organized.handler",
+          "handler": "dist/src/lambda-fix.handler",
           "layers": [
             "arn:aws:lambda:sa-east-1:365309361668:layer:prisma-client-layer:1"
           ],
@@ -618,7 +618,7 @@
           "timeout": 30,
           "runtime": "nodejs18.x",
           "vpc": {},
-          "versionLogicalId": "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY"
+          "versionLogicalId": "ApiLambdaVersionbZVQLGq3S65H28nxsGpfHjMRqoNKRW9FOGDOPfM"
         }
       },
       "layers": {
@@ -681,7 +681,7 @@
         "artifactsS3KeyDirname": "serverless/planilha-organizacao-api/prod/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-sa-east-1-42e97e4e-5620",
         "artifact": "C:\\Projeto\\planilha-organizacao\\backend\\.serverless\\planilha-organizacao-api.zip",
-        "artifactDirectoryName": "serverless/planilha-organizacao-api/prod/1757675661766-2025-09-12T11:14:21.766Z"
+        "artifactDirectoryName": "serverless/planilha-organizacao-api/prod/1757676689984-2025-09-12T11:31:29.984Z"
       }
     },
     "provider": {
@@ -847,9 +847,9 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-sa-east-1-42e97e4e-5620",
-                "S3Key": "serverless/planilha-organizacao-api/prod/1757675661766-2025-09-12T11:14:21.766Z/planilha-organizacao-api.zip"
+                "S3Key": "serverless/planilha-organizacao-api/prod/1757676689984-2025-09-12T11:31:29.984Z/planilha-organizacao-api.zip"
               },
-              "Handler": "dist/src/lambda-organized.handler",
+              "Handler": "dist/src/lambda-fix.handler",
               "Runtime": "nodejs18.x",
               "FunctionName": "planilha-organizacao-api-prod-api",
               "MemorySize": 512,
@@ -886,14 +886,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY": {
+          "ApiLambdaVersionbZVQLGq3S65H28nxsGpfHjMRqoNKRW9FOGDOPfM": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "vYmsDQm6ApY4tjXKYSESCvCrgzO6FjljqVT8QPTwLiI="
+              "CodeSha256": "kuQathWQoYYp+x790R545THzc0Bd2CXYncX6yLx/IPc="
             }
           },
           "ApiGatewayRestApi": {
@@ -1115,7 +1115,7 @@
               "ApiLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1757675642645": {
+          "ApiGatewayDeployment1757676671169": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -1201,7 +1201,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY"
+              "Ref": "ApiLambdaVersionbZVQLGq3S65H28nxsGpfHjMRqoNKRW9FOGDOPfM"
             },
             "Export": {
               "Name": "sls-planilha-organizacao-api-prod-ApiLambdaFunctionQualifiedArn"
@@ -1245,13 +1245,12 @@
       "serviceProvider": null,
       "instanceParameters": null
     },
-    "serviceRawFile": "service: planilha-organizacao-api\r\n\r\nframeworkVersion: '4'\r\n\r\nprovider:\r\n   name: aws\r\n   runtime: nodejs18.x\r\n   stage: ${opt:stage, 'dev'}\r\n   region: sa-east-1\r\n   memorySize: 512\r\n   timeout: 30\r\n   environment:\r\n      NODE_ENV: ${self:provider.stage}\r\n      DATABASE_URL: ${env:DATABASE_URL}\r\n      JWT_SECRET: ${env:JWT_SECRET}\r\n      JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN, '7d'}\r\n      FRONTEND_URL: ${env:FRONTEND_URL, 'https://your-frontend-domain.com'}\r\n   iamRoleStatements:\r\n      - Effect: Allow\r\n        Action:\r\n           - rds:DescribeDBInstances\r\n           - rds:Connect\r\n        Resource: '*'\r\n   vpc:\r\n      securityGroupIds:\r\n         - ${env:LAMBDA_SECURITY_GROUP_ID}\r\n      subnetIds:\r\n         - ${env:LAMBDA_SUBNET_ID_1}\r\n         - ${env:LAMBDA_SUBNET_ID_2}\r\n\r\nfunctions:\r\n   api:\r\n      handler: dist/src/lambda-organized.handler\r\n      layers:\r\n         - arn:aws:lambda:sa-east-1:365309361668:layer:prisma-client-layer:1\r\n      events:\r\n         - http:\r\n              path: /{proxy+}\r\n              method: ANY\r\n              cors:\r\n                 origin: ${env:FRONTEND_URL, '*'}\r\n                 headers:\r\n                    - Content-Type\r\n                    - X-Amz-Date\r\n                    - Authorization\r\n                    - X-Api-Key\r\n                    - X-Amz-Security-Token\r\n                    - X-Amz-User-Agent\r\n                 allowCredentials: true\r\n         - http:\r\n              path: /\r\n              method: ANY\r\n              cors:\r\n                 origin: ${env:FRONTEND_URL, '*'}\r\n                 headers:\r\n                    - Content-Type\r\n                    - X-Amz-Date\r\n                    - Authorization\r\n                    - X-Api-Key\r\n                    - X-Amz-Security-Token\r\n                    - X-Amz-User-Agent\r\n                 allowCredentials: true\r\n\r\nlayers:\r\n   PrismaClientLayer:\r\n      path: prisma-layer\r\n      name: prisma-client-layer\r\n      description: Prisma Client Layer for Planilha Organizacao\r\n      compatibleRuntimes:\r\n         - nodejs18.x\r\n\r\nplugins:\r\n   - serverless-offline\r\n\r\ncustom:\r\n   serverless-offline:\r\n      httpPort: 3000\r\n      host: 0.0.0.0\r\n   esbuild:\r\n      bundle: true\r\n      minify: true\r\n      sourcemap: false\r\n      external:\r\n         - 'aws-sdk'\r\n      packager: npm\r\n      installExtraArgs:\r\n         - '--production'\r\n\r\npackage:\r\n   patterns:\r\n      - '!node_modules/**'\r\n      - '!prisma/**'\r\n      - '!*.md'\r\n      - '!*.log'\r\n      - '!.env*'\r\n      - '!config.env'\r\n      - '!docker-compose.yml'\r\n      - '!Dockerfile'\r\n      - '!scripts/**'\r\n      - '!*.ps1'\r\n      - '!*.sh'\r\n      - '!src/**'\r\n      - '!tsconfig.json'\r\n      - '!webpack.config.js'\r\n      - '!*.test.ts'\r\n      - '!*.spec.ts'\r\n      - '!prisma-layer/**'\r\n      - '!prisma-layer.zip'\r\n      - '!layer-arn.txt'\r\n",
+    "serviceRawFile": "service: planilha-organizacao-api\r\n\r\nframeworkVersion: '4'\r\n\r\nprovider:\r\n   name: aws\r\n   runtime: nodejs18.x\r\n   stage: ${opt:stage, 'dev'}\r\n   region: sa-east-1\r\n   memorySize: 512\r\n   timeout: 30\r\n   environment:\r\n      NODE_ENV: ${self:provider.stage}\r\n      DATABASE_URL: ${env:DATABASE_URL}\r\n      JWT_SECRET: ${env:JWT_SECRET}\r\n      JWT_EXPIRES_IN: ${env:JWT_EXPIRES_IN, '7d'}\r\n      FRONTEND_URL: ${env:FRONTEND_URL, 'https://your-frontend-domain.com'}\r\n   iamRoleStatements:\r\n      - Effect: Allow\r\n        Action:\r\n           - rds:DescribeDBInstances\r\n           - rds:Connect\r\n        Resource: '*'\r\n   vpc:\r\n      securityGroupIds:\r\n         - ${env:LAMBDA_SECURITY_GROUP_ID}\r\n      subnetIds:\r\n         - ${env:LAMBDA_SUBNET_ID_1}\r\n         - ${env:LAMBDA_SUBNET_ID_2}\r\n\r\nfunctions:\r\n   api:\r\n      handler: dist/src/lambda-fix.handler\r\n      layers:\r\n         - arn:aws:lambda:sa-east-1:365309361668:layer:prisma-client-layer:1\r\n      events:\r\n         - http:\r\n              path: /{proxy+}\r\n              method: ANY\r\n              cors:\r\n                 origin: ${env:FRONTEND_URL, '*'}\r\n                 headers:\r\n                    - Content-Type\r\n                    - X-Amz-Date\r\n                    - Authorization\r\n                    - X-Api-Key\r\n                    - X-Amz-Security-Token\r\n                    - X-Amz-User-Agent\r\n                 allowCredentials: true\r\n         - http:\r\n              path: /\r\n              method: ANY\r\n              cors:\r\n                 origin: ${env:FRONTEND_URL, '*'}\r\n                 headers:\r\n                    - Content-Type\r\n                    - X-Amz-Date\r\n                    - Authorization\r\n                    - X-Api-Key\r\n                    - X-Amz-Security-Token\r\n                    - X-Amz-User-Agent\r\n                 allowCredentials: true\r\n\r\nlayers:\r\n   PrismaClientLayer:\r\n      path: prisma-layer\r\n      name: prisma-client-layer\r\n      description: Prisma Client Layer for Planilha Organizacao\r\n      compatibleRuntimes:\r\n         - nodejs18.x\r\n\r\nplugins:\r\n   - serverless-offline\r\n\r\ncustom:\r\n   serverless-offline:\r\n      httpPort: 3000\r\n      host: 0.0.0.0\r\n   esbuild:\r\n      bundle: true\r\n      minify: true\r\n      sourcemap: false\r\n      external:\r\n         - 'aws-sdk'\r\n      packager: npm\r\n      installExtraArgs:\r\n         - '--production'\r\n\r\npackage:\r\n   patterns:\r\n      - '!node_modules/**'\r\n      - '!prisma/**'\r\n      - '!*.md'\r\n      - '!*.log'\r\n      - '!.env*'\r\n      - '!config.env'\r\n      - '!docker-compose.yml'\r\n      - '!Dockerfile'\r\n      - '!scripts/**'\r\n      - '!*.ps1'\r\n      - '!*.sh'\r\n      - '!src/**'\r\n      - '!tsconfig.json'\r\n      - '!webpack.config.js'\r\n      - '!*.test.ts'\r\n      - '!*.spec.ts'\r\n      - '!prisma-layer/**'\r\n      - '!prisma-layer.zip'\r\n      - '!layer-arn.txt'\r\n",
     "command": [
       "deploy"
     ],
     "options": {
-      "stage": "prod",
-      "verbose": true
+      "stage": "prod"
     },
     "orgId": "b4cc2424-60eb-4850-b6e1-e9b21913bbf0",
     "orgName": "planilhaorganizacao",
@@ -1261,7 +1260,7 @@
     "serviceProviderAwsCfStackName": "planilha-organizacao-api-prod",
     "serviceProviderAwsCfStackId": "arn:aws:cloudformation:sa-east-1:365309361668:stack/planilha-organizacao-api-prod/f9969ae0-8f5e-11f0-8786-06eaf4cf2dc7",
     "serviceProviderAwsCfStackCreated": "2025-09-11T22:30:53.040Z",
-    "serviceProviderAwsCfStackUpdated": "2025-09-12T11:00:39.420Z",
+    "serviceProviderAwsCfStackUpdated": "2025-09-12T11:14:28.403Z",
     "serviceProviderAwsCfStackStatus": "UPDATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
@@ -1284,7 +1283,7 @@
       },
       {
         "OutputKey": "ApiLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:sa-east-1:365309361668:function:planilha-organizacao-api-prod-api:10",
+        "OutputValue": "arn:aws:lambda:sa-east-1:365309361668:function:planilha-organizacao-api-prod-api:11",
         "Description": "Current Lambda function version",
         "ExportName": "sls-planilha-organizacao-api-prod-ApiLambdaFunctionQualifiedArn"
       },
@@ -1429,9 +1428,9 @@
           "Properties": {
             "Code": {
               "S3Bucket": "serverless-framework-deployments-sa-east-1-42e97e4e-5620",
-              "S3Key": "serverless/planilha-organizacao-api/prod/1757675661766-2025-09-12T11:14:21.766Z/planilha-organizacao-api.zip"
+              "S3Key": "serverless/planilha-organizacao-api/prod/1757676689984-2025-09-12T11:31:29.984Z/planilha-organizacao-api.zip"
             },
-            "Handler": "dist/src/lambda-organized.handler",
+            "Handler": "dist/src/lambda-fix.handler",
             "Runtime": "nodejs18.x",
             "FunctionName": "planilha-organizacao-api-prod-api",
             "MemorySize": 512,
@@ -1468,14 +1467,14 @@
             "ApiLogGroup"
           ]
         },
-        "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY": {
+        "ApiLambdaVersionbZVQLGq3S65H28nxsGpfHjMRqoNKRW9FOGDOPfM": {
           "Type": "AWS::Lambda::Version",
           "DeletionPolicy": "Retain",
           "Properties": {
             "FunctionName": {
               "Ref": "ApiLambdaFunction"
             },
-            "CodeSha256": "vYmsDQm6ApY4tjXKYSESCvCrgzO6FjljqVT8QPTwLiI="
+            "CodeSha256": "kuQathWQoYYp+x790R545THzc0Bd2CXYncX6yLx/IPc="
           }
         },
         "ApiGatewayRestApi": {
@@ -1697,7 +1696,7 @@
             "ApiLambdaPermissionApiGateway"
           ]
         },
-        "ApiGatewayDeployment1757675642645": {
+        "ApiGatewayDeployment1757676671169": {
           "Type": "AWS::ApiGateway::Deployment",
           "Properties": {
             "RestApiId": {
@@ -1783,7 +1782,7 @@
         "ApiLambdaFunctionQualifiedArn": {
           "Description": "Current Lambda function version",
           "Value": {
-            "Ref": "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY"
+            "Ref": "ApiLambdaVersionbZVQLGq3S65H28nxsGpfHjMRqoNKRW9FOGDOPfM"
           },
           "Export": {
             "Name": "sls-planilha-organizacao-api-prod-ApiLambdaFunctionQualifiedArn"

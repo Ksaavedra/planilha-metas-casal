@@ -30,7 +30,7 @@ provider:
 
 functions:
    api:
-      handler: dist/src/lambda-simple.handler
+      handler: dist/src/lambda-fix.handler
       layers:
          - arn:aws:lambda:sa-east-1:365309361668:layer:prisma-client-layer:1
       events:

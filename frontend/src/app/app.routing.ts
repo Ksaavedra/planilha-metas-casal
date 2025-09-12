@@ -62,6 +62,13 @@ const routes: Routes = [
           ),
       },
       {
+        path: 'api-test',
+        loadComponent: () =>
+          import('./components/api-test/api-test.component').then(
+            (component) => component.ApiTestComponent
+          ),
+      },
+      {
         path: '**',
         redirectTo: '/dashboard',
         pathMatch: 'full',
