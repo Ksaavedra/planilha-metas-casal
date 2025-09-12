@@ -108,7 +108,7 @@ export const gerarToken = (usuario: {
          nome: usuario.nome,
       },
       JWT_SECRET,
-      { expiresIn: config.JWT_EXPIRES_IN }
+      { expiresIn: '7d' }
    );
 };
 

@@ -4,11 +4,11 @@ import { verificarToken, verificarPermissao } from '../middleware/auth';
 
 const router = Router();
 
-// Rotas públicas (sem autenticação)
+// públicas
 router.post('/registrar', AuthController.registrar);
 router.post('/login', AuthController.login);
 
-// Rotas protegidas (requerem autenticação)
+// protegidas
 router.get(
    '/perfil',
    verificarToken,
@@ -34,12 +34,9 @@ router.delete(
    AuthController.desativarConta
 );
 
-// Rota para verificar se o token é válido
+// validar token
 router.get('/verificar', verificarToken, (req, res) => {
-   res.json({
-      message: 'Token válido',
-      usuario: (req as any).usuario,
-   });
+   res.json({ message: 'Token válido', usuario: (req as any).usuario });
 });
 
 export default router;
