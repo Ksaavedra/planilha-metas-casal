@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { PrismaClient } from '@prisma/client';
 
 import authRoutes from './routes/auth.routes';
@@ -21,12 +22,34 @@ if (config.ENABLE_HELMET) {
    app.use(helmet());
 }
 
+// CORS com allowlist
+const allowlist = [
+   config.CORS_ORIGIN,
+   'http://localhost:5173',
+   'http://localhost:3000',
+];
 app.use(
    cors({
-      origin: config.CORS_ORIGIN,
+      origin: (origin, cb) => {
+         if (!origin || allowlist.includes(origin)) return cb(null, true);
+         cb(new Error('Not allowed by CORS'));
+      },
       credentials: true,
    })
 );
+
+// Rate limiting
+if (config.ENABLE_RATE_LIMIT) {
+   app.use(
+      rateLimit({
+         windowMs: config.RATE_LIMIT_WINDOW_MS,
+         max: config.RATE_LIMIT_MAX_REQUESTS,
+         message: 'Muitas requisições deste IP, tente novamente mais tarde.',
+         standardHeaders: true,
+         legacyHeaders: false,
+      })
+   );
+}
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -42,14 +65,14 @@ app.get('/health', async (_req, res) => {
       await prisma.$queryRaw`SELECT 1`;
       res.json({
          status: 'ok',
-         database: 'sqlite',
+         database: 'mysql',
          timestamp: new Date().toISOString(),
          message: 'API funcionando perfeitamente com autenticação!',
       });
    } catch (error) {
       res.status(500).json({
          status: 'error',
-         database: 'sqlite',
+         database: 'mysql',
          error: 'Erro na conexão com o banco de dados',
       });
    }
