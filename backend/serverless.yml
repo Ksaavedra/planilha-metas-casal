@@ -32,7 +32,7 @@ functions:
    api:
       handler: dist/src/lambda.handler
       layers:
-         - arn:aws:lambda:sa-east-1:365309361668:layer:prisma-client-layer:1
+         - arn:aws:lambda:sa-east-1:365309361668:layer:prisma-client-layer:3
       events:
          - http:
               path: /{proxy+}
@@ -107,3 +107,5 @@ package:
       - '!prisma-layer/**'
       - '!prisma-layer.zip'
       - '!layer-arn.txt'
+      - '!package.json'
+      - '!package-lock.json'
