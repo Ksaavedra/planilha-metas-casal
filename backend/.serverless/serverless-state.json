@@ -162,9 +162,9 @@
             "Properties": {
               "Code": {
                 "S3Bucket": "serverless-framework-deployments-sa-east-1-42e97e4e-5620",
-                "S3Key": "serverless/planilha-organizacao-api/prod/1757674825687-2025-09-12T11:00:25.687Z/planilha-organizacao-api.zip"
+                "S3Key": "serverless/planilha-organizacao-api/prod/1757675661766-2025-09-12T11:14:21.766Z/planilha-organizacao-api.zip"
               },
-              "Handler": "dist/src/lambda-simple.handler",
+              "Handler": "dist/src/lambda-organized.handler",
               "Runtime": "nodejs18.x",
               "FunctionName": "planilha-organizacao-api-prod-api",
               "MemorySize": 512,
@@ -200,14 +200,14 @@
               "ApiLogGroup"
             ]
           },
-          "ApiLambdaVersion5FoJuYmBta5aiT57hiYBf9QnVl3HePlAbCsd2ge0TA": {
+          "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ApiLambdaFunction"
               },
-              "CodeSha256": "9sUJ9l/X5RRZyQOzc0QOgt8/kZtm6llcF4cZan7vGJE="
+              "CodeSha256": "vYmsDQm6ApY4tjXKYSESCvCrgzO6FjljqVT8QPTwLiI="
             }
           },
           "ApiGatewayRestApi": {
@@ -429,7 +429,7 @@
               "ApiLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1757674809482": {
+          "ApiGatewayDeployment1757675642645": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -515,7 +515,7 @@
           "ApiLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ApiLambdaVersion5FoJuYmBta5aiT57hiYBf9QnVl3HePlAbCsd2ge0TA"
+              "Ref": "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY"
             },
             "Export": {
               "Name": "sls-planilha-organizacao-api-prod-ApiLambdaFunctionQualifiedArn"
@@ -574,7 +574,7 @@
     "pluginsData": {},
     "functions": {
       "api": {
-        "handler": "dist/src/lambda-simple.handler",
+        "handler": "dist/src/lambda-organized.handler",
         "layers": {
           "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"ApiLambdaFunction\"][\"Properties\"][\"Layers\"]"
         },
@@ -632,7 +632,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "ApiLambdaVersion5FoJuYmBta5aiT57hiYBf9QnVl3HePlAbCsd2ge0TA"
+        "versionLogicalId": "ApiLambdaVersionKofumFhY0Av5G6jYrkK24nxeVhs5rkhLoOmMwO9wBAY"
       }
     },
     "configValidationMode": "warn",
@@ -691,7 +691,7 @@
         "artifactsS3KeyDirname": "serverless/planilha-organizacao-api/prod/code-artifacts",
         "deploymentBucket": "serverless-framework-deployments-sa-east-1-42e97e4e-5620",
         "artifact": "C:\\Projeto\\planilha-organizacao\\backend\\.serverless\\planilha-organizacao-api.zip",
-        "artifactDirectoryName": "serverless/planilha-organizacao-api/prod/1757674825687-2025-09-12T11:00:25.687Z"
+        "artifactDirectoryName": "serverless/planilha-organizacao-api/prod/1757675661766-2025-09-12T11:14:21.766Z"
       }
     },
     "appId": null,
@@ -702,7 +702,7 @@
     "artifact": "C:\\Projeto\\planilha-organizacao\\backend\\.serverless\\planilha-organizacao-api.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/planilha-organizacao-api/prod/1757674825687-2025-09-12T11:00:25.687Z",
+    "artifactDirectoryName": "serverless/planilha-organizacao-api/prod/1757675661766-2025-09-12T11:14:21.766Z",
     "artifact": "planilha-organizacao-api.zip"
   }
 }
