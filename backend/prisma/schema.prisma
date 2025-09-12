@@ -3,10 +3,11 @@
 
 generator client {
   provider = "prisma-client-js"
+  dataProxy = true
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -16,146 +17,140 @@ enum StatusMes {
   Pago
 }
 
-enum StatusReceita {
-  Vazio
-  Programado
-  Recebido
-}
-
-enum StatusDespesa {
-  Vazio
-  Programado
-  Pago
-}
-
-enum TipoRenda {
-  Ativa
-  Passiva
-  Extra
-}
-
 model Usuario {
-  id        Int      @id @default(autoincrement())
+  id        String   @id @default(cuid())
   email     String   @unique
   nome      String
   senha     String
-  ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relacionamentos
-  metas     Meta[]
-  receitas  Receita[]
-  despesas  Despesa[]
+  metas      Meta[]
   categorias Categoria[]
+  receitas   Receita[]
+  despesas   Despesa[]
+  investimentos Investimento[]
+  dividas    Divida[]
+  meses      Mes[]
 
   @@map("usuarios")
 }
 
 model Meta {
-  id                 Int         @id @default(autoincrement())
-  nome               String
-  valorMeta          Float
-  valorPorMes        Float
-  mesesNecessarios   Int
-  valorAtual         Float       @default(0)
-  usuarioId          Int
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  id                String   @id @default(cuid())
+  nome              String
+  valorTotal        Float
+  valorPorMes       Float
+  mesesNecessarios  Int
+  dataInicio        DateTime
+  dataFim           DateTime?
+  status            String   @default("ativa")
+  usuarioId         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  // Relacionamentos
-  usuario            Usuario     @relation(fields: [usuarioId], references: [id])
-  meses              MesesMeta[]
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("metas")
 }
 
-model MesesMeta {
-  id       Int      @id @default(autoincrement())
-  metaId   Int
-  mes_id   Int
-  valor    Float    @default(0)
-  status   StatusMes @default(Vazio)
-
-  // Relacionamentos
-  meta    Meta     @relation(fields: [metaId], references: [id], onDelete: Cascade)
-  mes     Meses    @relation(fields: [mes_id], references: [id])
-
-  @@unique([metaId, mes_id])
-  @@map("meses_meta")
-}
-
 model Categoria {
-  id          Int      @id @default(autoincrement())
-  nome        String
-  tipo        String   // 'receita' ou 'despesa'
-  descricao   String?
-  ativo       Boolean  @default(true)
-  usuarioId   Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  nome      String
+  tipo      String   // "receita" ou "despesa"
+  usuarioId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Relacionamentos
-  usuario    Usuario  @relation(fields: [usuarioId], references: [id])
-  receitas   Receita[]
-  despesas   Despesa[]
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  receitas  Receita[]
+  despesas  Despesa[]
 
   @@unique([usuarioId, nome])
   @@map("categorias")
 }
 
-model Meses {
-  id     Int    @id @default(autoincrement())
-  nome   String
-  numero Int    @unique
+model Mes {
+  id        String    @id @default(cuid())
+  numero    Int       @unique
+  nome      String
+  usuarioId String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  // Relacionamentos
-  mesesMeta MesesMeta[]
+  usuario   Usuario        @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   receitas  Receita[]
   despesas  Despesa[]
+  investimentos Investimento[]
+  dividas   Divida[]
 
   @@map("meses")
 }
 
 model Receita {
-  id           Int           @id @default(autoincrement())
-  mes_id       Int
-  categoriaId  Int
-  descricao    String
-  valor        Float
-  status       StatusReceita @default(Vazio)
-  tipo         TipoRenda
-  data         DateTime?
-  observacao   String?
-  usuarioId    Int
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id          String   @id @default(cuid())
+  descricao   String
+  valor       Float
+  data        DateTime
+  mes_id      Int
+  categoriaId String
+  usuarioId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Relacionamentos
-  categoria   Categoria     @relation(fields: [categoriaId], references: [id])
-  mes         Meses         @relation(fields: [mes_id], references: [id])
-  usuario     Usuario       @relation(fields: [usuarioId], references: [id])
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  mes       Mes       @relation(fields: [mes_id], references: [numero], onDelete: Cascade)
 
   @@map("receitas")
 }
 
 model Despesa {
-  id           Int           @id @default(autoincrement())
-  mes_id       Int
-  categoriaId  Int
-  descricao    String
-  valor        Float
-  status       StatusDespesa @default(Vazio)
-  data         DateTime?
-  observacao   String?
-  usuarioId    Int
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id          String   @id @default(cuid())
+  descricao   String
+  valor       Float
+  data        DateTime
+  mes_id      Int
+  categoriaId String
+  usuarioId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  // Relacionamentos
-  categoria   Categoria     @relation(fields: [categoriaId], references: [id])
-  mes         Meses         @relation(fields: [mes_id], references: [id])
-  usuario     Usuario       @relation(fields: [usuarioId], references: [id])
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  categoria Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  mes       Mes       @relation(fields: [mes_id], references: [numero], onDelete: Cascade)
 
   @@map("despesas")
+}
+
+model Investimento {
+  id        String   @id @default(cuid())
+  nome      String
+  valor     Float
+  data      DateTime
+  mes_id    Int
+  usuarioId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  mes     Mes     @relation(fields: [mes_id], references: [numero], onDelete: Cascade)
+
+  @@map("investimentos")
+}
+
+model Divida {
+  id        String   @id @default(cuid())
+  nome      String
+  valor     Float
+  data      DateTime
+  mes_id    Int
+  usuarioId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  mes     Mes     @relation(fields: [mes_id], references: [numero], onDelete: Cascade)
+
+  @@map("dividas")
 }

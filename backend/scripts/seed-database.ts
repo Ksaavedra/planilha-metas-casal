@@ -19,11 +19,20 @@ async function main() {
    ];
 
    for (const mes of meses) {
-      await prisma.meses.upsert({
+      const existing = await prisma.meses.findFirst({
          where: { numero: mes.numero },
-         update: {},
-         create: mes,
       });
+
+      if (existing) {
+         await prisma.meses.update({
+            where: { id: existing.id },
+            data: mes,
+         });
+      } else {
+         await prisma.meses.create({
+            data: mes,
+         });
+      }
    }
    console.log('✅ Meses criados/atualizados');
 

@@ -65,14 +65,14 @@ app.get('/health', async (_req, res) => {
       await prisma.$queryRaw`SELECT 1`;
       res.json({
          status: 'ok',
-         database: 'postgresql',
+         database: 'mysql',
          timestamp: new Date().toISOString(),
          message: 'API funcionando perfeitamente com autenticação!',
       });
    } catch (error) {
       res.status(500).json({
          status: 'error',
-         database: 'postgresql',
+         database: 'mysql',
          error: 'Erro na conexão com o banco de dados',
       });
    }
