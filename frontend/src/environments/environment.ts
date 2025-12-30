@@ -1,5 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000',
+  environment: 'dev',
+  apiUrl: 'http://localhost:3000/api',
   appName: 'Planilha Organização Financeira',
 };

@@ -13,7 +13,7 @@
 .main-content {
   flex: 1;
   padding: 2rem;
-  margin-left: 280px;
+  // margin-left: 280px;
   /* Largura do sidebar em desktop */
   transition: margin-left 0.3s ease;
   border-radius: 0;
@@ -23,7 +23,6 @@
 /* Quando sidebar está fechada em desktop */
 .main-content.sidebar-closed {
   margin-left: 0;
-  width: 100%;
 }
 
 /* Layout mobile */
@@ -45,7 +44,7 @@
   top: -5px;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: -webkit-fill-available;
   background: rgba(0, 0, 0, 0.5);
   z-index: 998;
   backdrop-filter: blur(2px);

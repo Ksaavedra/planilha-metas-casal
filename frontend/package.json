@@ -9,7 +9,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "jest",
     "test:cov": "jest --coverage",
-    "test:ci": "jest --coverage --runInBand"
+    "test:ci": "jest --coverage --runInBand",
+    "server": "node server.js"
   },
   "private": true,
   "dependencies": {

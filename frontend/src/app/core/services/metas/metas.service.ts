@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, tap, catchError } from 'rxjs';
 import { Meta, MesMeta } from '../../interfaces/mes-meta';
 import { ApiService } from '../api/api.service';
+import { environment } from 'src/environments';
 
 export interface CreateMetaRequest {
   nome: string;
@@ -20,11 +21,32 @@ export interface UpdateMetaRequest extends Partial<CreateMetaRequest> {
   providedIn: 'root',
 })
 export class MetasService {
-  constructor(private apiService: ApiService) {}
+  private readonly API_URL = `${environment.apiUrl}/metas`;
+
+  constructor(private apiService: ApiService) {
+    console.log('🎯 MetasService inicializado');
+    console.log('🌐 API URL:', this.API_URL);
+  }
+
+  // Método para log detalhado
+  private logRequest(method: string, endpoint: string): void {
+    const timestamp = new Date().toLocaleTimeString();
+    console.group(
+      `🚀 [${timestamp}] MetasService - ${method.toUpperCase()} ${endpoint}`
+    );
+  }
 
   // Listar todas as metas
   getMetas(): Observable<Meta[]> {
-    return this.apiService.get<Meta[]>('/metas');
+    this.logRequest('GET', '');
+    return this.apiService.get<Meta[]>('/metas').pipe(
+      tap((response) => {
+        console.log(`📊 Total de metas retornadas: ${response.length}`);
+      }),
+      catchError((error) => {
+        throw error;
+      })
+    );
   }
 
   // Buscar meta por ID
