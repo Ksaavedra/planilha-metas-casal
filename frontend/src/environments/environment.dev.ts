@@ -10,10 +10,6 @@ export const environment = {
     caching: true,
     realTimeUpdates: false,
   },
-  database: {
-    type: 'sqlite',
-    path: './database.sqlite',
-  },
   cors: {
     origin: ['http://localhost:4200', 'http://localhost:3000'],
   },

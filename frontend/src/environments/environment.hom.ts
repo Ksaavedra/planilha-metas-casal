@@ -8,13 +8,9 @@ export const environment = {
   features: {
     analytics: true,
     caching: true,
-    realTimeUpdates: false
-  },
-  database: {
-    type: 'sqlite',
-    path: './database.sqlite'
+    realTimeUpdates: false,
   },
   cors: {
-    origin: ['https://hom.seudominio.com', 'https://api-hom.seudominio.com']
-  }
+    origin: ['https://hom.seudominio.com', 'https://api-hom.seudominio.com'],
+  },
 };

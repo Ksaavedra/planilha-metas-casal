@@ -585,6 +585,7 @@ export class ElaborandoMetasComponent {
 
   // Métodos para o modal de adicionar meta
   abrirModalAdicionarMeta(): void {
+    console.log('🔵 Adicionar meta - abrirModalAdicionarMeta() chamado!');
     this.modalAdicionarMeta.isOpen = true;
     this.modalAdicionarMeta.nome = '';
     this.modalAdicionarMeta.valorMeta = 0;
@@ -601,12 +602,19 @@ export class ElaborandoMetasComponent {
   }
 
   salvarMetaModal(): void {
+    console.log('🔵 Adicionar meta - salvarMetaModal() chamado!');
+    console.log('📋 Dados do modal:', this.modalAdicionarMeta);
+
     const { nome, valorMeta, valorPorMes, valorAtual } =
       this.modalAdicionarMeta;
+
     if (!nome.trim()) {
+      console.log('❌ Erro: Nome da meta está vazio, fechando modal');
       this.fecharModalAdicionarMeta();
       return;
     }
+
+    console.log('✅ Validação passou, criando meta...');
 
     const mesesPadrao = [
       'Janeiro',
@@ -640,11 +648,35 @@ export class ElaborandoMetasComponent {
       })
       .subscribe({
         next: () => {
+          console.log('✅ Meta criada com sucesso!');
           this.metasAtualizadas.emit();
           this.modalSucessoAdd.isOpen = true;
         },
-        error: () => alert('Erro ao criar meta. Tente novamente.'),
-        complete: () => this.fecharModalAdicionarMeta(),
+        error: (err) => {
+          console.error('❌ Erro ao criar meta:', err);
+          console.error('📋 Detalhes do erro:', {
+            status: err.status,
+            statusText: err.statusText,
+            url: err.url,
+            message: err.message,
+          });
+
+          // Mensagem de erro mais específica
+          if (err.status === 0 || err.statusText === 'Unknown Error') {
+            alert(
+              '⚠️ Erro de conexão: Não foi possível conectar ao servidor.\n\n' +
+                'Verifique se o backend está rodando em http://localhost:3000\n\n' +
+                'Erro: ' +
+                (err.message || 'Conexão recusada')
+            );
+          } else {
+            alert('Erro ao criar meta: ' + (err.message || 'Tente novamente.'));
+          }
+        },
+        complete: () => {
+          console.log('✅ Processo de adicionar meta completo');
+          this.fecharModalAdicionarMeta();
+        },
       });
   }
 

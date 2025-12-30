@@ -11,16 +11,15 @@
     </div>
   </div>
 
+  <!-- Botão Adicionar Meta -->
+  <div class="add-meta-container">
+    <button class="add-meta-btn" (click)="abrirModalAdicionarMeta()" [disabled]="metas.length >= 15">
+      <span class="material-icons">add</span>
+      Adicionar Meta
+      <span class="meta-count">({{ metas.length }}/15)</span>
+    </button>
+  </div>
   <div class="table-container">
-    <!-- Botão Adicionar Meta -->
-    <div class="add-meta-container">
-      <button class="add-meta-btn" (click)="abrirModalAdicionarMeta()" [disabled]="metas.length >= 15">
-        <span class="material-icons">add</span>
-        Adicionar Meta
-        <span class="meta-count">({{ metas.length }}/15)</span>
-      </button>
-    </div>
-
     <table class="metas-table">
       <thead>
         <tr>
@@ -129,15 +128,14 @@
       <div class="modal-body">
         <div class="modal-input-group">
           <label for="nome-nova-meta">Nome da Meta:</label>
-          <input id="nome-nova-meta" type="text" autocomplete="off" [ngModel]="modalAdicionarMeta.nome"
-            (ngModelChange)="modalAdicionarMeta.nome = $event" class="modal-input" placeholder="Digite o nome da meta"
-            autofocus>
+          <input id="nome-nova-meta" type="text" autocomplete="off" [(ngModel)]="modalAdicionarMeta.nome"
+            class="modal-input" placeholder="Digite o nome da meta" autofocus>
         </div>
 
         <div class="modal-input-group">
           <label for="valor-meta">Valor da Meta:</label>
           <input id="valor-meta" type="text" autocomplete="off" inputmode="decimal"
-            [ngModel]="modalAdicionarMeta.valorMeta === 0 ? '' : modalAdicionarMeta.valorMeta"
+            ([ngModel])="modalAdicionarMeta.valorMeta === 0 ? '' : modalAdicionarMeta.valorMeta"
             (ngModelChange)="onValorMetaChange($event)" (keydown.enter)="salvarMetaModal()"
             (keypress)="validarApenasNumeros($event)" class="modal-input" placeholder="0,00">
         </div>
@@ -145,7 +143,7 @@
         <div class="modal-input-group">
           <label for="valor-mes">Valor por Mês:</label>
           <input id="valor-mes" type="text" autocomplete="off" inputmode="decimal"
-            [ngModel]="modalAdicionarMeta.valorPorMes === 0 ? '' : modalAdicionarMeta.valorPorMes"
+            ([ngModel])="modalAdicionarMeta.valorPorMes === 0 ? '' : modalAdicionarMeta.valorPorMes"
             (ngModelChange)="onValorPorMesChange($event)" (keydown.enter)="salvarMetaModal()"
             (keypress)="validarApenasNumeros($event)" class="modal-input" placeholder="0,00">
         </div>
@@ -153,7 +151,7 @@
         <div class="modal-input-group">
           <label for="valor-atual">Valor Já Temos:</label>
           <input id="valor-atual" type="text" autocomplete="off" inputmode="decimal"
-            [ngModel]="modalAdicionarMeta.valorAtual === 0 ? '' : modalAdicionarMeta.valorAtual"
+            ([ngModel])="modalAdicionarMeta.valorAtual === 0 ? '' : modalAdicionarMeta.valorAtual"
             (ngModelChange)="onValorAtualChange($event)" (keydown.enter)="salvarMetaModal()"
             (keypress)="validarApenasNumeros($event)" class="modal-input" placeholder="0,00">
         </div>

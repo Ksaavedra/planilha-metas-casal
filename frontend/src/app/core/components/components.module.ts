@@ -9,6 +9,7 @@ import { HeaderComponent } from './header/header.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { LoggedComponent } from './logged/logged.component';
 import { ApiTestComponent } from '../../components/api-test/api-test.component';
+import { TesteMetasComponent } from '../../components/teste-metas/teste-metas.component';
 
 @NgModule({
   declarations: [
@@ -16,6 +17,7 @@ import { ApiTestComponent } from '../../components/api-test/api-test.component';
     SidebarComponent,
     LoggedComponent,
     ApiTestComponent,
+    TesteMetasComponent,
   ],
   imports: [CommonModule, RouterModule],
   exports: [
@@ -23,6 +25,7 @@ import { ApiTestComponent } from '../../components/api-test/api-test.component';
     SidebarComponent,
     LoggedComponent,
     ApiTestComponent,
+    TesteMetasComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
 })

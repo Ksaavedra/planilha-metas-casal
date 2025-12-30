@@ -1,1 +1,0 @@
-arn:aws:lambda:sa-east-1:365309361668:layer:prisma-client-layer

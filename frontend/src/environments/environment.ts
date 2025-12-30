@@ -1,5 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://np56fbuwda.execute-api.sa-east-1.amazonaws.com/prod',
+  environment: 'dev',
+  apiUrl: 'http://localhost:3000/api',
   appName: 'Planilha Organização Financeira',
 };
