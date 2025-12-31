@@ -10,7 +10,9 @@
     "test": "jest",
     "test:cov": "jest --coverage",
     "test:ci": "jest --coverage --runInBand",
-    "server": "node server.js"
+    "server": "node server.js",
+    "db:create": "node scripts/create-database.js",
+    "db:migrate": "node scripts/migrate-data.js"
   },
   "private": true,
   "dependencies": {
@@ -24,6 +26,7 @@
     "@angular/platform-browser": "^18.0.0",
     "@angular/platform-browser-dynamic": "^18.0.0",
     "@angular/router": "^18.0.0",
+    "better-sqlite3": "^12.5.0",
     "cors": "^2.8.5",
     "echarts": "^6.0.0",
     "express": "^5.1.0",

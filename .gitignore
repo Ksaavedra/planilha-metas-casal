@@ -22,6 +22,7 @@ README-JSON-SERVER.md
 # Database
 *.db
 backend/prisma/dev.db
+metas.db
 
 # IDE
 .vscode/
@@ -32,6 +33,18 @@ backend/prisma/dev.db
 .DS_Store
 Thumbs.db
 
-# Database files
-*.db
-backend/prisma/dev.db
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+
+# Cache
+.cache/
+.angular/cache/
+
+# Environment files
+.env
+.env.local
+.env.*.local
