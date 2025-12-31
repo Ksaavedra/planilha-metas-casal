@@ -40,3 +40,13 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Database
+*.db
+metas.db
+
+# Server files (não versionar)
+server.js
+
+# Scripts de migração (opcional - pode versionar ou não)
+# scripts/
