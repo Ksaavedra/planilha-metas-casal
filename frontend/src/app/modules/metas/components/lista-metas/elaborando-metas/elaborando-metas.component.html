@@ -1,4 +1,4 @@
-<div class="section">
+<div class="section-elaborando">
   <div class="section-header">
     <h2>ELABORANDO AS METAS DO CASAL</h2>
   </div>
@@ -115,74 +115,6 @@
     </table>
   </div>
 
-  <!-- Modal de Adicionar Meta -->
-  <div class="modal-overlay" *ngIf="modalAdicionarMeta.isOpen" (click)="fecharModalAdicionarMeta()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>Adicionar Nova Meta</h3>
-        <button class="modal-close" (click)="fecharModalAdicionarMeta()">
-          <span class="material-icons">close</span>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="modal-input-group">
-          <label for="nome-nova-meta">Nome da Meta:</label>
-          <input id="nome-nova-meta" type="text" autocomplete="off" [(ngModel)]="modalAdicionarMeta.nome"
-            class="modal-input" placeholder="Digite o nome da meta" autofocus>
-        </div>
-
-        <div class="modal-input-group">
-          <label for="valor-meta">Valor da Meta:</label>
-          <input id="valor-meta" type="text" autocomplete="off" inputmode="decimal"
-            ([ngModel])="modalAdicionarMeta.valorMeta === 0 ? '' : modalAdicionarMeta.valorMeta"
-            (ngModelChange)="onValorMetaChange($event)" (keydown.enter)="salvarMetaModal()"
-            (keypress)="validarApenasNumeros($event)" class="modal-input" placeholder="0,00">
-        </div>
-
-        <div class="modal-input-group">
-          <label for="valor-mes">Valor por Mês:</label>
-          <input id="valor-mes" type="text" autocomplete="off" inputmode="decimal"
-            ([ngModel])="modalAdicionarMeta.valorPorMes === 0 ? '' : modalAdicionarMeta.valorPorMes"
-            (ngModelChange)="onValorPorMesChange($event)" (keydown.enter)="salvarMetaModal()"
-            (keypress)="validarApenasNumeros($event)" class="modal-input" placeholder="0,00">
-        </div>
-
-        <div class="modal-input-group">
-          <label for="valor-atual">Valor Já Temos:</label>
-          <input id="valor-atual" type="text" autocomplete="off" inputmode="decimal"
-            ([ngModel])="modalAdicionarMeta.valorAtual === 0 ? '' : modalAdicionarMeta.valorAtual"
-            (ngModelChange)="onValorAtualChange($event)" (keydown.enter)="salvarMetaModal()"
-            (keypress)="validarApenasNumeros($event)" class="modal-input" placeholder="0,00">
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-cancelar" (click)="cancelarAdicionarMeta()">
-          Cancelar
-        </button>
-        <button class="btn-salvar" (click)="salvarMetaModal()">
-          Adicionar
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <app-success-modal [isOpen]="modalSucessoAdd.isOpen" title="Meta adicionada!"
-    message="Sua meta foi criada com sucesso." confirmText="Fechar" [autoCloseMs]="0"
-    (close)="modalSucessoAdd.isOpen = false">
-  </app-success-modal>
-
-  <app-success-modal [isOpen]="modalSucessoDelete.isOpen" title="Meta removida!"
-    message="A meta foi excluída com sucesso." confirmText="OK" [autoCloseMs]="0"
-    (close)="modalSucessoDelete.isOpen = false">
-  </app-success-modal>
-
-  <!-- Modal de Confirmação de Exclusão -->
-  <app-confirm-modal [isOpen]="modalConfirmarDelete.isOpen" title="Confirmar Exclusão"
-    [message]="'Tem certeza que deseja excluir a meta \'' + (metaParaExcluir?.nome || '') + '\'?'"
-    confirmText="Sim, Excluir" cancelText="Cancelar" (confirm)="confirmarExclusao()" (cancel)="cancelarExclusao()">
-  </app-confirm-modal>
 
   <!-- Modal de Parabéns -->
   <app-parabens-modal [isOpen]="modalParabens.isOpen" [metaNome]="modalParabens.metaNome"
