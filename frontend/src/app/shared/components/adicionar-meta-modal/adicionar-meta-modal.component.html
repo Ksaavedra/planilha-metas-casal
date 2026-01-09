@@ -12,6 +12,18 @@
           }
         </div>
 
+        <div class="modal-input-group icon-selector-group">
+          <label for="icon-select">Ícone da Meta:</label>
+          <div class="icon-selector">
+            @for (iconOption of availableIcons; track iconOption.value) {
+            <button type="button" class="icon-option" [class.selected]="icon === iconOption.value"
+              (click)="onIconChange(iconOption.value)" [title]="iconOption.label">
+              <i [class]="'bi ' + iconOption.icon"></i>
+            </button>
+            }
+          </div>
+        </div>
+
         <div class="modal-input-group" [class.has-error]="valorMetaFormControl.invalid && valorMetaFormControl.touched">
           <label for="valor-meta">Valor da Meta: <span class="required">*</span></label>
           <input id="valor-meta" type="text" inputmode="decimal" class="modal-input"

@@ -8,6 +8,7 @@ export interface ModalAdicionarMetaState {
   valorPorMesRaw: string;
   valorAtualRaw: string;
   temValorAtual: boolean;
+  icon: string; // Ícone selecionado
 }
 
 export interface ModalSucessoState {
@@ -38,6 +39,7 @@ export class ModalAdicionarMetaService {
     valorPorMesRaw: '',
     valorAtualRaw: '',
     temValorAtual: false,
+    icon: 'bi-bullseye', // Ícone padrão
   };
 
   private stateSubject = new BehaviorSubject<ModalAdicionarMetaState>(
@@ -135,6 +137,13 @@ export class ModalAdicionarMetaService {
       temValorAtual,
       // Se desmarcar o checkbox, limpa o valor
       valorAtualRaw: temValorAtual ? this.stateSubject.value.valorAtualRaw : '',
+    });
+  }
+
+  updateIcon(icon: string): void {
+    this.stateSubject.next({
+      ...this.stateSubject.value,
+      icon,
     });
   }
 

@@ -647,6 +647,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
           valorPorMes: this.toNum(m.valorPorMes),
           valorAtual: this.toNum(m.valorAtual),
           mesesNecessarios: this.toNum(m.mesesNecessarios),
+          icon: m.icon || 'bi-bullseye', // Preservar o ícone da meta
           editandoNome: false,
           nomeTemp: '',
           savingNome: false,
@@ -776,6 +777,11 @@ export class ElaborandoMetasComponent implements OnDestroy {
       'Dezembro',
     ];
 
+    const iconSelecionado =
+      modalState.icon && modalState.icon.trim() !== ''
+        ? modalState.icon
+        : 'bi-bullseye';
+
     const dadosParaEnviar = {
       nome: nome.trim(),
       valorMeta: valorMeta || 0,
@@ -783,6 +789,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
       mesesNecessarios:
         valorPorMes > 0 ? Math.ceil((valorMeta || 0) / valorPorMes) : 0,
       valorAtual: valorAtual || 0,
+      icon: iconSelecionado, // Ícone selecionado
       meses: mesesPadrao.map((n, i) => ({
         id: i + 1,
         nome: n,

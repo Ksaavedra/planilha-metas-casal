@@ -219,6 +219,55 @@
       }
     }
   }
+
+  &.icon-selector-group {
+    margin-bottom: 1.25rem;
+  }
+}
+
+.icon-selector {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.icon-option {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+
+  i {
+    font-size: 1.5rem;
+    color: #64748b;
+  }
+
+  &:hover {
+    border-color: #8b5cf6;
+    background: #f8fafc;
+    transform: translateY(-2px);
+
+    i {
+      color: #8b5cf6;
+    }
+  }
+
+  &.selected {
+    border-color: #8b5cf6;
+    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+
+    i {
+      color: white;
+    }
+  }
 }
 
 .checkbox-container {

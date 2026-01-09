@@ -19,6 +19,7 @@ import {
 } from '@angular/forms';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { Subscription } from 'rxjs';
+import { AVAILABLE_META_ICONS } from '../../../core/constants/meta-icons.constant';
 
 /** Error when invalid control is dirty, touched, or submitted. */
 export class MyErrorStateMatcher implements ErrorStateMatcher {
@@ -49,6 +50,7 @@ export class AdicionarMetaModalComponent
   @Input() valorPorMesRaw = '';
   @Input() valorAtualRaw = '';
   @Input() temValorAtual = false;
+  @Input() icon = 'bi-bullseye';
 
   @Output() save = new EventEmitter<{
     nome: string;
@@ -62,6 +64,7 @@ export class AdicionarMetaModalComponent
   @Output() valorPorMesChange = new EventEmitter<string>();
   @Output() valorAtualChange = new EventEmitter<string>();
   @Output() temValorAtualChange = new EventEmitter<boolean>();
+  @Output() iconChange = new EventEmitter<string>();
   @Output() valorMetaChangeEvent = new EventEmitter<Event>();
   @Output() valorPorMesChangeEvent = new EventEmitter<Event>();
   @Output() valorAtualChangeEvent = new EventEmitter<Event>();
@@ -77,6 +80,9 @@ export class AdicionarMetaModalComponent
     this.valorMaiorQueZeroValidator(),
   ]);
   valorAtualFormControl = new FormControl({ value: '', disabled: true });
+
+  // Lista de ícones disponíveis (importada da constante compartilhada)
+  availableIcons = AVAILABLE_META_ICONS;
 
   // ErrorStateMatcher para mostrar erros instantaneamente
   matcher = new MyErrorStateMatcher();
@@ -166,6 +172,10 @@ export class AdicionarMetaModalComponent
       this.valorAtualFormControl.clearValidators();
     }
     this.valorAtualFormControl.updateValueAndValidity();
+  }
+
+  onIconChange(value: string): void {
+    this.iconChange.emit(value);
   }
 
   onValorMetaChangeEvent(event: Event): void {
@@ -264,6 +274,7 @@ export class AdicionarMetaModalComponent
         this.valorPorMesFormControl.reset();
         this.valorAtualFormControl.reset();
         this.valorAtualFormControl.disable();
+        // O ícone é gerenciado pelo serviço - não precisa resetar aqui
       } else {
         // Restaura o scroll do body quando o modal fecha
         document.body.style.overflow = '';
@@ -310,6 +321,10 @@ export class AdicionarMetaModalComponent
         this.valorAtualFormControl.clearValidators();
       }
       this.valorAtualFormControl.updateValueAndValidity({ emitEvent: false });
+    }
+
+    if (changes['icon'] && this.icon) {
+      // Sincroniza o ícone selecionado
     }
   }
 }

@@ -24,6 +24,7 @@ db.exec(`
     valorPorMes REAL NOT NULL DEFAULT 0,
     mesesNecessarios INTEGER NOT NULL DEFAULT 0,
     valorAtual REAL NOT NULL DEFAULT 0,
+    icon TEXT DEFAULT 'bi-bullseye',
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
   )
@@ -49,7 +50,7 @@ db.exec(`
 console.log("✅ Tabelas criadas com sucesso!");
 console.log("📊 Estrutura:");
 console.log(
-  "   - Tabela: metas (id, nome, valorMeta, valorPorMes, mesesNecessarios, valorAtual)"
+  "   - Tabela: metas (id, nome, valorMeta, valorPorMes, mesesNecessarios, valorAtual, icon)"
 );
 console.log("   - Tabela: meses (id, metaId, nome, valor, status)");
 console.log(`\n📁 Banco criado em: ${DB_PATH}`);
