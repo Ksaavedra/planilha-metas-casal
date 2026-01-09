@@ -3,8 +3,8 @@
     <h2>EVOLUÇÃO DAS METAS DO CASAL</h2>
   </div>
   <div class="carousel-container">
-    <div class="carousel-wrapper" [class.has-carousel]="metasValidas.length > 6 && metasValidas.length <= 15">
-      <div class="carousel-content" [style.transform]="getTranslateX()"
+    <div class="carousel-wrapper" #wrapper [class.has-carousel]="metasValidas.length > 6 && metasValidas.length <= 15">
+      <div class="carousel-content" #content [style.transform]="getTranslateX()"
         [style.transition]="'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)'">
         <!-- Cards reais - apenas metas válidas -->
         <div class="meta-card" *ngFor="let meta of metasValidas; let i = index" (mouseenter)="pauseCarousel()"

@@ -25,27 +25,38 @@
 .carousel-container {
   padding: 1rem;
   position: relative;
-
-  // Ajusta padding horizontal para dar mais espaço nas laterais
-  padding: 1rem;
+  width: 100%;
+  padding-right: 24px;
+  // Garante que o container tenha espaço suficiente
+  box-sizing: border-box;
 }
 
 .carousel-wrapper {
   position: relative;
   border-radius: 8px;
 
-  // Se tem carrossel (mais de 6 metas), esconde overflow e adiciona padding
+  // Se tem carrossel (7-15 metas), controla overflow para mostrar os cards
   &.has-carousel {
-    overflow: hidden;
-    padding: 1rem 0.79rem;
+    // overflow: hidden; // Esconde o que está fora da área visível
+    padding: 1rem 10px;
+    position: relative;
+    width: 100%;
+    min-height: 320px;
   }
 }
 
 .carousel-content {
   display: flex;
-  gap: 1rem;
+  gap: 16px;
+  padding-right: 15px;
   transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   will-change: transform;
+  flex-wrap: nowrap;
+  // Garante que todos os cards sejam renderizados
+  min-width: max-content;
+  width: max-content;
+  // Permite que os cards sejam visíveis mesmo com translateX negativo
+  position: relative;
 }
 
 // Centraliza quando tem 6 ou menos cards (sem carrossel)
@@ -53,8 +64,13 @@
   justify-content: center;
 }
 
+// Quando tem carrossel, alinha à esquerda para permitir translateX funcionar
+.carousel-wrapper.has-carousel .carousel-content {
+  justify-content: flex-start;
+}
+
 .meta-card {
-  flex: 0 0 16.2rem;
+  flex: 0 0 auto;
   width: 260px;
   background: white;
   border-radius: 12px;
@@ -331,7 +347,7 @@
 
 .control-btn.next {
   margin-left: 0;
-  margin-right: 1.5rem;
+  margin-right: 2.3rem;
 }
 
 .control-btn:hover:not(:disabled) {
@@ -389,6 +405,12 @@
   transform: scale(1.3);
   width: 24px;
   border-radius: 4px;
+}
+
+@media (max-width: 1366px) {
+  .carousel-wrapper.has-carousel .meta-card {
+    width: 14.925rem;
+  }
 }
 
 /* Responsividade */

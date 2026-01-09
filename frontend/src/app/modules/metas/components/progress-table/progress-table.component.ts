@@ -5,6 +5,10 @@ import {
   OnDestroy,
   OnChanges,
   SimpleChanges,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
+  HostListener,
 } from '@angular/core';
 import { MetaExtended } from '../../../../core/interfaces/mes-meta';
 import { AVAILABLE_META_ICONS } from '../../../../core/constants/meta-icons.constant';
@@ -14,13 +18,22 @@ import { AVAILABLE_META_ICONS } from '../../../../core/constants/meta-icons.cons
   templateUrl: './progress-table.component.html',
   styleUrls: ['./progress-table.component.scss'],
 })
-export class ProgressTableComponent implements OnInit, OnDestroy, OnChanges {
+export class ProgressTableComponent
+  implements OnInit, OnDestroy, OnChanges, AfterViewInit
+{
   @Input() metas: MetaExtended[] = [];
+  @ViewChild('wrapper') wrapperRef!: ElementRef<HTMLElement>;
+  @ViewChild('content') contentRef!: ElementRef<HTMLElement>;
 
   currentIndex = 0;
-  cardsPerView = 3;
-  private interval: any;
+  // cardsPerView = 3;
+  private cardStep = 276;
+  private maxTranslate = 0;
   private isPaused = false;
+  private interval: any;
+  private readonly MAX_CARDS = 15;
+  private endOffset = 0;
+  private visibleWidth = 0;
 
   // Filtra apenas metas com dados válidos
   get metasValidas(): MetaExtended[] {
@@ -108,60 +121,67 @@ export class ProgressTableComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnInit(): void {
-    // Inicia carrossel automático se tiver mais de 6 metas válidas (até 15)
-    if (this.metasValidas.length > 6 && this.metasValidas.length <= 15) {
+    // Para 7-15 cards, inicia mostrando os últimos 3 cards (translateX fixo)
+    // Define currentIndex inicial baseado no número de cards
+    if (this.metasValidas.length >= 7 && this.metasValidas.length <= 15) {
+      // Inicia no índice que mostra os últimos 3 cards visíveis
+      // Mas como estamos usando translateX fixo, currentIndex começa em 0
+      // e o translateX fixo já mostra os últimos cards
+      this.currentIndex = 0;
       this.startCarousel();
+    }
+
+    if (this.hasCarousel()) {
+      this.currentIndex = 0;
     }
   }
 
+  ngAfterViewInit(): void {
+    setTimeout(() => {
+      this.recalcLayout();
+      if (this.hasCarousel()) this.currentIndex = 0;
+    });
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
-    // Reset currentIndex quando as metas mudam
     if (changes['metas'] && !changes['metas'].firstChange) {
-      // Se não tem carrossel (6 ou menos, ou mais de 15), sempre reseta para 0
       if (this.metasValidas.length <= 6 || this.metasValidas.length > 15) {
         this.currentIndex = 0;
         this.stopCarousel();
-      } else {
-        // Com carrossel (7-15 cards), ajusta currentIndex se necessário
-        const maxIndex = Math.max(
-          0,
-          this.metasValidas.length - this.cardsPerView
-        );
-        if (this.currentIndex > maxIndex) {
-          this.currentIndex = maxIndex;
+        return;
+      }
+
+      setTimeout(() => {
+        this.recalcLayout();
+
+        if (this.hasCarousel()) {
+          this.currentIndex = 0;
+          this.startCarousel();
+          return;
         }
+
+        const maxIndex = this.getMaxIndex();
+        this.currentIndex = Math.max(0, Math.min(this.currentIndex, maxIndex));
+
         this.stopCarousel();
         this.startCarousel();
-      }
+      });
     }
   }
 
   startCarousel(): void {
-    // Limpa intervalo anterior se existir
     if (this.interval) {
       clearInterval(this.interval);
     }
+    if (!this.hasCarousel()) return;
+    if (this.isPaused) return;
 
-    // Só inicia se tiver entre 7 e 15 metas válidas
-    if (this.metasValidas.length <= 6 || this.metasValidas.length > 15) {
-      return;
-    }
-
-    // Só inicia se não estiver pausado
-    if (this.isPaused) {
-      return;
-    }
-
-    // Avança automaticamente a cada 3 segundos
     this.interval = setInterval(() => {
-      // Verifica novamente se não está pausado antes de avançar
-      if (!this.isPaused) {
-        if (!this.isLastSlide()) {
-          this.nextSlide();
-        } else {
-          // Volta para o início quando chega no final
-          this.currentIndex = 0;
-        }
+      if (this.isPaused) return;
+      if (!this.isLastSlide()) {
+        this.nextSlide();
+      } else {
+        this.currentIndex = 0;
       }
     }, 3000);
   }
@@ -184,55 +204,63 @@ export class ProgressTableComponent implements OnInit, OnDestroy, OnChanges {
 
   resumeCarousel(): void {
     this.isPaused = false;
-    // Só retoma se tiver entre 7 e 15 metas válidas
-    if (this.metasValidas.length > 6 && this.metasValidas.length <= 15) {
-      this.startCarousel();
-    }
+    if (this.hasCarousel()) this.startCarousel();
   }
 
   nextSlide(): void {
-    // Só avança se tiver carrossel ativo (7-15 cards)
-    if (this.metasValidas.length <= 6 || this.metasValidas.length > 15) {
+    if (!this.hasCarousel()) return;
+
+    this.recalcLayout();
+    const maxIndex = this.getMaxIndex();
+
+    if (this.currentIndex >= maxIndex) {
+      console.log('[NEXT] bloqueado - já está no fim', {
+        currentIndex: this.currentIndex,
+        maxIndex,
+      });
       return;
     }
 
-    // Avança apenas 1 card por vez, considerando apenas metas válidas
-    const maxIndex = Math.max(0, this.metasValidas.length - this.cardsPerView);
+    const before = this.currentIndex;
+    this.currentIndex++;
 
-    if (this.currentIndex < maxIndex) {
-      this.currentIndex = this.currentIndex + 1;
-    } else {
-      // Já está no último slide possível
-      this.currentIndex = maxIndex;
-    }
+    console.log('[NEXT]', {
+      before,
+      after: this.currentIndex,
+      maxIndex,
+      cardStep: this.cardStep,
+      maxTranslate: this.maxTranslate,
+    });
 
-    // Reinicia o carrossel automático quando navega manualmente
     this.stopCarousel();
     this.startCarousel();
   }
 
   prevSlide(): void {
-    // Só volta se tiver carrossel ativo (7-15 cards)
-    if (this.metasValidas.length <= 6 || this.metasValidas.length > 15) {
-      return;
-    }
+    if (!this.hasCarousel()) return;
 
-    // Volta apenas 1 card por vez
-    if (this.currentIndex > 0) {
-      this.currentIndex = this.currentIndex - 1;
-    } else {
-      // Já está no início
-      this.currentIndex = 0;
-    }
+    this.recalcLayout();
+    const maxIndex = this.getMaxIndex();
 
-    // Reinicia o carrossel automático quando navega manualmente
+    const before = this.currentIndex;
+    this.currentIndex =
+      this.currentIndex > 0 ? this.currentIndex - 1 : maxIndex;
+
+    console.log('[PREV]', {
+      before,
+      after: this.currentIndex,
+      maxIndex,
+      cardStep: this.cardStep,
+      maxTranslate: this.maxTranslate,
+    });
+
     this.stopCarousel();
     this.startCarousel();
   }
 
   goToSlide(index: number): void {
     // Com a nova lógica de 1 card por vez, index corresponde diretamente ao currentIndex
-    const maxIndex = Math.max(0, this.metasValidas.length - this.cardsPerView);
+    const maxIndex = this.getMaxIndex();
 
     // Garante que o índice não ultrapasse o máximo
     if (index > maxIndex) {
@@ -243,6 +271,8 @@ export class ProgressTableComponent implements OnInit, OnDestroy, OnChanges {
       this.currentIndex = index;
     }
 
+    this.recalcLayout();
+
     // Reinicia o carrossel automático quando clica em um indicador
     if (this.metasValidas.length > 6 && this.metasValidas.length <= 15) {
       this.stopCarousel();
@@ -250,27 +280,81 @@ export class ProgressTableComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  private hasCarousel(): boolean {
+    const total = this.metasValidas.length;
+    return total > 6 && total <= this.MAX_CARDS;
+  }
+
+  private getMaxIndex(): number {
+    if (this.cardStep <= 0) return 0;
+    const maxWithPadding = Math.max(0, this.maxTranslate + this.endOffset);
+    return Math.max(0, Math.floor(maxWithPadding / this.cardStep));
+  }
+
   isLastSlide(): boolean {
-    // Verifica se já está no último slide possível
-    // Com 3 cards visíveis, o último índice é (metasValidas.length - 3)
-    const maxIndex = Math.max(0, this.metasValidas.length - this.cardsPerView);
-    return this.currentIndex >= maxIndex;
+    return this.currentIndex >= this.getMaxIndex();
+  }
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.recalcLayout();
+  }
+
+  private recalcLayout(): void {
+    const wrapper = this.wrapperRef?.nativeElement;
+    const content = this.contentRef?.nativeElement;
+    if (!wrapper || !content) return;
+
+    const firstCard = content.querySelector<HTMLElement>(
+      '.meta-card:not(.placeholder-card)'
+    );
+
+    if (firstCard) {
+      const contentStyles = getComputedStyle(content);
+      const gap =
+        parseFloat(contentStyles.gap || contentStyles.columnGap || '0') || 0;
+
+      this.cardStep = firstCard.offsetWidth + gap;
+    }
+
+    const wrapperStyles = getComputedStyle(wrapper);
+    const paddingLeft = parseFloat(wrapperStyles.paddingLeft || '0') || 0;
+    const paddingRight = parseFloat(wrapperStyles.paddingRight || '0') || 0;
+
+    this.visibleWidth = Math.max(
+      0,
+      wrapper.clientWidth - paddingLeft - paddingRight
+    );
+
+    // ✅ AQUI ERA O BUG (faltava o "=")
+    this.endOffset = paddingRight;
+
+    this.maxTranslate = Math.max(0, content.scrollWidth - this.visibleWidth);
+
+    const maxIndex = this.getMaxIndex();
+    this.currentIndex = Math.max(0, Math.min(this.currentIndex, maxIndex));
+
+    console.log('[recalcLayout]', {
+      cardStep: this.cardStep,
+      scrollWidth: content.scrollWidth,
+      wrapperClientWidth: wrapper.clientWidth,
+      paddingLeft,
+      paddingRight,
+      visibleWidth: this.visibleWidth,
+      maxTranslate: this.maxTranslate,
+      endOffset: this.endOffset,
+      maxIndex,
+      currentIndex: this.currentIndex,
+    });
   }
 
   getTranslateX(): string {
-    // Volta para navegação normal baseada no currentIndex
-    // Só aplica translateX se tiver carrossel ativo (7-15 metas válidas)
-    if (this.metasValidas.length > 6 && this.metasValidas.length <= 15) {
-      // Calcula o translateX baseado no currentIndex: cada card tem 260px + 16px de gap = 276px
-      if (this.currentIndex > 0) {
-        const translateValue = this.currentIndex * 276;
-        return `translateX(-${translateValue}px)`;
-      }
-      return 'translateX(0)';
-    }
+    if (!this.hasCarousel()) return 'translateX(0px)';
 
-    // Sem carrossel: sempre retorna translateX(0)
-    return 'translateX(0)';
+    const raw = this.currentIndex * this.cardStep;
+    const maxWithPadding = Math.max(0, this.maxTranslate + this.endOffset);
+    const safe = Math.min(raw, maxWithPadding);
+    return `translateX(-${safe}px)`;
   }
 
   getPlaceholderCards(): number[] {
