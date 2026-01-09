@@ -26,3 +26,9 @@
 <app-success-modal [isOpen]="sucessoDeleteState.isOpen" title="Meta removida!"
   message="A meta foi excluída com sucesso." confirmText="OK" [autoCloseMs]="0" (close)="onCloseSucessoDelete()">
 </app-success-modal>
+
+<!-- Modal de Editar Valor - Renderizado no nível mais alto da aplicação -->
+<app-editar-valor-modal [isOpen]="editarValorState.isOpen" [meta]="editarValorState.meta"
+  [mesId]="editarValorState.mesId" [valor]="editarValorState.valor" [meses]="editarValorState.meses"
+  (valorChange)="onValorChange($event)" (save)="onSaveEditarValor()" (cancel)="onCancelEditarValor()">
+</app-editar-valor-modal>

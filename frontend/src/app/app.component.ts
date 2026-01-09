@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ModalAdicionarMetaService } from './core/services/modal-adicionar-meta.service';
+import { ModalEditarValorService } from './core/services/modal-editar-valor.service';
 
 @Component({
   selector: 'app-root',
@@ -34,12 +35,24 @@ export class AppComponent implements OnInit, OnDestroy {
     isOpen: false,
   };
 
+  editarValorState = {
+    isOpen: false,
+    meta: null as any,
+    mesId: -1,
+    valor: 0,
+    meses: [] as string[],
+  };
+
   private subscription?: Subscription;
   private sucessoSubscription?: Subscription;
   private confirmarDeleteSubscription?: Subscription;
   private sucessoDeleteSubscription?: Subscription;
+  private editarValorSubscription?: Subscription;
 
-  constructor(private modalService: ModalAdicionarMetaService) {}
+  constructor(
+    private modalService: ModalAdicionarMetaService,
+    private modalEditarValorService: ModalEditarValorService
+  ) {}
 
   ngOnInit(): void {
     this.subscription = this.modalService.state$.subscribe((state) => {
@@ -62,6 +75,11 @@ export class AppComponent implements OnInit, OnDestroy {
         this.sucessoDeleteState = { ...state };
       });
 
+    this.editarValorSubscription =
+      this.modalEditarValorService.state$.subscribe((state) => {
+        this.editarValorState = { ...state };
+      });
+
     // O elaborando-metas já está escutando confirmDelete$ diretamente
   }
 
@@ -70,6 +88,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.sucessoSubscription?.unsubscribe();
     this.confirmarDeleteSubscription?.unsubscribe();
     this.sucessoDeleteSubscription?.unsubscribe();
+    this.editarValorSubscription?.unsubscribe();
   }
 
   onNomeChange(value: string): void {
@@ -134,5 +153,18 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onCloseSucessoDelete(): void {
     this.modalService.closeSucessoDelete();
+  }
+
+  onValorChange(value: number): void {
+    this.modalEditarValorService.updateValor(value);
+  }
+
+  onSaveEditarValor(): void {
+    this.modalEditarValorService.triggerSave();
+  }
+
+  onCancelEditarValor(): void {
+    this.modalEditarValorService.close();
+    this.modalEditarValorService.reset();
   }
 }

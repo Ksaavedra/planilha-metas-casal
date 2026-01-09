@@ -4,23 +4,25 @@ import {
   Input,
   OnChanges,
   OnInit,
+  OnDestroy,
   Output,
   SimpleChanges,
 } from '@angular/core';
 import {
   Meta,
   MetaExtended,
-  ModalEdicao,
   StatusMeta,
 } from '../../../../../core/interfaces/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
+import { ModalEditarValorService } from '../../../../../core/services/modal-editar-valor.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-executando-metas',
   templateUrl: './executando-metas.component.html',
   styleUrls: ['./executando-metas.component.scss'],
 })
-export class ExecutandoMetasComponent implements OnInit, OnChanges {
+export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   @Input() meses: string[] = [];
   @Input() metas: MetaExtended[] = [];
   @Input() percentualPagoView = 0;
@@ -46,14 +48,12 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
     valorMeta: number;
   }>();
 
-  modalEdicao: ModalEdicao = {
-    meta: {} as MetaExtended,
-    mesId: -1,
-    valor: 0,
-    isOpen: false,
-  };
+  private editarValorSubscription?: Subscription;
 
-  constructor(private metasService: MetasService) {}
+  constructor(
+    private metasService: MetasService,
+    private modalEditarValorService: ModalEditarValorService
+  ) {}
 
   private readonly MESES_PADRAO = [
     'Janeiro',
@@ -72,6 +72,31 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
 
   ngOnInit() {
     // Componente de apresentação - dados vêm via @Input()
+    // Escutar eventos de save da modal de editar valor
+    this.editarValorSubscription = this.modalEditarValorService.save$.subscribe(
+      (data: { metaId: number | string; mesId: number; valor: number }) => {
+        const { metaId, mesId, valor } = data;
+        const meta = this.metas.find((m) => String(m.id) === String(metaId));
+        if (!meta) return;
+
+        const mes = meta.meses.find((m) => m.id === mesId);
+        if (!mes) return;
+
+        mes.valor = valor;
+        mes.status = valor > 0 ? 'Programado' : 'Vazio';
+
+        // Emitir evento para o pai
+        this.salvarValor.emit({
+          metaId,
+          mesId,
+          valor,
+        });
+      }
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.editarValorSubscription?.unsubscribe();
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -101,9 +126,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
 
   // Métodos para edição de valores
   abrirModalEdicao(meta: MetaExtended, mesId: number): void {
-    const mes = meta.meses.find((m) => m.id === mesId);
-    if (!mes) return;
-    this.modalEdicao = { meta, mesId, valor: mes.valor, isOpen: true };
+    this.modalEditarValorService.open(meta, mesId, this.meses);
   }
 
   // Métodos para formatação de moeda
@@ -344,123 +367,5 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges {
     });
 
     return totais;
-  }
-
-  fecharModalEdicao(): void {
-    this.modalEdicao.isOpen = false;
-    this.modalEdicao.valor = 0;
-    this.modalEdicao.mesId = -1;
-    this.modalEdicao.meta = {} as MetaExtended;
-  }
-
-  // Métodos para o modal de edição de valores
-  onValorChange(valor: any): void {
-    this.modalEdicao.valor = this.parseNumeroBR(valor);
-  }
-
-  onValorBlur(): void {
-    // Formatar o valor quando sair do campo
-    this.modalEdicao.valor = this.parseNumeroBR(this.modalEdicao.valor);
-  }
-
-  private parseNumeroBR(v: any): number {
-    if (v === null || v === undefined) return 0;
-
-    // para garantir: transforma em string e tira espaços (inclui NBSP)
-    let s = String(v).trim();
-    if (!s) return 0;
-
-    // remove tudo que não for dígito, vírgula, ponto ou sinal
-    // (tira "R$", letras, etc.)
-    s = s.replace(/\s+/g, '').replace(/[^\d.,-]+/g, '');
-
-    // Se tem vírgula, tratamos vírgula como decimal e removemos pontos de milhar
-    if (s.includes(',')) {
-      s = s.replace(/\./g, '').replace(',', '.');
-    } else {
-      // sem vírgula: mantemos ponto como decimal (e se tiver só números, ok)
-      // (se vier "2.000.000" com vários pontos, você pode remover todos menos o último)
-      const parts = s.split('.');
-      if (parts.length > 2) {
-        const dec = parts.pop(); // último ponto vira decimal
-        s = parts.join('') + '.' + dec; // remove pontos de milhar
-      }
-    }
-
-    const n = parseFloat(s);
-    return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
-  }
-
-  salvarValorModal(): void {
-    const { meta, mesId, valor } = this.modalEdicao;
-    const i = meta.meses.findIndex((m) => m.id === mesId);
-
-    if (i === -1) {
-      alert('Mês não encontrado. Reabra o modal e tente novamente.');
-      return;
-    }
-
-    meta.meses[i].valor = valor;
-    meta.meses[i].status = valor > 0 ? 'Programado' : 'Vazio';
-
-    // Emitir evento para o pai
-    this.salvarValor.emit({
-      metaId: meta.id,
-      mesId: mesId,
-      valor: valor,
-    });
-
-    this.fecharModalEdicao();
-  }
-
-  formatarMoeda(valor: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(valor);
-  }
-
-  cancelarEdicao(): void {
-    this.fecharModalEdicao();
-  }
-
-  // Método para validar apenas números nos campos de valor do modal
-  validarApenasNumeros(event: KeyboardEvent): void {
-    // Permitir: números (0-9), vírgula, ponto, backspace, delete, tab, enter, escape
-    const teclasPermitidas = [
-      '0',
-      '1',
-      '2',
-      '3',
-      '4',
-      '5',
-      '6',
-      '7',
-      '8',
-      '9',
-      ',',
-      '.',
-      'Backspace',
-      'Delete',
-      'Tab',
-      'Enter',
-      'Escape',
-      'ArrowLeft',
-      'ArrowRight',
-      'ArrowUp',
-      'ArrowDown',
-      'Home',
-      'End',
-    ];
-
-    // Permitir teclas do teclado numérico
-    if (event.code.startsWith('Numpad')) {
-      return;
-    }
-
-    // Verificar se a tecla pressionada está na lista de permitidas
-    if (!teclasPermitidas.includes(event.key)) {
-      event.preventDefault();
-    }
   }
 }

@@ -55,48 +55,4 @@
       </tbody>
     </table>
   </div>
-
-  <div class="modal-overlay" *ngIf="modalEdicao.isOpen" (click)="fecharModalEdicao()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>Editar Valor</h3>
-        <button class="modal-close" (click)="fecharModalEdicao()">
-          <span class="material-icons">close</span>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="modal-info">
-          <p><strong>Meta:</strong> {{ modalEdicao.meta.nome }}</p>
-          <p><strong>Mês:</strong> {{ meses[modalEdicao.mesId - 1] }}</p>
-        </div>
-
-        <div class="modal-input-group">
-          <label for="valor-input">Valor:</label>
-          <div class="input-with-prefix">
-            <input id="valor-input" type="text" inputmode="decimal"
-              [ngModel]="modalEdicao.valor === 0 ? '' : modalEdicao.valor" (ngModelChange)="onValorChange($event)"
-              (keydown.enter)="salvarValorModal()" (blur)="onValorBlur()" (keypress)="validarApenasNumeros($event)"
-              class="modal-input" placeholder="0,00" autofocus>
-          </div>
-        </div>
-
-        <div class="modal-input-group">
-          <label>Resultado:</label>
-          <div class="resultado-formatado">
-            <span class="valor-formatado">{{ formatarMoeda(modalEdicao.valor) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-cancelar" (click)="cancelarEdicao()">
-          Cancelar
-        </button>
-        <button class="btn-salvar" (click)="salvarValorModal()">
-          Salvar
-        </button>
-      </div>
-    </div>
-  </div>
 </div>
