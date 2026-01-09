@@ -113,6 +113,7 @@ export class MetasPageComponent implements OnInit {
           valorPorMes: this.toNum(m.valorPorMes),
           valorAtual: this.toNum(m.valorAtual),
           mesesNecessarios: this.toNum(m.mesesNecessarios),
+          icon: m.icon || 'bi-bullseye', // Preservar o ícone da meta
           editandoNome: false,
           nomeTemp: '',
           savingNome: false,

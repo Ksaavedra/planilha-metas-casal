@@ -10,6 +10,7 @@ export interface CreateMetaRequest {
   valorPorMes: number;
   mesesNecessarios?: number;
   valorAtual?: number;
+  icon?: string; // Ícone do Bootstrap Icons
   meses?: Partial<MesMeta>[];
 }
 

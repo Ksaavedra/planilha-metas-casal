@@ -3,11 +3,12 @@
 <!-- Modal de Adicionar Meta - Renderizado no nível mais alto da aplicação -->
 <app-adicionar-meta-modal [isOpen]="modalState.isOpen" [nome]="modalState.nome" [valorMetaRaw]="modalState.valorMetaRaw"
   [valorPorMesRaw]="modalState.valorPorMesRaw" [valorAtualRaw]="modalState.valorAtualRaw"
-  [temValorAtual]="modalState.temValorAtual" (nomeChange)="onNomeChange($event)"
+  [temValorAtual]="modalState.temValorAtual" [icon]="modalState.icon" (nomeChange)="onNomeChange($event)"
   (valorMetaChange)="onValorMetaChange($event)" (valorPorMesChange)="onValorPorMesChange($event)"
   (valorAtualChange)="onValorAtualChange($event)" (temValorAtualChange)="onTemValorAtualChange($event)"
-  (valorMetaChangeEvent)="onValorMetaChangeEvent($event)" (valorPorMesChangeEvent)="onValorPorMesChangeEvent($event)"
-  (valorAtualChangeEvent)="onValorAtualChangeEvent($event)" (save)="onSave()" (cancel)="onCancel()">
+  (iconChange)="onIconChange($event)" (valorMetaChangeEvent)="onValorMetaChangeEvent($event)"
+  (valorPorMesChangeEvent)="onValorPorMesChangeEvent($event)" (valorAtualChangeEvent)="onValorAtualChangeEvent($event)"
+  (save)="onSave()" (cancel)="onCancel()">
 </app-adicionar-meta-modal>
 
 <!-- Modal de Sucesso - Renderizado no nível mais alto da aplicação -->

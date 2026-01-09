@@ -34,8 +34,8 @@ const db = new Database(DB_PATH);
 
 // Preparar statements SQL
 const insertMeta = db.prepare(`
-  INSERT INTO metas (id, nome, valorMeta, valorPorMes, mesesNecessarios, valorAtual)
-  VALUES (?, ?, ?, ?, ?, ?)
+  INSERT INTO metas (id, nome, valorMeta, valorPorMes, mesesNecessarios, valorAtual, icon)
+  VALUES (?, ?, ?, ?, ?, ?, ?)
 `);
 
 const insertMes = db.prepare(`
@@ -52,7 +52,8 @@ const insertMetaWithMeses = db.transaction((meta) => {
     meta.valorMeta || 0,
     meta.valorPorMes || 0,
     meta.mesesNecessarios || 0,
-    meta.valorAtual || 0
+    meta.valorAtual || 0,
+    meta.icon || "bi-bullseye"
   );
 
   // Inserir meses da meta

@@ -14,6 +14,7 @@ export class AppComponent implements OnInit, OnDestroy {
     valorPorMesRaw: '',
     valorAtualRaw: '',
     temValorAtual: false,
+    icon: 'bi-bullseye',
   };
 
   sucessoState = {
@@ -89,6 +90,10 @@ export class AppComponent implements OnInit, OnDestroy {
 
   onTemValorAtualChange(value: boolean): void {
     this.modalService.updateTemValorAtual(value);
+  }
+
+  onIconChange(value: string): void {
+    this.modalService.updateIcon(value);
   }
 
   onValorMetaChangeEvent(_event: Event): void {
