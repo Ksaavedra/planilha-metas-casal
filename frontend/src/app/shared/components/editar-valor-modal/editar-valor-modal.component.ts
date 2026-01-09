@@ -129,7 +129,23 @@ export class EditarValorModalComponent implements OnChanges {
   }
 
   get mesNome(): string {
-    if (this.mesId === -1 || !this.meses.length) return '';
-    return this.meses[this.mesId - 1] || '';
+    if (!this.meta || this.mesId === -1) return '';
+
+    // Buscar o nome do mês diretamente do objeto meta.meses
+    const mes = this.meta.meses?.find((m) => m.id === this.mesId);
+    if (mes && mes.nome) {
+      return mes.nome;
+    }
+
+    // Fallback: usar o array meses se disponível
+    if (
+      this.meses.length &&
+      this.mesId > 0 &&
+      this.mesId <= this.meses.length
+    ) {
+      return this.meses[this.mesId - 1] || '';
+    }
+
+    return '';
   }
 }
