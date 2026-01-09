@@ -1,17 +1,25 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  OnDestroy,
+} from '@angular/core';
 import {
   Meta,
   MetaExtended,
   ModalAdicionarMeta,
 } from '../../../../../core/interfaces/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
+import { ModalAdicionarMetaService } from '../../../../../core/services/modal-adicionar-meta.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-elaborando-metas',
   templateUrl: './elaborando-metas.component.html',
   styleUrls: ['./elaborando-metas.component.scss'],
 })
-export class ElaborandoMetasComponent {
+export class ElaborandoMetasComponent implements OnDestroy {
   @Input() metas: MetaExtended[] = [];
   @Input() percentualPagoView = 0;
   @Input() totalValorMetaView = 0;
@@ -54,7 +62,39 @@ export class ElaborandoMetasComponent {
     valorAtual: 0,
   };
 
-  constructor(private metasService: MetasService) {}
+  // Valores como string durante a digitação (sem formatação automática)
+  valorMetaRaw: string = '';
+  valorPorMesRaw: string = '';
+  valorAtualRaw: string = '';
+
+  private saveSubscription?: Subscription;
+  private confirmDeleteSubscription?: Subscription;
+
+  constructor(
+    private metasService: MetasService,
+    private modalService: ModalAdicionarMetaService
+  ) {
+    // Escuta eventos de save do modal
+    this.saveSubscription = this.modalService.save$.subscribe(() => {
+      this.salvarMetaModal();
+    });
+
+    // Escuta eventos de confirmação de exclusão
+    this.confirmDeleteSubscription = this.modalService.confirmDelete$.subscribe(
+      (metaId) => {
+        console.log(
+          '🔴 confirmDelete$ recebido no elaborando-metas com metaId:',
+          metaId
+        );
+        this.processarExclusao(metaId);
+      }
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.saveSubscription?.unsubscribe();
+    this.confirmDeleteSubscription?.unsubscribe();
+  }
 
   // Métodos para edição de campos da Seção 1
   editarCampo(
@@ -86,58 +126,76 @@ export class ElaborandoMetasComponent {
   }
 
   removerMeta(id: any): void {
+    console.log('🔴 removerMeta() chamado com id:', id);
     const meta = this.metas.find((m) => String(m.id) === String(id));
     if (!meta) {
       alert('Meta não encontrada.');
       return;
     }
 
-    // Abrir modal de confirmação
+    console.log('📋 Meta encontrada:', meta);
+    // Abrir modal de confirmação através do serviço
     this.metaParaExcluir = meta;
-    this.modalConfirmarDelete.isOpen = true;
+    this.modalService.openConfirmarDelete(meta.id, meta.nome || '');
+    console.log('✅ Modal de confirmação aberto');
   }
 
-  confirmarExclusao(): void {
-    if (!this.metaParaExcluir) return;
+  processarExclusao(metaId: number): void {
+    console.log('🔴 processarExclusao() chamado com metaId:', metaId);
+    const meta = this.metas.find((m) => String(m.id) === String(metaId));
+    if (!meta) {
+      console.error('❌ Meta não encontrada com id:', metaId);
+      alert('Meta não encontrada.');
+      return;
+    }
 
-    const meta = this.metaParaExcluir;
+    console.log('📋 Meta encontrada para exclusão:', meta);
     const id = meta.id;
-
-    // Fechar modal de confirmação
-    this.modalConfirmarDelete.isOpen = false;
     this.metaParaExcluir = null;
 
     // Se a meta tem nome vazio, provavelmente não existe no servidor
     if (!meta.nome || meta.nome.trim() === '') {
+      console.log('⚠️ Meta sem nome - removendo localmente');
       this.metas = this.metas.filter((m) => String(m.id) !== String(id));
       this.recalcResumo();
       this.metasAtualizadas.emit();
-      this.modalSucessoDelete.isOpen = true;
+      console.log('✅ Chamando showSucessoDelete()...');
+      this.modalService.showSucessoDelete();
       return;
     }
 
     if (meta._draft) {
+      console.log('⚠️ Meta é draft - removendo localmente');
       // não existe no servidor: só remove da lista
       this.metas = this.metas.filter((m) => m !== meta);
       this.recalcResumo();
       this.metasAtualizadas.emit();
-      this.modalSucessoDelete.isOpen = true;
+      console.log('✅ Chamando showSucessoDelete()...');
+      this.modalService.showSucessoDelete();
       return;
     }
 
     // existe no servidor: chama DELETE
+    console.log('🌐 Chamando deleteMeta() no servidor para id:', id);
     this.metasService.deleteMeta(id).subscribe({
       next: () => {
+        console.log('✅ Meta excluída com sucesso no servidor!');
         this.metasAtualizadas.emit();
-        this.modalSucessoDelete.isOpen = true;
+        console.log('✅ Chamando showSucessoDelete()...');
+        this.modalService.showSucessoDelete();
       },
       error: (e) => {
+        console.error('❌ Erro ao excluir meta:', e);
         // Se for 404, a meta não existe no servidor, então remove da lista local
         if (e.status === 404) {
+          console.log(
+            '⚠️ Meta não encontrada no servidor (404) - removendo localmente'
+          );
           this.metas = this.metas.filter((m) => String(m.id) !== String(id));
           this.recalcResumo();
           this.metasAtualizadas.emit();
-          this.modalSucessoDelete.isOpen = true;
+          console.log('✅ Chamando showSucessoDelete()...');
+          this.modalService.showSucessoDelete();
         } else {
           alert('Não foi possível excluir. Tente novamente.');
         }
@@ -145,9 +203,14 @@ export class ElaborandoMetasComponent {
     });
   }
 
+  confirmarExclusao(): void {
+    // Método mantido para compatibilidade, mas não é mais usado
+    // A confirmação agora é feita através do serviço
+  }
+
   cancelarExclusao(): void {
-    this.modalConfirmarDelete.isOpen = false;
-    this.metaParaExcluir = null;
+    // Método mantido para compatibilidade, mas não é mais usado
+    // O cancelamento agora é feito através do serviço
   }
 
   cancelarCampo(
@@ -214,20 +277,37 @@ export class ElaborandoMetasComponent {
     if (!valor || valor.trim() === '') return 0;
 
     // Remove todos os caracteres exceto números, vírgula e ponto
-    const limpo = valor.replace(/[^\d,.-]/g, '');
+    let limpo = String(valor)
+      .trim()
+      .replace(/[^\d,\.]/g, '');
 
-    // Se tem vírgula e ponto, assume que vírgula é separador decimal
-    if (limpo.includes(',') && limpo.includes('.')) {
-      return parseFloat(limpo.replace(/\./g, '').replace(',', '.'));
-    }
+    if (!limpo) return 0;
 
-    // Se só tem vírgula, assume que é separador decimal
+    // Se tem vírgula, trata vírgula como separador decimal
     if (limpo.includes(',')) {
-      return parseFloat(limpo.replace(',', '.'));
+      // Remove pontos de milhar (se houver)
+      limpo = limpo.replace(/\./g, '');
+      // Substitui vírgula por ponto para parseFloat
+      limpo = limpo.replace(',', '.');
+      const resultado = parseFloat(limpo);
+      return isNaN(resultado) ? 0 : resultado;
     }
 
-    // Caso contrário, tenta parseFloat normal
-    return parseFloat(limpo) || 0;
+    // Se só tem ponto, precisa verificar se é separador de milhar ou decimal
+    if (limpo.includes('.')) {
+      const partes = limpo.split('.');
+      // Se tem mais de 2 partes, assume que o último ponto é decimal
+      if (partes.length > 2) {
+        const decimal = partes.pop();
+        limpo = partes.join('') + '.' + decimal;
+      }
+      const resultado = parseFloat(limpo);
+      return isNaN(resultado) ? 0 : resultado;
+    }
+
+    // Se não tem vírgula nem ponto, é só número
+    const resultado = parseFloat(limpo);
+    return isNaN(resultado) ? 0 : resultado;
   }
 
   formatBR(valor: number): string {
@@ -585,36 +665,101 @@ export class ElaborandoMetasComponent {
 
   // Métodos para o modal de adicionar meta
   abrirModalAdicionarMeta(): void {
-    console.log('🔵 Adicionar meta - abrirModalAdicionarMeta() chamado!');
+    console.log('🟢 ========================================');
+    console.log('🟢 Abrir modal - abrirModalAdicionarMeta() chamado!');
+    this.modalService.open();
+    // Sincronizar estado local
     this.modalAdicionarMeta.isOpen = true;
     this.modalAdicionarMeta.nome = '';
     this.modalAdicionarMeta.valorMeta = 0;
     this.modalAdicionarMeta.valorPorMes = 0;
     this.modalAdicionarMeta.valorAtual = 0;
+    this.valorMetaRaw = '';
+    this.valorPorMesRaw = '';
+    this.valorAtualRaw = '';
+    console.log('📋 Modal inicializado com valores:');
+    console.log('   - nome:', this.modalAdicionarMeta.nome);
+    console.log('   - valorMeta:', this.modalAdicionarMeta.valorMeta);
+    console.log('   - valorPorMes:', this.modalAdicionarMeta.valorPorMes);
+    console.log('   - valorAtual:', this.modalAdicionarMeta.valorAtual);
+    console.log('🟢 ========================================');
   }
 
   fecharModalAdicionarMeta(): void {
+    this.modalService.close();
+    // Sincronizar estado local
     this.modalAdicionarMeta.isOpen = false;
     this.modalAdicionarMeta.nome = '';
     this.modalAdicionarMeta.valorMeta = 0;
     this.modalAdicionarMeta.valorPorMes = 0;
     this.modalAdicionarMeta.valorAtual = 0;
+    this.valorMetaRaw = '';
+    this.valorPorMesRaw = '';
+    this.valorAtualRaw = '';
   }
 
   salvarMetaModal(): void {
+    console.log('🔵 ========================================');
     console.log('🔵 Adicionar meta - salvarMetaModal() chamado!');
-    console.log('📋 Dados do modal:', this.modalAdicionarMeta);
 
-    const { nome, valorMeta, valorPorMes, valorAtual } =
-      this.modalAdicionarMeta;
+    // Busca dados do serviço
+    const modalState = this.modalService.getState();
+    const nome = modalState.nome;
+    const valorMeta = this.parseNumeroBR(modalState.valorMetaRaw);
+    const valorPorMes = this.parseNumeroBR(modalState.valorPorMesRaw);
+    // Se o checkbox não estiver marcado, valorAtual deve ser 0
+    const valorAtual = modalState.temValorAtual
+      ? this.parseNumeroBR(modalState.valorAtualRaw)
+      : 0;
 
-    if (!nome.trim()) {
-      console.log('❌ Erro: Nome da meta está vazio, fechando modal');
-      this.fecharModalAdicionarMeta();
+    console.log('📋 Dados do modal ANTES de processar:');
+    console.log('   - nome:', nome);
+    console.log('   - valorMeta:', valorMeta);
+    console.log('   - valorPorMes:', valorPorMes);
+    console.log('   - valorAtual:', valorAtual);
+
+    console.log('🔍 Valores extraídos:');
+    console.log('   - nome:', nome);
+    console.log('   - valorMeta:', valorMeta);
+    console.log('   - valorPorMes:', valorPorMes);
+    console.log('   - valorAtual:', valorAtual);
+
+    // Validação de campos obrigatórios
+    if (!nome || !nome.trim()) {
+      console.log('❌ ERRO: Nome da meta é obrigatório!');
+      alert('Por favor, preencha o nome da meta.');
       return;
     }
 
-    console.log('✅ Validação passou, criando meta...');
+    if (!valorMeta || valorMeta <= 0) {
+      console.log(
+        '❌ ERRO: Valor da meta é obrigatório e deve ser maior que zero!'
+      );
+      alert('Por favor, preencha o valor da meta (deve ser maior que zero).');
+      return;
+    }
+
+    if (!valorPorMes || valorPorMes <= 0) {
+      console.log(
+        '❌ ERRO: Valor por mês é obrigatório e deve ser maior que zero!'
+      );
+      alert('Por favor, preencha o valor por mês (deve ser maior que zero).');
+      return;
+    }
+
+    // Validação do valor atual (se o checkbox estiver marcado, deve ser preenchido)
+    if (modalState.temValorAtual && (!valorAtual || valorAtual < 0)) {
+      console.log(
+        '❌ ERRO: Valor já temos é obrigatório quando o checkbox está marcado!'
+      );
+      alert(
+        'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).'
+      );
+      return;
+    }
+
+    console.log('✅ Validação do nome passou!');
+    console.log('✅ Criando meta com os dados...');
 
     const mesesPadrao = [
       'Janeiro',
@@ -631,53 +776,69 @@ export class ElaborandoMetasComponent {
       'Dezembro',
     ];
 
-    this.metasService
-      .createMeta({
-        nome: nome.trim(),
-        valorMeta: valorMeta || 0,
-        valorPorMes: valorPorMes || 0,
-        mesesNecessarios:
-          valorPorMes > 0 ? Math.ceil((valorMeta || 0) / valorPorMes) : 0,
-        valorAtual: valorAtual || 0,
-        meses: mesesPadrao.map((n, i) => ({
-          id: i + 1,
-          nome: n,
-          valor: 0,
-          status: 'Vazio',
-        })),
-      })
-      .subscribe({
-        next: () => {
-          console.log('✅ Meta criada com sucesso!');
-          this.metasAtualizadas.emit();
-          this.modalSucessoAdd.isOpen = true;
-        },
-        error: (err) => {
-          console.error('❌ Erro ao criar meta:', err);
-          console.error('📋 Detalhes do erro:', {
-            status: err.status,
-            statusText: err.statusText,
-            url: err.url,
-            message: err.message,
-          });
+    const dadosParaEnviar = {
+      nome: nome.trim(),
+      valorMeta: valorMeta || 0,
+      valorPorMes: valorPorMes || 0,
+      mesesNecessarios:
+        valorPorMes > 0 ? Math.ceil((valorMeta || 0) / valorPorMes) : 0,
+      valorAtual: valorAtual || 0,
+      meses: mesesPadrao.map((n, i) => ({
+        id: i + 1,
+        nome: n,
+        valor: 0,
+        status: 'Vazio' as 'Vazio',
+      })),
+    };
 
-          // Mensagem de erro mais específica
-          if (err.status === 0 || err.statusText === 'Unknown Error') {
-            alert(
-              '⚠️ Erro de conexão: Não foi possível conectar ao servidor.\n\n' +
-                'Verifique se o backend está rodando em http://localhost:3000\n\n' +
-                'Erro: ' +
-                (err.message || 'Conexão recusada')
-            );
-          } else {
-            alert('Erro ao criar meta: ' + (err.message || 'Tente novamente.'));
-          }
-        },
-        complete: () => {
-          console.log('✅ Processo de adicionar meta completo');
-          this.fecharModalAdicionarMeta();
-        },
-      });
+    console.log('📤 Dados que serão enviados para a API:');
+    console.log(JSON.stringify(dadosParaEnviar, null, 2));
+    console.log('🚀 Chamando metasService.createMeta()...');
+
+    this.metasService.createMeta(dadosParaEnviar).subscribe({
+      next: (response) => {
+        console.log('✅ Meta criada com sucesso!');
+        console.log('📥 Resposta do servidor:', response);
+        this.metasAtualizadas.emit();
+        // Fecha o modal de adicionar primeiro
+        this.modalService.close();
+        this.modalService.reset();
+        this.fecharModalAdicionarMeta();
+        // Depois mostra modal de sucesso através do serviço (renderizado no app.component)
+        this.modalService.showSucesso(
+          'Meta adicionada!',
+          'Sua meta foi criada com sucesso.'
+        );
+        console.log('🔵 ========================================');
+      },
+      error: (err) => {
+        console.error('❌ Erro ao criar meta:', err);
+        console.error('📋 Detalhes do erro:', {
+          status: err.status,
+          statusText: err.statusText,
+          url: err.url,
+          message: err.message,
+        });
+
+        // Mensagem de erro mais específica
+        if (err.status === 0 || err.statusText === 'Unknown Error') {
+          alert(
+            '⚠️ Erro de conexão: Não foi possível conectar ao servidor.\n\n' +
+              'Verifique se o backend está rodando em http://localhost:3000\n\n' +
+              'Erro: ' +
+              (err.message || 'Conexão recusada')
+          );
+        } else {
+          alert('Erro ao criar meta: ' + (err.message || 'Tente novamente.'));
+        }
+      },
+      complete: () => {
+        console.log(
+          '✅ Processo de adicionar meta completo (callback complete)'
+        );
+        console.log('🔵 ========================================');
+      },
+    });
   }
 
   cancelarAdicionarMeta(): void {
@@ -686,15 +847,48 @@ export class ElaborandoMetasComponent {
 
   // Métodos para o modal de adicionar meta
   onValorMetaChange(valor: any): void {
-    this.modalAdicionarMeta.valorMeta = this.parseNumeroBR(valor);
+    // Remove caracteres inválidos, mantém apenas números, vírgula e ponto
+    const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
+    // Atualiza no serviço
+    this.modalService.updateValorMetaRaw(valorLimpo);
+    // Sincroniza estado local
+    this.valorMetaRaw = valorLimpo;
+    const valorProcessado = this.parseNumeroBR(valorLimpo);
+    this.modalAdicionarMeta.valorMeta = valorProcessado;
   }
 
   onValorPorMesChange(valor: any): void {
-    this.modalAdicionarMeta.valorPorMes = this.parseNumeroBR(valor);
+    const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
+    this.modalService.updateValorPorMesRaw(valorLimpo);
+    this.valorPorMesRaw = valorLimpo;
+    const valorProcessado = this.parseNumeroBR(valorLimpo);
+    this.modalAdicionarMeta.valorPorMes = valorProcessado;
   }
 
   onValorAtualChange(valor: any): void {
-    this.modalAdicionarMeta.valorAtual = this.parseNumeroBR(valor);
+    const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
+    this.modalService.updateValorAtualRaw(valorLimpo);
+    this.valorAtualRaw = valorLimpo;
+    const valorProcessado = this.parseNumeroBR(valorLimpo);
+    this.modalAdicionarMeta.valorAtual = valorProcessado;
+  }
+
+  onValorMetaChangeEvent(event: any): void {
+    const valor = event.target?.value || event;
+    console.log('🔄 (change) Campo: Valor da Meta | Valor:', valor);
+    this.onValorMetaChange(valor);
+  }
+
+  onValorPorMesChangeEvent(event: any): void {
+    const valor = event.target?.value || event;
+    console.log('🔄 (change) Campo: Valor por Mês | Valor:', valor);
+    this.onValorPorMesChange(valor);
+  }
+
+  onValorAtualChangeEvent(event: any): void {
+    const valor = event.target?.value || event;
+    console.log('🔄 (change) Campo: Valor Já Temos | Valor:', valor);
+    this.onValorAtualChange(valor);
   }
 
   onKeyUp(
@@ -724,20 +918,8 @@ export class ElaborandoMetasComponent {
 
   // Método para validar apenas números nos campos de valor do modal
   validarApenasNumeros(event: KeyboardEvent): void {
-    // Permitir: números (0-9), vírgula, ponto, backspace, delete, tab, enter, escape
-    const teclasPermitidas = [
-      '0',
-      '1',
-      '2',
-      '3',
-      '4',
-      '5',
-      '6',
-      '7',
-      '8',
-      '9',
-      ',',
-      '.',
+    // Permitir teclas de controle (não precisam validação)
+    const teclasControle = [
       'Backspace',
       'Delete',
       'Tab',
@@ -749,16 +931,34 @@ export class ElaborandoMetasComponent {
       'ArrowDown',
       'Home',
       'End',
+      'Ctrl',
+      'Alt',
+      'Shift',
+      'Meta',
+      'Cmd',
     ];
 
-    // Permitir teclas do teclado numérico
-    if (event.code.startsWith('Numpad')) {
-      return;
+    if (teclasControle.includes(event.key)) {
+      return; // Permite teclas de controle
     }
 
-    // Verificar se a tecla pressionada está na lista de permitidas
-    if (!teclasPermitidas.includes(event.key)) {
-      event.preventDefault();
+    // Permitir teclas do teclado numérico (Numpad)
+    if (event.code.startsWith('Numpad')) {
+      // Verificar se é número do numpad (0-9) ou vírgula/ponto
+      if (
+        event.code.includes('Comma') ||
+        event.code.includes('Period') ||
+        (event.code >= 'Numpad0' && event.code <= 'Numpad9')
+      ) {
+        return; // Permite números do numpad, vírgula e ponto
+      }
+    }
+
+    // Permitir apenas: números (0-9), vírgula (,) e ponto (.)
+    const teclasPermitidas = /^[0-9,\.]$/;
+
+    if (!teclasPermitidas.test(event.key)) {
+      event.preventDefault(); // Bloqueia qualquer outro caractere
     }
   }
 }

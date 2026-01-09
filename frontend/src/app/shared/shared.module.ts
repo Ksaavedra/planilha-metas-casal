@@ -8,14 +8,23 @@ import { DSModule } from 'app/@ds';
 import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.component';
 import { ParabensModalComponent } from './components/parabens-modal/parabens-modal.component';
 import { SuccessModalComponent } from './components/success-modal/success-modal.component';
+import { AdicionarMetaModalComponent } from './components/adicionar-meta-modal/adicionar-meta-modal.component';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 @NgModule({
   declarations: [
     ConfirmModalComponent,
     SuccessModalComponent,
     ParabensModalComponent,
+    AdicionarMetaModalComponent,
   ],
-  imports: [CommonModule, DSModule],
+  imports: [CommonModule, DSModule, FormsModule, ReactiveFormsModule],
+  exports: [
+    ConfirmModalComponent,
+    SuccessModalComponent,
+    ParabensModalComponent,
+    AdicionarMetaModalComponent,
+  ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
 })
 export class SharedModule {}

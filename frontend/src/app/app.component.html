@@ -1,1 +1,27 @@
 <router-outlet></router-outlet>
+
+<!-- Modal de Adicionar Meta - Renderizado no nível mais alto da aplicação -->
+<app-adicionar-meta-modal [isOpen]="modalState.isOpen" [nome]="modalState.nome" [valorMetaRaw]="modalState.valorMetaRaw"
+  [valorPorMesRaw]="modalState.valorPorMesRaw" [valorAtualRaw]="modalState.valorAtualRaw"
+  [temValorAtual]="modalState.temValorAtual" (nomeChange)="onNomeChange($event)"
+  (valorMetaChange)="onValorMetaChange($event)" (valorPorMesChange)="onValorPorMesChange($event)"
+  (valorAtualChange)="onValorAtualChange($event)" (temValorAtualChange)="onTemValorAtualChange($event)"
+  (valorMetaChangeEvent)="onValorMetaChangeEvent($event)" (valorPorMesChangeEvent)="onValorPorMesChangeEvent($event)"
+  (valorAtualChangeEvent)="onValorAtualChangeEvent($event)" (save)="onSave()" (cancel)="onCancel()">
+</app-adicionar-meta-modal>
+
+<!-- Modal de Sucesso - Renderizado no nível mais alto da aplicação -->
+<app-success-modal [isOpen]="sucessoState.isOpen" [title]="sucessoState.title" [message]="sucessoState.message"
+  confirmText="Fechar" [autoCloseMs]="0" (close)="onCloseSucesso()">
+</app-success-modal>
+
+<!-- Modal de Confirmação de Exclusão - Renderizado no nível mais alto da aplicação -->
+<app-confirm-modal [isOpen]="confirmarDeleteState.isOpen" title="Confirmar Exclusão"
+  [message]="confirmarDeleteState.message" confirmText="Sim, Excluir" cancelText="Cancelar"
+  (confirm)="onConfirmDelete()" (cancel)="onCancelDelete()">
+</app-confirm-modal>
+
+<!-- Modal de Sucesso de Exclusão - Renderizado no nível mais alto da aplicação -->
+<app-success-modal [isOpen]="sucessoDeleteState.isOpen" title="Meta removida!"
+  message="A meta foi excluída com sucesso." confirmText="OK" [autoCloseMs]="0" (close)="onCloseSucessoDelete()">
+</app-success-modal>

@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { MetasService } from '../../../../core/services/metas/metas.service';
 import {
   Meta,
   MetaExtended,
   ModalEdicao,
 } from '../../../../core/interfaces/mes-meta';
+import { ElaborandoMetasComponent } from '../../components/lista-metas/elaborando-metas/elaborando-metas.component';
 
 type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
 
@@ -14,6 +15,7 @@ type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
   styleUrls: ['./metas-page.component.scss'],
 })
 export class MetasPageComponent implements OnInit {
+  @ViewChild('elaborandoMetas') elaborandoMetas!: ElaborandoMetasComponent;
   meses: string[] = [];
   modalEdicao: ModalEdicao = {
     meta: {} as MetaExtended,

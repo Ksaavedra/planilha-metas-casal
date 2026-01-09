@@ -1,0 +1,84 @@
+@if (isOpen) {
+<div class="modal-overlay">
+  <div class="modal-content" (click)="stop($event)">
+    <div class="modal-body">
+      <form class="modal-form">
+        <div class="modal-input-group" [class.has-error]="nomeFormControl.invalid && nomeFormControl.touched">
+          <label for="nome-nova-meta">Nome da Meta: <span class="required">*</span></label>
+          <input id="nome-nova-meta" type="text" class="modal-input" [formControl]="nomeFormControl"
+            placeholder="Digite o nome da meta" autocomplete="off" autofocus />
+          @if (nomeFormControl.hasError('required') && nomeFormControl.touched) {
+          <span class="error-message">Nome da meta é <strong>obrigatório</strong></span>
+          }
+        </div>
+
+        <div class="modal-input-group" [class.has-error]="valorMetaFormControl.invalid && valorMetaFormControl.touched">
+          <label for="valor-meta">Valor da Meta: <span class="required">*</span></label>
+          <input id="valor-meta" type="text" inputmode="decimal" class="modal-input"
+            [formControl]="valorMetaFormControl" placeholder="0,00" autocomplete="off" (keydown.enter)="onSave()"
+            (keypress)="validarApenasNumeros($event)" />
+          @if (valorMetaFormControl.hasError('required') && valorMetaFormControl.touched) {
+          <span class="error-message">Valor da meta é <strong>obrigatório</strong></span>
+          }
+          @if (valorMetaFormControl.hasError('mustBeGreaterThanZero') &&
+          !valorMetaFormControl.hasError('required') && valorMetaFormControl.touched) {
+          <span class="error-message">O valor deve ser <strong>maior que zero</strong></span>
+          }
+        </div>
+
+        <div class="modal-input-group"
+          [class.has-error]="valorPorMesFormControl.invalid && valorPorMesFormControl.touched">
+          <label for="valor-mes">Valor por Mês: <span class="required">*</span></label>
+          <input id="valor-mes" type="text" inputmode="decimal" class="modal-input"
+            [formControl]="valorPorMesFormControl" placeholder="0,00" autocomplete="off" (keydown.enter)="onSave()"
+            (keypress)="validarApenasNumeros($event)" />
+          @if (valorPorMesFormControl.hasError('required') && valorPorMesFormControl.touched) {
+          <span class="error-message">Valor por mês é <strong>obrigatório</strong></span>
+          }
+          @if (valorPorMesFormControl.hasError('mustBeGreaterThanZero') &&
+          !valorPorMesFormControl.hasError('required') && valorPorMesFormControl.touched) {
+          <span class="error-message">O valor deve ser <strong>maior que zero</strong></span>
+          }
+        </div>
+
+        <div class="modal-input-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [checked]="temValorAtual"
+              (change)="onTemValorAtualChange($any($event.target).checked)" />
+            <span>Tenho valor já guardado
+              @if (temValorAtual) {
+              <strong>*</strong>
+              }
+            </span>
+          </label>
+        </div>
+
+        <div class="modal-input-group"
+          [class.has-error]="valorAtualFormControl.invalid && valorAtualFormControl.touched">
+          <label for="valor-atual">Valor Já Temos:
+            @if (temValorAtual) {
+            <span class="required">*</span>
+            }
+          </label>
+          <input id="valor-atual" type="text" inputmode="decimal" class="modal-input"
+            [formControl]="valorAtualFormControl" placeholder="0,00" autocomplete="off" (keydown.enter)="onSave()"
+            (keypress)="validarApenasNumeros($event)" />
+          @if (valorAtualFormControl.hasError('required') && valorAtualFormControl.touched) {
+          <span class="error-message">Valor já temos é <strong>obrigatório</strong> quando o checkbox está
+            marcado</span>
+          }
+          @if (valorAtualFormControl.hasError('mustBeGreaterOrEqualZero') &&
+          !valorAtualFormControl.hasError('required') && valorAtualFormControl.touched) {
+          <span class="error-message">O valor deve ser <strong>maior ou igual a zero</strong></span>
+          }
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancelar" (click)="onCancel()">Cancelar</button>
+      <button class="btn-salvar" (click)="onSave()">Adicionar</button>
+    </div>
+  </div>
+</div>
+}

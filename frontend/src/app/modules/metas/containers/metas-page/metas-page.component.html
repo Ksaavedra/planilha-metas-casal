@@ -14,7 +14,7 @@
   </div>
 
   <!-- Seção 1: Elaborando as Metas do Casal -->
-  <app-elaborando-metas [metas]="metas" [percentualPagoView]="percentualPagoView"
+  <app-elaborando-metas #elaborandoMetas [metas]="metas" [percentualPagoView]="percentualPagoView"
     [totalValorMetaView]="totalValorMetaView" [totalValorPorMesView]="totalValorPorMesView"
     [totalMesesNecessariosView]="totalMesesNecessariosView" [totalValorAtualView]="totalValorAtualView"
     [totalContribuicoesView]="totalContribuicoesView" (metasAtualizadas)="reloadMetas()" (addMeta)="adicionarMeta()"
@@ -29,3 +29,4 @@
     (alternarStatus)="onAlterarStatus($event)" (salvarValor)="onSalvarValorMes($event)"
     (metaCompleta)="onMetaCompleta($event)">
   </app-executando-metas>
+</div>
