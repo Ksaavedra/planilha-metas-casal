@@ -126,6 +126,7 @@ export class MetasPageComponent implements OnInit {
           valorAtual: this.toNum(m.valorAtual),
           mesesNecessarios: this.toNum(m.mesesNecessarios),
           icon: m.icon || 'bi-bullseye', // Preservar o ícone da meta
+          meses: m.meses ? [...m.meses] : [], // Preservar os meses atualizados do servidor
           editandoNome: false,
           nomeTemp: '',
           savingNome: false,

@@ -368,15 +368,32 @@ export class ElaborandoMetasComponent implements OnDestroy {
     // aplica localmente
     (meta as any)[campo] = novo;
 
-    // monta patch; se mudar valorPorMes, recalc mesesNecessarios
+    // monta patch; se mudar valorPorMes, recalc mesesNecessarios e atualiza todos os meses
     const patch: any = { [campo]: novo };
     if (campo === 'valorPorMes') {
       patch.mesesNecessarios =
         novo > 0 ? Math.ceil((meta.valorMeta || 0) / novo) : 0;
+
+      // Atualizar todos os meses com o novo valorPorMes
+      if (meta.meses && meta.meses.length > 0) {
+        patch.meses = meta.meses.map((mes) => ({
+          ...mes,
+          valor: novo > 0 ? novo : 0,
+          status: novo > 0 ? 'Programado' : 'Vazio',
+        }));
+      }
     }
 
     this.metasService.updateMeta(meta.id, patch).subscribe({
       next: () => {
+        // Atualizar localmente os meses se foi valorPorMes
+        if (campo === 'valorPorMes' && meta.meses && meta.meses.length > 0) {
+          meta.meses.forEach((mes) => {
+            mes.valor = novo > 0 ? novo : 0;
+            mes.status = novo > 0 ? 'Programado' : 'Vazio';
+          });
+        }
+
         meta.savedTickCampo = true;
         const savedMetaId = meta.id;
 
@@ -393,7 +410,17 @@ export class ElaborandoMetasComponent implements OnDestroy {
         }, 5000);
 
         this.recalcResumo();
-        this.reloadMetas(savedMetaId, shouldPreserveTick);
+
+        // Aguardar um pouco para garantir que o servidor processou a atualização
+        // antes de recarregar e atualizar a tabela
+        setTimeout(() => {
+          // Emitir evento para o componente pai atualizar a tabela executando-metas
+          // Isso recarrega as metas do servidor e atualiza o array @Input() passado para executando-metas
+          this.metasAtualizadas.emit();
+
+          // Recarregar localmente também para manter sincronizado
+          this.reloadMetas(savedMetaId, shouldPreserveTick);
+        }, 200);
       },
       error: (_e) => {
         alert('Erro ao salvar. Tente novamente.');
@@ -484,7 +511,8 @@ export class ElaborandoMetasComponent implements OnDestroy {
     const valorMeta = Number(meta.valorMeta) || 0;
     const valorPorMes = Number(meta.valorPorMes) || 0;
 
-    if (valorMeta <= 0 || valorPorMes <= 0) return 0;
+    // Se não tem valorPorMes, retornar null para distinguir de "Finalizado"
+    if (valorMeta <= 0 || valorPorMes <= 0) return -1;
 
     // Calcular total realizado (quanto já temos + quanto já pagamos)
     const valorAtual = Number(meta.valorAtual) || 0;
@@ -494,6 +522,9 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
     const totalRealizado = valorAtual + valorPago;
     const valorRestante = Math.max(0, valorMeta - totalRealizado);
+
+    // Se não falta mais nada, retornar 0 (Finalizado)
+    if (valorRestante <= 0) return 0;
 
     // Calcular quantos meses ainda faltam pagar
     const mesesRestantes = Math.ceil(valorRestante / valorPorMes);
@@ -749,8 +780,11 @@ export class ElaborandoMetasComponent implements OnDestroy {
       meses: mesesPadrao.map((n, i) => ({
         id: i + 1,
         nome: n,
-        valor: 0,
-        status: 'Vazio' as 'Vazio',
+        valor: valorPorMes || 0,
+        status:
+          valorPorMes && valorPorMes > 0
+            ? ('Programado' as 'Programado')
+            : ('Vazio' as 'Vazio'),
       })),
     };
 

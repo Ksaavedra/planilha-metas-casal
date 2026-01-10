@@ -1,6 +1,8 @@
 .progress-section {
   background: white;
   border-radius: 16px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
   margin-bottom: 2rem;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -10,14 +12,12 @@
 .section-header {
   background: #475569;
   color: white;
-  padding: 1rem 1.5rem;
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
+  padding: 1.5rem 2rem;
 }
 
 .section-header h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   font-weight: 600;
   letter-spacing: 0.5px;
 }
