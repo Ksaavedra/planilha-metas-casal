@@ -301,6 +301,11 @@
 .detail-item .value {
   color: #1e293b;
   font-weight: 600;
+
+  &.concluido {
+    color: #10b981;
+    font-weight: 700;
+  }
 }
 
 /* Controles do Carrossel */
