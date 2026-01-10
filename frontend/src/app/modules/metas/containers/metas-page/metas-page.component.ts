@@ -53,8 +53,6 @@ export class MetasPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.metasService.getMetas().subscribe((metas: Meta[]) => {
-      console.log('metas', metas);
-
       // Filtrar apenas metas válidas (com ID válido e nome não vazio)
       const metasValidas = metas.filter((meta) => {
         // Aceitar qualquer ID válido (não vazio, não 0, não undefined)
@@ -96,6 +94,14 @@ export class MetasPageComponent implements OnInit {
   }
 
   reloadMetas(): void {
+    // Preservar estados savedTickCampo antes de recarregar
+    const savedTickStates = new Map<string | number, boolean>();
+    this.metas.forEach((meta) => {
+      if (meta.savedTickCampo && meta.id) {
+        savedTickStates.set(meta.id, true);
+      }
+    });
+
     this.metasService.getMetas().subscribe((metas: Meta[]) => {
       const metasValidas = metas.filter((meta) => {
         const idValido =
@@ -106,6 +112,12 @@ export class MetasPageComponent implements OnInit {
       });
 
       this.metas = metasValidas.map((m) => {
+        // Restaurar savedTickCampo se estava ativo antes do reload
+        const shouldPreserveTick = savedTickStates.has(m.id);
+        const savedTickValue = shouldPreserveTick
+          ? savedTickStates.get(m.id)
+          : false;
+
         const metaExtended: MetaExtended = {
           ...m,
           id: m.id,
@@ -121,9 +133,22 @@ export class MetasPageComponent implements OnInit {
           editandoValorMeta: false,
           editandoValorPorMes: false,
           editandoValorAtual: false,
-          savedTickCampo: false,
+          savedTickCampo: savedTickValue || false,
           dropdownOpen: undefined,
         };
+
+        // Se estava preservando, configurar timeout para limpar após 5 segundos
+        if (shouldPreserveTick && savedTickValue) {
+          setTimeout(() => {
+            const currentMeta = this.metas.find(
+              (meta) => String(meta.id) === String(m.id)
+            );
+            if (currentMeta) {
+              currentMeta.savedTickCampo = false;
+            }
+          }, 5000);
+        }
+
         return metaExtended;
       });
 

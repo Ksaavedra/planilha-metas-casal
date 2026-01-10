@@ -82,10 +82,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
     // Escuta eventos de confirmação de exclusão
     this.confirmDeleteSubscription = this.modalService.confirmDelete$.subscribe(
       (metaId) => {
-        console.log(
-          '🔴 confirmDelete$ recebido no elaborando-metas com metaId:',
-          metaId
-        );
         this.processarExclusao(metaId);
       }
     );
@@ -126,91 +122,63 @@ export class ElaborandoMetasComponent implements OnDestroy {
   }
 
   removerMeta(id: any): void {
-    console.log('🔴 removerMeta() chamado com id:', id);
     const meta = this.metas.find((m) => String(m.id) === String(id));
     if (!meta) {
       alert('Meta não encontrada.');
       return;
     }
 
-    console.log('📋 Meta encontrada:', meta);
     // Abrir modal de confirmação através do serviço
     this.metaParaExcluir = meta;
     this.modalService.openConfirmarDelete(meta.id, meta.nome || '');
-    console.log('✅ Modal de confirmação aberto');
   }
 
   processarExclusao(metaId: number): void {
-    console.log('🔴 processarExclusao() chamado com metaId:', metaId);
     const meta = this.metas.find((m) => String(m.id) === String(metaId));
     if (!meta) {
-      console.error('❌ Meta não encontrada com id:', metaId);
       alert('Meta não encontrada.');
       return;
     }
 
-    console.log('📋 Meta encontrada para exclusão:', meta);
     const id = meta.id;
     this.metaParaExcluir = null;
 
     // Se a meta tem nome vazio, provavelmente não existe no servidor
     if (!meta.nome || meta.nome.trim() === '') {
-      console.log('⚠️ Meta sem nome - removendo localmente');
       this.metas = this.metas.filter((m) => String(m.id) !== String(id));
       this.recalcResumo();
       this.metasAtualizadas.emit();
-      console.log('✅ Chamando showSucessoDelete()...');
       this.modalService.showSucessoDelete();
       return;
     }
 
     if (meta._draft) {
-      console.log('⚠️ Meta é draft - removendo localmente');
       // não existe no servidor: só remove da lista
       this.metas = this.metas.filter((m) => m !== meta);
       this.recalcResumo();
       this.metasAtualizadas.emit();
-      console.log('✅ Chamando showSucessoDelete()...');
       this.modalService.showSucessoDelete();
       return;
     }
 
     // existe no servidor: chama DELETE
-    console.log('🌐 Chamando deleteMeta() no servidor para id:', id);
     this.metasService.deleteMeta(id).subscribe({
       next: () => {
-        console.log('✅ Meta excluída com sucesso no servidor!');
         this.metasAtualizadas.emit();
-        console.log('✅ Chamando showSucessoDelete()...');
         this.modalService.showSucessoDelete();
       },
       error: (e) => {
-        console.error('❌ Erro ao excluir meta:', e);
         // Se for 404, a meta não existe no servidor, então remove da lista local
         if (e.status === 404) {
-          console.log(
-            '⚠️ Meta não encontrada no servidor (404) - removendo localmente'
-          );
           this.metas = this.metas.filter((m) => String(m.id) !== String(id));
           this.recalcResumo();
           this.metasAtualizadas.emit();
-          console.log('✅ Chamando showSucessoDelete()...');
           this.modalService.showSucessoDelete();
         } else {
           alert('Não foi possível excluir. Tente novamente.');
         }
       },
     });
-  }
-
-  confirmarExclusao(): void {
-    // Método mantido para compatibilidade, mas não é mais usado
-    // A confirmação agora é feita através do serviço
-  }
-
-  cancelarExclusao(): void {
-    // Método mantido para compatibilidade, mas não é mais usado
-    // O cancelamento agora é feito através do serviço
   }
 
   cancelarCampo(
@@ -373,7 +341,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
       this.metasService.updateMeta(meta.id, { nome: novoNome }).subscribe({
         next: () => {
           meta.savedTickCampo = true;
-          setTimeout(() => (meta.savedTickCampo = false), 1200);
+          setTimeout(() => (meta.savedTickCampo = false), 5000);
           this.metasAtualizadas.emit();
         },
         error: (_e) => {
@@ -410,9 +378,22 @@ export class ElaborandoMetasComponent implements OnDestroy {
     this.metasService.updateMeta(meta.id, patch).subscribe({
       next: () => {
         meta.savedTickCampo = true;
-        setTimeout(() => (meta.savedTickCampo = false), 1200);
+        const savedMetaId = meta.id;
+
+        // Preservar o estado antes de recarregar
+        const shouldPreserveTick = true;
+
+        setTimeout(() => {
+          const currentMeta = this.metas.find(
+            (m) => String(m.id) === String(savedMetaId)
+          );
+          if (currentMeta) {
+            currentMeta.savedTickCampo = false;
+          }
+        }, 5000);
+
         this.recalcResumo();
-        this.reloadMetas();
+        this.reloadMetas(savedMetaId, shouldPreserveTick);
       },
       error: (_e) => {
         alert('Erro ao salvar. Tente novamente.');
@@ -626,7 +607,13 @@ export class ElaborandoMetasComponent implements OnDestroy {
       });
   }
 
-  private reloadMetas(): void {
+  private reloadMetas(
+    savedMetaId?: string | number,
+    preserveSavedTick?: boolean
+  ): void {
+    // Preservar estado savedTickCampo da meta que acabou de ser salva
+    const savedMetaState = Boolean(preserveSavedTick && savedMetaId);
+
     this.metasService.getMetas().subscribe((metas: Meta[]) => {
       // Filtrar apenas metas válidas (com ID válido e nome não vazio)
       const metasValidas = metas.filter((meta) => {
@@ -640,6 +627,11 @@ export class ElaborandoMetasComponent implements OnDestroy {
       });
 
       this.metas = metasValidas.map((m) => {
+        // Preservar savedTickCampo se for a meta que acabou de ser salva
+        const shouldPreserveTick = Boolean(
+          savedMetaId && String(m.id) === String(savedMetaId) && savedMetaState
+        );
+
         const metaExtended: MetaExtended = {
           ...m,
           id: m.id, // Padronizar todos os IDs como string
@@ -655,7 +647,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
           editandoValorMeta: false,
           editandoValorPorMes: false,
           editandoValorAtual: false,
-          savedTickCampo: false,
+          savedTickCampo: shouldPreserveTick,
           dropdownOpen: undefined,
         };
         return metaExtended;
@@ -666,8 +658,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   // Métodos para o modal de adicionar meta
   abrirModalAdicionarMeta(): void {
-    console.log('🟢 ========================================');
-    console.log('🟢 Abrir modal - abrirModalAdicionarMeta() chamado!');
     this.modalService.open();
     // Sincronizar estado local
     this.modalAdicionarMeta.isOpen = true;
@@ -678,12 +668,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
     this.valorMetaRaw = '';
     this.valorPorMesRaw = '';
     this.valorAtualRaw = '';
-    console.log('📋 Modal inicializado com valores:');
-    console.log('   - nome:', this.modalAdicionarMeta.nome);
-    console.log('   - valorMeta:', this.modalAdicionarMeta.valorMeta);
-    console.log('   - valorPorMes:', this.modalAdicionarMeta.valorPorMes);
-    console.log('   - valorAtual:', this.modalAdicionarMeta.valorAtual);
-    console.log('🟢 ========================================');
   }
 
   fecharModalAdicionarMeta(): void {
@@ -700,9 +684,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
   }
 
   salvarMetaModal(): void {
-    console.log('🔵 ========================================');
-    console.log('🔵 Adicionar meta - salvarMetaModal() chamado!');
-
     // Busca dados do serviço
     const modalState = this.modalService.getState();
     const nome = modalState.nome;
@@ -713,54 +694,29 @@ export class ElaborandoMetasComponent implements OnDestroy {
       ? this.parseNumeroBR(modalState.valorAtualRaw)
       : 0;
 
-    console.log('📋 Dados do modal ANTES de processar:');
-    console.log('   - nome:', nome);
-    console.log('   - valorMeta:', valorMeta);
-    console.log('   - valorPorMes:', valorPorMes);
-    console.log('   - valorAtual:', valorAtual);
-
-    console.log('🔍 Valores extraídos:');
-    console.log('   - nome:', nome);
-    console.log('   - valorMeta:', valorMeta);
-    console.log('   - valorPorMes:', valorPorMes);
-    console.log('   - valorAtual:', valorAtual);
-
     // Validação de campos obrigatórios
     if (!nome || !nome.trim()) {
-      console.log('❌ ERRO: Nome da meta é obrigatório!');
       alert('Por favor, preencha o nome da meta.');
       return;
     }
 
     if (!valorMeta || valorMeta <= 0) {
-      console.log(
-        '❌ ERRO: Valor da meta é obrigatório e deve ser maior que zero!'
-      );
       alert('Por favor, preencha o valor da meta (deve ser maior que zero).');
       return;
     }
 
     if (!valorPorMes || valorPorMes <= 0) {
-      console.log(
-        '❌ ERRO: Valor por mês é obrigatório e deve ser maior que zero!'
-      );
       alert('Por favor, preencha o valor por mês (deve ser maior que zero).');
       return;
     }
 
     // Validação do valor atual (se o checkbox estiver marcado, deve ser preenchido)
     if (modalState.temValorAtual && (!valorAtual || valorAtual < 0)) {
-      console.log(
-        '❌ ERRO: Valor já temos é obrigatório quando o checkbox está marcado!'
-      );
       alert(
         'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).'
       );
       return;
     }
-
-    console.log('✅ Validação do nome passou!');
-    console.log('✅ Criando meta com os dados...');
 
     const mesesPadrao = [
       'Janeiro',
@@ -798,14 +754,8 @@ export class ElaborandoMetasComponent implements OnDestroy {
       })),
     };
 
-    console.log('📤 Dados que serão enviados para a API:');
-    console.log(JSON.stringify(dadosParaEnviar, null, 2));
-    console.log('🚀 Chamando metasService.createMeta()...');
-
     this.metasService.createMeta(dadosParaEnviar).subscribe({
-      next: (response) => {
-        console.log('✅ Meta criada com sucesso!');
-        console.log('📥 Resposta do servidor:', response);
+      next: () => {
         this.metasAtualizadas.emit();
         // Fecha o modal de adicionar primeiro
         this.modalService.close();
@@ -816,17 +766,8 @@ export class ElaborandoMetasComponent implements OnDestroy {
           'Meta adicionada!',
           'Sua meta foi criada com sucesso.'
         );
-        console.log('🔵 ========================================');
       },
       error: (err) => {
-        console.error('❌ Erro ao criar meta:', err);
-        console.error('📋 Detalhes do erro:', {
-          status: err.status,
-          statusText: err.statusText,
-          url: err.url,
-          message: err.message,
-        });
-
         // Mensagem de erro mais específica
         if (err.status === 0 || err.statusText === 'Unknown Error') {
           alert(
@@ -838,12 +779,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
         } else {
           alert('Erro ao criar meta: ' + (err.message || 'Tente novamente.'));
         }
-      },
-      complete: () => {
-        console.log(
-          '✅ Processo de adicionar meta completo (callback complete)'
-        );
-        console.log('🔵 ========================================');
       },
     });
   }
@@ -882,19 +817,16 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   onValorMetaChangeEvent(event: any): void {
     const valor = event.target?.value || event;
-    console.log('🔄 (change) Campo: Valor da Meta | Valor:', valor);
     this.onValorMetaChange(valor);
   }
 
   onValorPorMesChangeEvent(event: any): void {
     const valor = event.target?.value || event;
-    console.log('🔄 (change) Campo: Valor por Mês | Valor:', valor);
     this.onValorPorMesChange(valor);
   }
 
   onValorAtualChangeEvent(event: any): void {
     const valor = event.target?.value || event;
-    console.log('🔄 (change) Campo: Valor Já Temos | Valor:', valor);
     this.onValorAtualChange(valor);
   }
 

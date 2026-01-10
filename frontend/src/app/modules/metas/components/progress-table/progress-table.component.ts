@@ -214,24 +214,10 @@ export class ProgressTableComponent
     const maxIndex = this.getMaxIndex();
 
     if (this.currentIndex >= maxIndex) {
-      console.log('[NEXT] bloqueado - já está no fim', {
-        currentIndex: this.currentIndex,
-        maxIndex,
-      });
       return;
     }
 
-    const before = this.currentIndex;
     this.currentIndex++;
-
-    console.log('[NEXT]', {
-      before,
-      after: this.currentIndex,
-      maxIndex,
-      cardStep: this.cardStep,
-      maxTranslate: this.maxTranslate,
-    });
-
     this.stopCarousel();
     this.startCarousel();
   }
@@ -242,17 +228,8 @@ export class ProgressTableComponent
     this.recalcLayout();
     const maxIndex = this.getMaxIndex();
 
-    const before = this.currentIndex;
     this.currentIndex =
       this.currentIndex > 0 ? this.currentIndex - 1 : maxIndex;
-
-    console.log('[PREV]', {
-      before,
-      after: this.currentIndex,
-      maxIndex,
-      cardStep: this.cardStep,
-      maxTranslate: this.maxTranslate,
-    });
 
     this.stopCarousel();
     this.startCarousel();
@@ -333,19 +310,6 @@ export class ProgressTableComponent
 
     const maxIndex = this.getMaxIndex();
     this.currentIndex = Math.max(0, Math.min(this.currentIndex, maxIndex));
-
-    console.log('[recalcLayout]', {
-      cardStep: this.cardStep,
-      scrollWidth: content.scrollWidth,
-      wrapperClientWidth: wrapper.clientWidth,
-      paddingLeft,
-      paddingRight,
-      visibleWidth: this.visibleWidth,
-      maxTranslate: this.maxTranslate,
-      endOffset: this.endOffset,
-      maxIndex,
-      currentIndex: this.currentIndex,
-    });
   }
 
   getTranslateX(): string {

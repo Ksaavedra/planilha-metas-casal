@@ -12,33 +12,23 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let meta of metas; let i = index;" [class.alternate]="i % 2 === 1">
+        <tr *ngFor="let meta of metas; trackBy: trackByMetaId; let i = index;" [class.alternate]="i % 2 === 1">
           <td>{{ meta.nome }}</td>
-          <td *ngFor="let mes of meta.meses" class="status-cell" [attr.data-meta-id]="meta.id"
+          <td *ngFor="let mes of meta.meses; trackBy: trackByMesId;" class="status-cell" [attr.data-meta-id]="meta.id"
             [attr.data-mes-id]="mes.id">
-            <div class="status-dropdown-container">
+            <div class="status-dropdown-container"
+              style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0.1rem;">
               <span class="valor-display" (click)="abrirModalEdicao(meta, mes.id)"
                 [class.valor-programado]="mes.status === 'Programado'" [class.valor-pago]="mes.status === 'Pago'"
-                [class.valor-vazio]="mes.status === 'Vazio'" title="Clique para editar o valor">
+                [class.valor-vazio]="mes.status === 'Vazio'" title="Clique para editar o valor"
+                style="display: inline-flex; align-items: center; margin: 0; padding-right: 0.15rem;">
                 {{ formatBR(mes.valor) }}
               </span>
-              <div class="status-indicator" (click)="toggleDropdown(meta, mes.id)"
-                [class.status-programado]="mes.status === 'Programado'" [class.status-pago]="mes.status === 'Pago'"
-                [class.status-vazio]="mes.status === 'Vazio'" title="Clique para alterar o status">
-                <span class="material-icons">expand_more</span>
-              </div>
-              <div class="status-dropdown" *ngIf="meta.dropdownOpen === mes.id" (click)="$event.stopPropagation()">
-                <div class="dropdown-option" (click)="selecionarStatus(meta, mes.id, 'Programado')"
-                  [class.selected]="mes.status === 'Programado'">
-                  Programado
-                </div>
-                <div class="dropdown-option" (click)="selecionarStatus(meta, mes.id, 'Pago')"
-                  [class.selected]="mes.status === 'Pago'">
-                  Pago
-                </div>
-                <div class="dropdown-option" (click)="selecionarStatus(meta, mes.id, 'Vazio')"
-                  [class.selected]="mes.status === 'Vazio'">
-                  Vazio
+              <div class="status-indicator-wrapper" style="display: inline-flex; margin: 0;">
+                <div class="status-indicator" (click)="toggleDropdown(meta, mes.id, $event)"
+                  [class.status-programado]="mes.status === 'Programado'" [class.status-pago]="mes.status === 'Pago'"
+                  [class.status-vazio]="mes.status === 'Vazio'" title="Clique na seta para alterar o status">
+                  <span class="material-icons">expand_more</span>
                 </div>
               </div>
             </div>
@@ -55,4 +45,6 @@
       </tbody>
     </table>
   </div>
+
+  <!-- Dropdown agora é renderizado diretamente no body via Renderer2 -->
 </div>

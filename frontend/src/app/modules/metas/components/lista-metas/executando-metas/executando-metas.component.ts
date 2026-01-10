@@ -7,7 +7,11 @@ import {
   OnDestroy,
   Output,
   SimpleChanges,
+  HostListener,
+  Renderer2,
+  Inject,
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import {
   Meta,
   MetaExtended,
@@ -47,12 +51,19 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     metaNome: string;
     valorMeta: number;
   }>();
+  openDropdownKey: string | null = null;
+  dropdownPos = { top: 0, left: 0 };
 
+  private activeMeta: MetaExtended | null = null;
+  private activeMesId: number | null = null;
   private editarValorSubscription?: Subscription;
+  private dropdownElement: HTMLElement | null = null;
 
   constructor(
     private metasService: MetasService,
-    private modalEditarValorService: ModalEditarValorService
+    private modalEditarValorService: ModalEditarValorService,
+    private renderer: Renderer2,
+    @Inject(DOCUMENT) private document: Document
   ) {}
 
   private readonly MESES_PADRAO = [
@@ -69,6 +80,13 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     'Novembro',
     'Dezembro',
   ];
+
+  trackByMetaId(_: number, meta: any): string | number {
+    return meta.id;
+  }
+  trackByMesId(_: number, mes: any): string | number {
+    return mes.id;
+  }
 
   ngOnInit() {
     // Componente de apresentação - dados vêm via @Input()
@@ -93,10 +111,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
         });
       }
     );
-  }
-
-  ngOnDestroy(): void {
-    this.editarValorSubscription?.unsubscribe();
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -137,50 +151,375 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     }).format(n);
   }
 
-  toggleDropdown(meta: MetaExtended, mesId: number): void {
-    // Fechar todos os outros dropdowns primeiro
-    this.metas.forEach((m) => {
-      if (String(m.id) !== String(meta.id) || m.dropdownOpen !== mesId) {
-        m.dropdownOpen = undefined;
+  private getCellKey(metaId: string | number, mesId: string | number): string {
+    return `${metaId}_${mesId}`;
+  }
+
+  isDropdownOpen(metaId: number | string, mesId: number): boolean {
+    return this.openDropdownKey === this.getCellKey(metaId, mesId);
+  }
+
+  getActiveMes() {
+    if (!this.activeMeta || this.activeMesId === null) return null;
+    return this.activeMeta.meses?.find((m) => m.id === this.activeMesId);
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    this.closeDropdown();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    this.closeDropdown();
+  }
+
+  @HostListener('document:click', ['$event'])
+  closeDropdown(event?: MouseEvent): void {
+    // Não fechar se clicar no próprio dropdown ou no botão de status
+    if (event?.target) {
+      const target = event.target as HTMLElement;
+      // Verificar se clicou no dropdown ou em qualquer elemento dentro dele
+      if (target.closest('.status-dropdown-overlay')) {
+        return;
       }
+      // Verificar se clicou no botão de status (status-indicator) ou na seta
+      if (
+        target.closest('.status-indicator') ||
+        target.closest('.status-indicator-wrapper')
+      ) {
+        return;
+      }
+      // Verificar se clicou no ícone material-icons dentro do status-indicator
+      if (
+        target.classList.contains('material-icons') &&
+        target.closest('.status-indicator')
+      ) {
+        return;
+      }
+    }
+    this.removeDropdownFromBody();
+    this.openDropdownKey = null;
+    this.activeMeta = null;
+    this.activeMesId = null;
+    this.dropdownPos = { top: 0, left: 0 };
+  }
+
+  ngOnDestroy(): void {
+    this.removeDropdownFromBody();
+    if (this.editarValorSubscription) {
+      this.editarValorSubscription.unsubscribe();
+    }
+  }
+
+  private removeDropdownFromBody(): void {
+    if (this.dropdownElement && this.dropdownElement.parentNode) {
+      this.renderer.removeChild(this.document.body, this.dropdownElement);
+      this.dropdownElement = null;
+    }
+  }
+
+  private createDropdownInBody(): HTMLElement {
+    // Remove dropdown anterior se existir
+    this.removeDropdownFromBody();
+
+    // Criar elemento dropdown
+    const dropdown = this.renderer.createElement('div');
+    this.renderer.addClass(dropdown, 'status-dropdown-overlay');
+
+    // Aplicar estilos diretamente via Renderer2
+    this.renderer.setStyle(dropdown, 'position', 'fixed');
+    this.renderer.setStyle(dropdown, 'z-index', '99999');
+    this.renderer.setStyle(dropdown, 'min-width', '120px');
+    this.renderer.setStyle(dropdown, 'background', '#ffffff');
+    this.renderer.setStyle(dropdown, 'border', '2px solid #8b5cf6');
+    this.renderer.setStyle(dropdown, 'border-radius', '8px');
+    this.renderer.setStyle(
+      dropdown,
+      'box-shadow',
+      '0 10px 22px rgba(0, 0, 0, 0.18)'
+    );
+    this.renderer.setStyle(dropdown, 'display', 'block');
+    this.renderer.setStyle(dropdown, 'visibility', 'visible');
+    this.renderer.setStyle(dropdown, 'opacity', '1');
+    this.renderer.setStyle(dropdown, 'pointer-events', 'auto');
+    this.renderer.setStyle(dropdown, 'transform', 'none');
+    this.renderer.setStyle(dropdown, 'margin', '0');
+    this.renderer.setStyle(dropdown, 'padding', '0');
+
+    // Criar opções
+    const options = ['Programado', 'Pago', 'Vazio'];
+    options.forEach((option) => {
+      const optionDiv = this.renderer.createElement('div');
+      this.renderer.addClass(optionDiv, 'dropdown-option');
+      this.renderer.setAttribute(optionDiv, 'data-status', option);
+
+      const text = this.renderer.createText(option);
+      this.renderer.appendChild(optionDiv, text);
+
+      // Adicionar classe selected se for o status atual
+      if (this.activeMeta && this.getActiveMes()?.status === option) {
+        this.renderer.addClass(optionDiv, 'selected');
+      }
+
+      // Adicionar evento de click
+      this.renderer.listen(optionDiv, 'click', (e: Event) => {
+        e.stopPropagation();
+        this.selecionarStatusByOverlay(option as StatusMeta);
+      });
+
+      this.renderer.appendChild(dropdown, optionDiv);
     });
 
-    // Toggle do dropdown atual
-    meta.dropdownOpen = meta.dropdownOpen === mesId ? undefined : mesId;
+    // Adicionar ao body
+    this.renderer.appendChild(this.document.body, dropdown);
+    this.dropdownElement = dropdown;
 
-    if (meta.dropdownOpen !== mesId) return;
+    // Adicionar evento para não fechar ao clicar dentro
+    this.renderer.listen(dropdown, 'click', (e: Event) => {
+      e.stopPropagation();
+    });
 
-    setTimeout(() => {
-      const anchor = document.querySelector(
-        `[data-meta-id="${meta.id}"][data-mes-id="${mesId}"] .status-dropdown-container`
+    return dropdown;
+  }
+
+  selecionarStatusByOverlay(status: StatusMeta): void {
+    if (!this.activeMeta || this.activeMesId === null) return;
+    this.selecionarStatus(this.activeMeta, this.activeMesId, status);
+    this.closeDropdown();
+  }
+
+  toggleDropdown(meta: MetaExtended, mesId: number, event: MouseEvent): void {
+    // Prevenir que o evento de click do document feche o dropdown imediatamente
+    event?.stopPropagation();
+    event?.preventDefault();
+
+    const key = this.getCellKey(meta.id, mesId);
+
+    // Se o dropdown já está aberto para esta célula, fechar
+    if (this.openDropdownKey === key) {
+      this.closeDropdown();
+      return;
+    }
+
+    // Usar currentTarget (o elemento com o evento) ou target (onde foi clicado)
+    const targetElement =
+      (event?.currentTarget as HTMLElement) || (event?.target as HTMLElement);
+    if (!targetElement) {
+      return;
+    }
+
+    // Buscar o wrapper que contém o status-indicator
+    // Pode estar no próprio elemento ou em algum parent
+    let anchor = targetElement.closest(
+      '.status-indicator-wrapper'
+    ) as HTMLElement;
+
+    // Se não encontrou no target, tentar no currentTarget
+    if (!anchor && event?.currentTarget) {
+      anchor = (event.currentTarget as HTMLElement).closest(
+        '.status-indicator-wrapper'
       ) as HTMLElement;
+    }
 
-      const dd = document.querySelector('.status-dropdown') as HTMLElement;
-      if (!anchor || !dd) return;
+    // Se ainda não encontrou, buscar pela célula da tabela
+    if (!anchor) {
+      const cell = targetElement.closest(
+        '[data-meta-id][data-mes-id]'
+      ) as HTMLElement;
+      if (cell) {
+        anchor = cell.querySelector('.status-indicator-wrapper') as HTMLElement;
+      }
+    }
 
-      const a = anchor.getBoundingClientRect();
-      const margin = 8;
+    if (!anchor) {
+      return;
+    }
 
-      // mede o dropdown (ele já está renderizado)
-      dd.style.top = '0px';
-      dd.style.left = '0px'; // reset
-      const dw = dd.offsetWidth,
-        dh = dd.offsetHeight;
+    // Calcular posição inicial ANTES de abrir o dropdown
+    const anchorRect = anchor.getBoundingClientRect();
+    const margin = 8;
+    const estimatedDropdownWidth = 120;
+    const estimatedDropdownHeight = 100;
 
-      // POSIÇÃO: abaixo (sempre) e centralizado ao anchor
-      let top = a.bottom + margin;
-      let left = a.left + a.width / 2 - dw / 2;
+    // Calcular posição estimada
+    let top = anchorRect.bottom + margin;
+    let left =
+      anchorRect.left + anchorRect.width / 2 - estimatedDropdownWidth / 2;
 
-      // LIMITES para não sair da tela (sem mudar pra cima)
-      const maxLeft = window.innerWidth - dw - margin;
-      const maxTop = window.innerHeight - dh - margin;
+    // Limites da viewport - usar document.documentElement para valores mais precisos
+    const viewportWidth =
+      document.documentElement.clientWidth || window.innerWidth;
+    const viewportHeight =
+      document.documentElement.clientHeight || window.innerHeight;
+    const minLeft = margin;
+    const maxLeft = viewportWidth - estimatedDropdownWidth - margin;
+    const minTop = margin;
+    const maxTop = viewportHeight - estimatedDropdownHeight - margin;
 
-      left = Math.max(margin, Math.min(left, maxLeft));
-      top = Math.min(top, maxTop); // se faltar espaço, apenas encosta no limite
+    // Ajustar horizontalmente
+    if (left < minLeft) {
+      left = minLeft;
+    } else if (left > maxLeft) {
+      left = maxLeft;
+    }
 
-      dd.style.top = `${top}px`;
-      dd.style.left = `${left}px`;
-    }, 0);
+    // Ajustar verticalmente
+    if (top + estimatedDropdownHeight > viewportHeight) {
+      top = anchorRect.top - estimatedDropdownHeight - margin;
+      if (top < minTop) {
+        top = Math.max(minTop, Math.min(maxTop, anchorRect.top));
+      }
+    } else if (top < minTop) {
+      top = minTop;
+    }
+
+    // Garantir que top e left sejam valores válidos e dentro da viewport
+    const finalTop = Math.max(
+      margin,
+      Math.min(top, viewportHeight - estimatedDropdownHeight - margin)
+    );
+    const finalLeft = Math.max(
+      margin,
+      Math.min(left, viewportWidth - estimatedDropdownWidth - margin)
+    );
+
+    // Definir posição inicial ANTES de abrir
+    this.dropdownPos = { top: finalTop, left: finalLeft };
+
+    // Agora abrir o dropdown
+    this.openDropdownKey = key;
+    this.activeMeta = meta;
+    this.activeMesId = mesId;
+
+    // Criar dropdown diretamente no body para evitar problemas de posicionamento
+    const dd = this.createDropdownInBody();
+
+    // Aplicar posição inicial
+    this.renderer.setStyle(dd, 'top', `${finalTop}px`);
+    this.renderer.setStyle(dd, 'left', `${finalLeft}px`);
+
+    // Ajustar posição após renderização com dimensões reais
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!anchor || !this.document.contains(anchor)) {
+          return;
+        }
+
+        if (!dd || !this.document.body.contains(dd)) {
+          return;
+        }
+
+        // Recalcular com dimensões reais
+        const realAnchorRect = anchor.getBoundingClientRect();
+        const realDropdownWidth = dd.offsetWidth || estimatedDropdownWidth;
+        const realDropdownHeight = dd.offsetHeight || estimatedDropdownHeight;
+
+        // Usar getBoundingClientRect que já retorna coordenadas relativas à viewport
+        let adjustedTop = realAnchorRect.bottom + margin;
+        let adjustedLeft =
+          realAnchorRect.left +
+          realAnchorRect.width / 2 -
+          realDropdownWidth / 2;
+
+        // Obter dimensões reais da viewport
+        const realViewportWidth =
+          document.documentElement.clientWidth || window.innerWidth;
+        const realViewportHeight =
+          document.documentElement.clientHeight || window.innerHeight;
+
+        // Ajustar horizontalmente - garantir que não saia da tela
+        if (adjustedLeft < margin) {
+          adjustedLeft = margin;
+        } else if (
+          adjustedLeft + realDropdownWidth >
+          realViewportWidth - margin
+        ) {
+          adjustedLeft = realViewportWidth - realDropdownWidth - margin;
+        }
+
+        // Ajustar verticalmente - tentar embaixo primeiro
+        if (adjustedTop + realDropdownHeight > realViewportHeight - margin) {
+          // Não coube embaixo, colocar em cima
+          adjustedTop = realAnchorRect.top - realDropdownHeight - margin;
+          // Se ainda não couber em cima, ajustar para dentro da viewport
+          if (adjustedTop < margin) {
+            adjustedTop = margin;
+          }
+        }
+        // Garantir que não fique muito alto
+        if (adjustedTop < margin) {
+          adjustedTop = margin;
+        }
+
+        if (adjustedTop + realDropdownHeight > realViewportHeight - margin) {
+          adjustedTop = realViewportHeight - realDropdownHeight - margin;
+        }
+        // Garantir valores finais válidos
+        adjustedTop = Math.max(
+          margin,
+          Math.min(
+            adjustedTop,
+            realViewportHeight - realDropdownHeight - margin
+          )
+        );
+        adjustedLeft = Math.max(
+          margin,
+          Math.min(adjustedLeft, realViewportWidth - realDropdownWidth - margin)
+        );
+
+        // Atualizar posição com valores reais
+        this.dropdownPos = {
+          top: adjustedTop,
+          left: adjustedLeft,
+        };
+
+        // Aplicar via Renderer2 para garantir que os estilos sejam aplicados
+        this.renderer.setStyle(dd, 'top', `${adjustedTop}px`);
+        this.renderer.setStyle(dd, 'left', `${adjustedLeft}px`);
+
+        // Ajustar se estiver fora da viewport
+        setTimeout(() => {
+          const finalRect = dd.getBoundingClientRect();
+          const viewportHeight =
+            document.documentElement.clientHeight || window.innerHeight;
+          const viewportWidth =
+            document.documentElement.clientWidth || window.innerWidth;
+
+          const isInViewport =
+            finalRect.top >= 0 &&
+            finalRect.left >= 0 &&
+            finalRect.bottom <= viewportHeight &&
+            finalRect.right <= viewportWidth;
+
+          if (!isInViewport) {
+            let fixedTop = adjustedTop;
+            let fixedLeft = adjustedLeft;
+
+            if (finalRect.top < 0) {
+              fixedTop = margin;
+            }
+            if (finalRect.left < 0) {
+              fixedLeft = margin;
+            }
+            if (finalRect.bottom > viewportHeight) {
+              fixedTop = viewportHeight - realDropdownHeight - margin;
+            }
+            if (finalRect.right > viewportWidth) {
+              fixedLeft = viewportWidth - realDropdownWidth - margin;
+            }
+
+            this.dropdownPos = {
+              top: Math.max(margin, fixedTop),
+              left: Math.max(margin, fixedLeft),
+            };
+
+            this.renderer.setStyle(dd, 'top', `${this.dropdownPos.top}px`);
+            this.renderer.setStyle(dd, 'left', `${this.dropdownPos.left}px`);
+          }
+        }, 100);
+      });
+    });
   }
 
   selecionarStatus(
