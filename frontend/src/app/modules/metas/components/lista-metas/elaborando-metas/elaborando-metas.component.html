@@ -73,7 +73,14 @@
                 (keyup)="onKeyUp($event, meta, 'valorPorMes')" (blur)="confirmarCampoBlur(meta, 'valorPorMes')" />
             </ng-template>
           </td>
-          <td>{{ getMesesRestantes(meta) === 0 ? 'Finalizado' : getMesesRestantes(meta) }}</td>
+          <td>
+            <ng-container *ngIf="getMesesRestantes(meta) === -1; else mesesTemplate">
+              0
+            </ng-container>
+            <ng-template #mesesTemplate>
+              {{ getMesesRestantes(meta) === 0 ? 'Finalizado' : getMesesRestantes(meta) }}
+            </ng-template>
+          </td>
           <td [attr.data-meta-id]="meta.id">
             <ng-container *ngIf="!meta.editandoValorAtual; else editValorAtual">
               <button class="cell-btn" (click)="editarCampo(meta, 'valorAtual')" title="Editar quanto já temos">
@@ -89,17 +96,19 @@
           <td class="progress-cell">
             <div class="progress-info">
               <div class="progress-percentage">{{ getProgressoRealMeta(meta) | number:'1.0-1' }}%</div>
-              <div class="progress-details">
+              <!-- <div class="progress-details">
                 <div class="progress-realizado">Realizado: {{ getValorRealizadoMeta(meta) | currency:'BRL' }}</div>
                 <div class="progress-faltante">Falta: {{ getValorFaltanteMeta(meta) | currency:'BRL' }}</div>
-              </div>
+              </div> -->
             </div>
           </td>
           <td class="actions-cell">
-            <button class="remove-meta-btn" (click)="removerMeta(meta.id)" [disabled]="metas.length <= 1 || !meta.id"
-              title="Remover meta">
-              <span class="material-icons">delete</span>
-            </button>
+            <div class="actions">
+              <button class="remove-meta-btn" (click)="removerMeta(meta.id)" [disabled]="metas.length <= 1 || !meta.id"
+                title="Remover meta">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
           </td>
         </tr>
         <tr class="total-row">

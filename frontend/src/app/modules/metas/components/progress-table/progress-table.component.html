@@ -32,6 +32,22 @@
                 <span class="label">Atual:</span>
                 <span class="value">{{ getValorRealizadoMeta(meta) | currency:'BRL' }}</span>
               </div>
+              <div class="detail-item">
+                <span class="label">
+                  <ng-container *ngIf="getValorFaltanteMeta(meta) === 0; else faltaLabel">
+                    Status:
+                  </ng-container>
+                  <ng-template #faltaLabel>Falta:</ng-template>
+                </span>
+                <span class="value" [class.concluido]="getValorFaltanteMeta(meta) === 0">
+                  <ng-container *ngIf="getValorFaltanteMeta(meta) === 0; else faltaTemplate">
+                    Concluído 🎉
+                  </ng-container>
+                  <ng-template #faltaTemplate>
+                    {{ getValorFaltanteMeta(meta) | currency:'BRL' }}
+                  </ng-template>
+                </span>
+              </div>
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.
 import { ParabensModalComponent } from './components/parabens-modal/parabens-modal.component';
 import { SuccessModalComponent } from './components/success-modal/success-modal.component';
 import { AdicionarMetaModalComponent } from './components/adicionar-meta-modal/adicionar-meta-modal.component';
+import { EditarValorModalComponent } from './components/editar-valor-modal/editar-valor-modal.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 @NgModule({
@@ -17,6 +18,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     SuccessModalComponent,
     ParabensModalComponent,
     AdicionarMetaModalComponent,
+    EditarValorModalComponent,
   ],
   imports: [CommonModule, DSModule, FormsModule, ReactiveFormsModule],
   exports: [
@@ -24,6 +26,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     SuccessModalComponent,
     ParabensModalComponent,
     AdicionarMetaModalComponent,
+    EditarValorModalComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
 })
