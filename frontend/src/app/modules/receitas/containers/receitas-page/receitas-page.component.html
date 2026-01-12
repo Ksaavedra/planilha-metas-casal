@@ -1,8 +1,116 @@
 <div class="receitas-container">
-  <h1>Receitas</h1>
-  <p>Gestão de receitas e entradas</p>
-  <div class="placeholder">
-    <span class="material-icons">add_circle</span>
-    <p>Funcionalidade em desenvolvimento</p>
+  <!-- Header -->
+  <div class="header-receitas">
+    <h1>
+      <span class="material-icons">payments</span>
+      RECEITAS DO CASAL
+    </h1>
+    <p>Cada conquista começa com o que entra. Aqui vocês acompanham tudo que constroem juntos.</p>
+  </div>
+
+  <!-- Botão Adicionar Receita -->
+  <div class="add-receita-container">
+    <button class="btn-add-receita" (click)="abrirModalAdicionarUsuario()">
+      <span class="material-icons">add</span>
+      Adicionar Receita
+    </button>
+  </div>
+
+  <!-- Seletor de Mês -->
+  <div class="mes-selector">
+    <button class="btn-nav" (click)="mesAnterior()">
+      <span class="material-icons">chevron_left</span>
+    </button>
+    <div class="mes-atual">
+      <span class="material-icons">calendar_month</span>
+      <span>{{ nomeMesAtual }}</span>
+    </div>
+    <button class="btn-nav" (click)="proximoMes()">
+      <span class="material-icons">chevron_right</span>
+    </button>
+  </div>
+
+  <!-- Seção: Receitas do Mês -->
+  <div class="receitas-mes">
+    <!-- Receitas da Kelly -->
+    <div class="secao-receitas secao-kelly">
+      <div class="secao-header">
+        <span class="material-icons">person</span>
+        <h2>Kelly</h2>
+      </div>
+      <div class="receitas-list">
+        <div class="receita-item" *ngFor="let receita of receitasKelly">
+          <div class="receita-tipo">
+            <span class="categoria-badge" [class.fixa]="receita.categoria === 'Fixa'"
+              [class.variavel]="receita.categoria === 'Variável'">
+              {{ receita.categoria }}
+            </span>
+            <span class="tipo-nome">{{ receita.tipo }}</span>
+          </div>
+          <div class="receita-valor">{{ receita.valor | currency:'BRL' }}</div>
+        </div>
+      </div>
+      <div class="secao-total">
+        <div class="total-label">Total Kelly</div>
+        <div class="total-valor">{{ totalKelly | currency:'BRL' }}</div>
+      </div>
+    </div>
+
+    <!-- Receitas do David -->
+    <div class="secao-receitas secao-david">
+      <div class="secao-header">
+        <span class="material-icons">person</span>
+        <h2>David</h2>
+      </div>
+      <div class="receitas-list">
+        <div class="receita-item" *ngFor="let receita of receitasDavid">
+          <div class="receita-tipo">
+            <span class="categoria-badge" [class.fixa]="receita.categoria === 'Fixa'"
+              [class.variavel]="receita.categoria === 'Variável'">
+              {{ receita.categoria }}
+            </span>
+            <span class="tipo-nome">{{ receita.tipo }}</span>
+          </div>
+          <div class="receita-valor">{{ receita.valor | currency:'BRL' }}</div>
+        </div>
+      </div>
+      <div class="secao-total">
+        <div class="total-label">Total David</div>
+        <div class="total-valor">{{ totalDavid | currency:'BRL' }}</div>
+      </div>
+    </div>
+
+    <!-- Receitas do Casal -->
+    <div class="secao-receitas secao-casal">
+      <div class="secao-header">
+        <span class="material-icons">home</span>
+        <h2>Casal</h2>
+      </div>
+      <div class="receitas-list">
+        <div class="receita-item" *ngFor="let receita of receitasCasal">
+          <div class="receita-tipo">
+            <span class="categoria-badge" [class.fixa]="receita.categoria === 'Fixa'"
+              [class.variavel]="receita.categoria === 'Variável'">
+              {{ receita.categoria }}
+            </span>
+            <span class="tipo-nome">{{ receita.tipo }}</span>
+          </div>
+          <div class="receita-valor">{{ receita.valor | currency:'BRL' }}</div>
+        </div>
+      </div>
+      <div class="secao-total">
+        <div class="total-label">Total Casal</div>
+        <div class="total-valor">{{ totalCasal | currency:'BRL' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Geral do Mês -->
+  <div class="total-geral">
+    <div class="total-geral-header">
+      <span class="material-icons">favorite</span>
+      <span>Total Geral do Mês</span>
+    </div>
+    <div class="total-geral-valor">{{ totalMensal | currency:'BRL' }}</div>
   </div>
 </div>

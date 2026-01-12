@@ -1,0 +1,79 @@
+@if (isOpen) {
+<div class="modal-overlay">
+  <div class="modal-content" (click)="stop($event)">
+    <div class="modal-header">
+      <h2>Adicionar Usuário</h2>
+      <button type="button" class="btn-close" (click)="onCancel()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <form class="modal-form">
+        <div class="modal-input-group" [class.has-error]="nomeFormControl.invalid && nomeFormControl.touched">
+          <label for="nome-usuario">Nome do Usuário: <span class="required">*</span></label>
+          <input id="nome-usuario" type="text" class="modal-input" [formControl]="nomeFormControl"
+            placeholder="Digite o nome do usuário" autocomplete="off" autofocus
+            (input)="onNomeChange($any($event.target).value)" />
+          @if (nomeFormControl.hasError('required') && nomeFormControl.touched) {
+          <span class="error-message">Nome do usuário é <strong>obrigatório</strong></span>
+          }
+        </div>
+
+        <div class="modal-input-group"
+          [class.has-error]="valorSalarioFormControl.invalid && valorSalarioFormControl.touched">
+          <label for="valor-salario">Valor do Salário: <span class="required">*</span></label>
+          <input id="valor-salario" type="text" inputmode="decimal" class="modal-input"
+            [formControl]="valorSalarioFormControl" placeholder="0,00" autocomplete="off" (keydown.enter)="onSave()"
+            (keypress)="validarApenasNumeros($event)" (input)="onValorSalarioChange($any($event.target).value)" />
+          @if (valorSalarioFormControl.hasError('required') && valorSalarioFormControl.touched) {
+          <span class="error-message">Valor do salário é <strong>obrigatório</strong></span>
+          }
+          @if (valorSalarioFormControl.hasError('mustBeGreaterThanZero') &&
+          !valorSalarioFormControl.hasError('required') && valorSalarioFormControl.touched) {
+          <span class="error-message">O valor deve ser <strong>maior que zero</strong></span>
+          }
+        </div>
+
+        <div class="modal-input-group">
+          <label for="ano">Ano: <span class="required">*</span></label>
+          <select id="ano" class="modal-input modal-select" [value]="ano.toString()"
+            (change)="onAnoChange(+$any($event.target).value)">
+            @for (anoOption of anosDisponiveis; track anoOption) {
+            <option [value]="anoOption.toString()" [selected]="anoOption === ano">{{ anoOption }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="modal-input-group meses-group">
+          <label>Meses: <span class="required">*</span></label>
+          <div class="meses-actions">
+            <button type="button" class="btn-link" (click)="selecionarTodosMeses()">
+              Selecionar Todos
+            </button>
+            <button type="button" class="btn-link" (click)="desmarcarTodosMeses()">
+              Desmarcar Todos
+            </button>
+          </div>
+          <div class="meses-grid">
+            @for (mes of meses; track mes.numero) {
+            <label class="mes-checkbox">
+              <input type="checkbox" [checked]="isMesSelecionado(mes.numero)" (change)="toggleMes(mes.numero)" />
+              <span>{{ mes.nome }}</span>
+            </label>
+            }
+          </div>
+          @if (mesesSelecionados.length === 0) {
+          <span class="error-message">Selecione pelo menos <strong>um mês</strong></span>
+          }
+        </div>
+      </form>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-cancel" (click)="onCancel()">Cancelar</button>
+      <button type="button" class="btn btn-save" (click)="onSave()">Salvar</button>
+    </div>
+  </div>
+</div>
+}

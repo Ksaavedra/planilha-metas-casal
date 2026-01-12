@@ -1,16 +1,417 @@
 .receitas-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
-  text-align: center;
-  padding: 2rem;
+  padding: 2rem 2rem;
+  background-color: #f8fafc;
+  min-height: 100vh;
 }
 
-.placeholder {
-  margin-top: 3rem;
-  color: var(--text-secondary);
+/* Header */
+.header-receitas {
+  background: linear-gradient(135deg, #334155 0%, #475569 100%);
+  padding: 1.8rem 2rem;
+  border-radius: 16px 16px 0 0;
+  color: #fde2e2;
+  margin-bottom: 2rem;
+  text-align: center;
+}
 
-  .material-icons {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+.header-receitas h1 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: #f8fafc;
+}
+
+.header-receitas h1 .material-icons {
+  font-size: 1.2rem;
+  vertical-align: middle;
+  color: #fbbf24;
+}
+
+.header-receitas p {
+  margin-top: 0.4rem;
+  margin-bottom: 0;
+  font-size: 0.95rem;
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+/* Botão Adicionar Receita */
+.add-receita-container {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-add-receita {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.btn-add-receita:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+.btn-add-receita:active {
+  transform: translateY(0);
+}
+
+.btn-add-receita .material-icons {
+  font-size: 1.2rem;
+}
+
+/* Seletor de Mês */
+.mes-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.btn-nav {
+  background: transparent;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #475569;
+}
+
+.btn-nav:hover {
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+  background-color: #f5f3ff;
+}
+
+.mes-atual {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.mes-atual .material-icons {
+  font-size: 1.3rem;
+  color: #8b5cf6;
+}
+
+/* Receitas do Mês - Container Principal */
+.receitas-mes {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Seção de Receitas */
+.secao-receitas {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.secao-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.secao-header .material-icons {
+  font-size: 2rem;
+}
+
+.secao-header h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Kelly - Roxo suave */
+.secao-kelly {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+}
+
+.secao-kelly .secao-header {
+  color: #7c3aed;
+  border-bottom-color: #c4b5fd;
+}
+
+.secao-kelly .secao-header .material-icons {
+  color: #a855f7;
+}
+
+.secao-kelly .secao-total {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+}
+
+/* David - Azul */
+.secao-david {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+
+.secao-david .secao-header {
+  color: #1e40af;
+  border-bottom-color: #93c5fd;
+}
+
+.secao-david .secao-header .material-icons {
+  color: #3b82f6;
+}
+
+.secao-david .secao-total {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+/* Casal - Cinza/Azul neutro */
+.secao-casal {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.secao-casal .secao-header {
+  color: #475569;
+  border-bottom-color: #cbd5e1;
+}
+
+.secao-casal .secao-header .material-icons {
+  color: #64748b;
+}
+
+.secao-casal .secao-total {
+  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+  color: white;
+}
+
+/* Lista de Receitas */
+.receitas-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.receita-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.receita-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.receita-tipo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.categoria-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.categoria-badge.fixa {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.categoria-badge.variavel {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.tipo-nome {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.receita-valor {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+/* Total da Seção */
+.secao-total {
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+.total-label {
+  font-size: 1rem;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+.total-valor {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Total Geral do Mês */
+.total-geral {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border: 2px solid #fef3c7;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.total-geral-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.total-geral-header .material-icons {
+  font-size: 1.8rem;
+  color: #ef4444;
+}
+
+.total-geral-valor {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  color: #78350f;
+}
+
+/* Mobile Responsive */
+@media (max-width: 1024px) {
+  .receitas-mes {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .receitas-container {
+    padding: 1rem;
+  }
+
+  .header-receitas {
+    padding: 1.4rem 1.5rem;
+  }
+
+  .header-receitas h1 {
+    font-size: 1.2rem;
+    flex-wrap: wrap;
+  }
+
+  .header-receitas p {
+    font-size: 0.85rem;
+  }
+
+  .mes-selector {
+    gap: 1rem;
+    padding: 0.8rem;
+  }
+
+  .mes-atual {
+    font-size: 1rem;
+  }
+
+  .secao-receitas {
+    padding: 1.25rem;
+  }
+
+  .secao-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .receita-item {
+    padding: 0.6rem 0.8rem;
+  }
+
+  .tipo-nome {
+    font-size: 0.9rem;
+  }
+
+  .receita-valor {
+    font-size: 0.95rem;
+  }
+
+  .total-valor {
+    font-size: 1.2rem;
+  }
+
+  .total-geral {
+    padding: 1.5rem;
+  }
+
+  .total-geral-header {
+    font-size: 1.1rem;
+  }
+
+  .total-geral-valor {
+    font-size: 2rem;
   }
 }
