@@ -27,10 +27,11 @@ export interface ReceitaMensal {
 }
 
 @Component({
-  selector: 'app-receitas-page',
-  templateUrl: './receitas-page.component.html',
-  styleUrls: ['./receitas-page.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-receitas-page',
+    templateUrl: './receitas-page.component.html',
+    styleUrls: ['./receitas-page.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ReceitasPageComponent implements OnInit, OnDestroy {
   mesAtual: Date = new Date();

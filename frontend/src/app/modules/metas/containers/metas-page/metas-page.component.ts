@@ -10,9 +10,10 @@ import { ElaborandoMetasComponent } from '../../components/lista-metas/elaborand
 type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
 
 @Component({
-  selector: 'app-metas-page',
-  templateUrl: './metas-page.component.html',
-  styleUrls: ['./metas-page.component.scss'],
+    selector: 'app-metas-page',
+    templateUrl: './metas-page.component.html',
+    styleUrls: ['./metas-page.component.scss'],
+    standalone: false
 })
 export class MetasPageComponent implements OnInit {
   @ViewChild('elaborandoMetas') elaborandoMetas!: ElaborandoMetasComponent;

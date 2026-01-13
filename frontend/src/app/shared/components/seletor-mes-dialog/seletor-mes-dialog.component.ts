@@ -12,14 +12,15 @@ export interface SeletorMesDialogData {
 }
 
 @Component({
-  selector: 'app-seletor-mes-dialog',
-  templateUrl: './seletor-mes-dialog.component.html',
-  styleUrls: ['./seletor-mes-dialog.component.scss'],
-  providers: [
-    provideNativeDateAdapter(),
-    { provide: MAT_DATE_FORMATS, useValue: MAT_NATIVE_DATE_FORMATS },
-  ],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+    selector: 'app-seletor-mes-dialog',
+    templateUrl: './seletor-mes-dialog.component.html',
+    styleUrls: ['./seletor-mes-dialog.component.scss'],
+    providers: [
+        provideNativeDateAdapter(),
+        { provide: MAT_DATE_FORMATS, useValue: MAT_NATIVE_DATE_FORMATS },
+    ],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class SeletorMesDialogComponent {
   dateClass: MatCalendarCellClassFunction<Date> = (cellDate, view) => {

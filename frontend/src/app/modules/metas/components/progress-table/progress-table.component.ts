@@ -14,9 +14,10 @@ import { MetaExtended } from '../../../../core/interfaces/mes-meta';
 import { AVAILABLE_META_ICONS } from '../../../../core/constants/meta-icons.constant';
 
 @Component({
-  selector: 'app-progress-table',
-  templateUrl: './progress-table.component.html',
-  styleUrls: ['./progress-table.component.scss'],
+    selector: 'app-progress-table',
+    templateUrl: './progress-table.component.html',
+    styleUrls: ['./progress-table.component.scss'],
+    standalone: false
 })
 export class ProgressTableComponent
   implements OnInit, OnDestroy, OnChanges, AfterViewInit

@@ -15,9 +15,10 @@ import { ModalAdicionarMetaService } from '../../../../../core/services/modal-ad
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-elaborando-metas',
-  templateUrl: './elaborando-metas.component.html',
-  styleUrls: ['./elaborando-metas.component.scss'],
+    selector: 'app-elaborando-metas',
+    templateUrl: './elaborando-metas.component.html',
+    styleUrls: ['./elaborando-metas.component.scss'],
+    standalone: false
 })
 export class ElaborandoMetasComponent implements OnDestroy {
   @Input() metas: MetaExtended[] = [];

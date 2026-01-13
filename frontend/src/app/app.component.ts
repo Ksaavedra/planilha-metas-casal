@@ -4,8 +4,9 @@ import { ModalAdicionarMetaService } from './core/services/modal-adicionar-meta.
 import { ModalEditarValorService } from './core/services/modal-editar-valor.service';
 
 @Component({
-  selector: 'app-root',
-  templateUrl: './app.component.html',
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    standalone: false
 })
 export class AppComponent implements OnInit, OnDestroy {
   modalState = {

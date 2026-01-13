@@ -7,8 +7,8 @@ import { MesesService } from '../../core/services/meses/meses.service';
 import { AuthService } from '../../core/services/auth/auth.service';
 
 @Component({
-  selector: 'app-api-test',
-  template: `
+    selector: 'app-api-test',
+    template: `
     <div class="api-test-container">
       <h2>🧪 Teste de Integração com APIs</h2>
 
@@ -90,8 +90,8 @@ import { AuthService } from '../../core/services/auth/auth.service';
       </div>
     </div>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .api-test-container {
         max-width: 1200px;
         margin: 0 auto;
@@ -161,7 +161,8 @@ import { AuthService } from '../../core/services/auth/auth.service';
         margin-top: 20px;
       }
     `,
-  ],
+    ],
+    standalone: false
 })
 export class ApiTestComponent implements OnInit {
   loading = false;

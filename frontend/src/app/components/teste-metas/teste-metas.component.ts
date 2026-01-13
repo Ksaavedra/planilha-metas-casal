@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { MetasService } from '../../core/services/metas/metas.service';
 
 @Component({
-  selector: 'app-teste-metas',
-  template: `
+    selector: 'app-teste-metas',
+    template: `
     <div class="teste-metas-container">
       <h2>🎯 Teste MetasService - Console Logs</h2>
 
@@ -48,8 +48,8 @@ import { MetasService } from '../../core/services/metas/metas.service';
       </div>
     </div>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .teste-metas-container {
         max-width: 800px;
         margin: 20px auto;
@@ -140,7 +140,8 @@ import { MetasService } from '../../core/services/metas/metas.service';
         color: #721c24;
       }
     `,
-  ],
+    ],
+    standalone: false
 })
 export class TesteMetasComponent implements OnInit {
   loading = false;

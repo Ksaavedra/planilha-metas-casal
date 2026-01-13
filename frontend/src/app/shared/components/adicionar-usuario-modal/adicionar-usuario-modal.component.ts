@@ -4,9 +4,10 @@ import { Subscription } from 'rxjs';
 import { ModalAdicionarUsuarioService } from '../../../core/services/modal-adicionar-usuario.service';
 
 @Component({
-  selector: 'app-adicionar-usuario-modal',
-  templateUrl: './adicionar-usuario-modal.component.html',
-  styleUrls: ['./adicionar-usuario-modal.component.scss'],
+    selector: 'app-adicionar-usuario-modal',
+    templateUrl: './adicionar-usuario-modal.component.html',
+    styleUrls: ['./adicionar-usuario-modal.component.scss'],
+    standalone: false
 })
 export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
   isOpen = false;

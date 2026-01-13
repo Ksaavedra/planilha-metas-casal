@@ -2,9 +2,10 @@ import { Component } from '@angular/core';
 import { EChartsOption } from 'echarts';
 
 @Component({
-  selector: 'app-relatorio-page',
-  templateUrl: './relatorio-page.component.html',
-  styleUrls: ['./relatorio-page.component.scss'],
+    selector: 'app-relatorio-page',
+    templateUrl: './relatorio-page.component.html',
+    styleUrls: ['./relatorio-page.component.scss'],
+    standalone: false
 })
 export class RelatorioPageComponent {
   meses = [

@@ -9,9 +9,10 @@ import {
 import { MetaExtended } from '../../../core/interfaces/mes-meta';
 
 @Component({
-  selector: 'app-editar-valor-modal',
-  templateUrl: './editar-valor-modal.component.html',
-  styleUrls: ['./editar-valor-modal.component.scss'],
+    selector: 'app-editar-valor-modal',
+    templateUrl: './editar-valor-modal.component.html',
+    styleUrls: ['./editar-valor-modal.component.scss'],
+    standalone: false
 })
 export class EditarValorModalComponent implements OnChanges {
   @Input() isOpen = false;

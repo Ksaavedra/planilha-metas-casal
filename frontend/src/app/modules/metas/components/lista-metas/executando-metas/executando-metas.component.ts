@@ -22,9 +22,10 @@ import { ModalEditarValorService } from '../../../../../core/services/modal-edit
 import { Subscription } from 'rxjs';
 
 @Component({
-  selector: 'app-executando-metas',
-  templateUrl: './executando-metas.component.html',
-  styleUrls: ['./executando-metas.component.scss'],
+    selector: 'app-executando-metas',
+    templateUrl: './executando-metas.component.html',
+    styleUrls: ['./executando-metas.component.scss'],
+    standalone: false
 })
 export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   @Input() meses: string[] = [];
