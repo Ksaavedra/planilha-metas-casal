@@ -10,8 +10,9 @@ import {
   HostListener,
   Renderer2,
   Inject,
+  DOCUMENT
 } from '@angular/core';
-import { DOCUMENT } from '@angular/common';
+
 import {
   Meta,
   MetaExtended,
