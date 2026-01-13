@@ -1,4 +1,9 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ModalAdicionarUsuarioService } from '../../../../core/services/modal-adicionar-usuario.service';
 
@@ -25,6 +30,7 @@ export interface ReceitaMensal {
   selector: 'app-receitas-page',
   templateUrl: './receitas-page.component.html',
   styleUrls: ['./receitas-page.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReceitasPageComponent implements OnInit, OnDestroy {
   mesAtual: Date = new Date();
@@ -226,5 +232,12 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
     novaData.setMonth(novaData.getMonth() + 1);
     this.mesAtual = novaData;
     this.carregarReceitasDoMes();
+  }
+
+  onDateChange(event: any): void {
+    if (event && event.value) {
+      this.mesAtual = event.value;
+      this.carregarReceitasDoMes();
+    }
   }
 }

@@ -11,6 +11,7 @@ import { SuccessModalComponent } from './components/success-modal/success-modal.
 import { AdicionarMetaModalComponent } from './components/adicionar-meta-modal/adicionar-meta-modal.component';
 import { EditarValorModalComponent } from './components/editar-valor-modal/editar-valor-modal.component';
 import { AdicionarUsuarioModalComponent } from './components/adicionar-usuario-modal/adicionar-usuario-modal.component';
+import { SeletorMesDialogComponent } from './components/seletor-mes-dialog/seletor-mes-dialog.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 @NgModule({
@@ -21,6 +22,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     AdicionarMetaModalComponent,
     EditarValorModalComponent,
     AdicionarUsuarioModalComponent,
+    SeletorMesDialogComponent,
   ],
   imports: [CommonModule, DSModule, FormsModule, ReactiveFormsModule],
   exports: [
@@ -30,6 +32,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     AdicionarMetaModalComponent,
     EditarValorModalComponent,
     AdicionarUsuarioModalComponent,
+    SeletorMesDialogComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
 })
