@@ -1,13 +1,24 @@
-import { Component } from '@angular/core';
-import { EChartsOption } from 'echarts';
+import {
+  AfterContentInit,
+  Component,
+  ElementRef,
+  ViewChild,
+} from '@angular/core';
+declare const echarts: unknown;
+type EChartsOption = Record<string, unknown>;
 
 @Component({
-    selector: 'app-relatorio-page',
-    templateUrl: './relatorio-page.component.html',
-    styleUrls: ['./relatorio-page.component.scss'],
-    standalone: false
+  selector: 'app-relatorio-page',
+  templateUrl: './relatorio-page.component.html',
+  styleUrls: ['./relatorio-page.component.scss'],
+  standalone: false,
 })
-export class RelatorioPageComponent {
+export class RelatorioPageComponent implements AfterContentInit {
+  @ViewChild('chartSaldo') chartSaldo!: ElementRef;
+  @ViewChild('chartReceitasDespesas') chartReceitasDespesas!: ElementRef;
+  @ViewChild('chartDividasInvestimentos')
+  chartDividasInvestimentos!: ElementRef;
+
   meses = [
     'Janeiro',
     'Fevereiro',
@@ -122,6 +133,23 @@ export class RelatorioPageComponent {
       ],
     },
   };
+
+  ngAfterViewInit(): void {
+    this.initCharts();
+  }
+
+  private initCharts() {
+    const e = echarts as any;
+
+    const saldoChart = e.init(this.chartSaldo.nativeElement);
+    saldoChart.setOption(this.chartOption);
+
+    const receitasChart = e.init(this.chartReceitasDespesas.nativeElement);
+    receitasChart.setOption(this.chartOptionReceitasDespesas);
+
+    const dividasChart = e.init(this.chartDividasInvestimentos.nativeElement);
+    dividasChart.setOption(this.chartOptionDividasInvestimentos);
+  }
 
   // Configuração do gráfico ECharts com dataset
   chartOption: EChartsOption = {
@@ -659,6 +687,9 @@ export class RelatorioPageComponent {
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
+  }
+  ngAfterContentInit(): void {
+    throw new Error('Method not implemented.');
   }
 
   configurarGraficosCards() {

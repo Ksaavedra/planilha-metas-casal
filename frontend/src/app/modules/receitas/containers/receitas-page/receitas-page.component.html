@@ -22,16 +22,7 @@
       <span class="material-icons">chevron_left</span>
     </button>
     <div class="mes-atual">
-      <mat-form-field class="datepicker-field">
-        <input matInput [matDatepicker]="picker" [value]="mesAtual" (dateChange)="onDateChange($event)"
-          style="display: none;" />
-        <mat-datepicker-toggle matIconSuffix [for]="picker">
-          <button type="button" mat-icon-button class="btn-calendar-icon">
-            <span class="material-icons">calendar_month</span>
-          </button>
-        </mat-datepicker-toggle>
-        <mat-datepicker #picker panelClass="custom-datepicker-panel" yPosition="above"></mat-datepicker>
-      </mat-form-field>
+      <span class="material-icons">calendar_month</span>
       <span>{{ nomeMesAtual }}</span>
     </div>
     <button class="btn-nav" (click)="proximoMes()">

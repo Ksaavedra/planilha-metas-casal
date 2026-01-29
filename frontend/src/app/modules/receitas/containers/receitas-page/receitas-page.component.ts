@@ -27,11 +27,11 @@ export interface ReceitaMensal {
 }
 
 @Component({
-    selector: 'app-receitas-page',
-    templateUrl: './receitas-page.component.html',
-    styleUrls: ['./receitas-page.component.scss'],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+  selector: 'app-receitas-page',
+  templateUrl: './receitas-page.component.html',
+  styleUrls: ['./receitas-page.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  standalone: false,
 })
 export class ReceitasPageComponent implements OnInit, OnDestroy {
   mesAtual: Date = new Date();
@@ -157,67 +157,435 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
     // Os valores podem ser diferentes para cada mês (13º, bonificações, etc)
     // Em produção, isso virá do backend com os valores reais do mês selecionado
 
-    // Exemplo: valores diferentes por mês
+    const ano = this.mesAtual.getFullYear();
+    const mes = this.mesAtual.getMonth() + 1; // 1-12
+
+    // Função auxiliar para obter valores por mês e ano
+    const obterValoresPorMes = (
+      ano: number,
+      mes: number
+    ): { kelly: any[]; david: any[]; casal: any[] } => {
+      // Valores base por ano (usados quando não há valores específicos do mês)
+      const valoresBase: {
+        [key: number]: { kelly: any[]; david: any[]; casal: any[] };
+      } = {
+        2024: {
+          kelly: [
+            {
+              tipo: 'Salário',
+              categoria: 'Fixa' as CategoriaReceita,
+              valor: 6000,
+            },
+            {
+              tipo: 'Bônus',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 800,
+            },
+            {
+              tipo: 'Freela',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 700,
+            },
+            {
+              tipo: 'Renda extra',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 250,
+            },
+          ],
+          david: [
+            {
+              tipo: 'Salário',
+              categoria: 'Fixa' as CategoriaReceita,
+              valor: 5200,
+            },
+            {
+              tipo: 'Bônus',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 400,
+            },
+            {
+              tipo: 'Renda extra',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 350,
+            },
+          ],
+          casal: [
+            {
+              tipo: 'Aluguel',
+              categoria: 'Fixa' as CategoriaReceita,
+              valor: 1100,
+            },
+          ],
+        },
+        2025: {
+          kelly: [
+            {
+              tipo: 'Salário',
+              categoria: 'Fixa' as CategoriaReceita,
+              valor: 6100,
+            },
+            {
+              tipo: 'Bônus',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 900,
+            },
+            {
+              tipo: 'Freela',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 750,
+            },
+            {
+              tipo: 'Renda extra',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 280,
+            },
+          ],
+          david: [
+            {
+              tipo: 'Salário',
+              categoria: 'Fixa' as CategoriaReceita,
+              valor: 5350,
+            },
+            {
+              tipo: 'Bônus',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 450,
+            },
+            {
+              tipo: 'Renda extra',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 380,
+            },
+          ],
+          casal: [
+            {
+              tipo: 'Aluguel',
+              categoria: 'Fixa' as CategoriaReceita,
+              valor: 1150,
+            },
+          ],
+        },
+        2026: {
+          kelly: [
+            {
+              tipo: 'Salário',
+              categoria: 'Fixa' as CategoriaReceita,
+              valor: 6200,
+            },
+            {
+              tipo: 'Bônus',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 1000,
+            },
+            {
+              tipo: 'Freela',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 800,
+            },
+            {
+              tipo: 'Renda extra',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 300,
+            },
+          ],
+          david: [
+            {
+              tipo: 'Salário',
+              categoria: 'Fixa' as CategoriaReceita,
+              valor: 5500,
+            },
+            {
+              tipo: 'Bônus',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 500,
+            },
+            {
+              tipo: 'Renda extra',
+              categoria: 'Variável' as CategoriaReceita,
+              valor: 400,
+            },
+          ],
+          casal: [
+            {
+              tipo: 'Aluguel',
+              categoria: 'Fixa' as CategoriaReceita,
+              valor: 1200,
+            },
+          ],
+        },
+      };
+
+      // Valores específicos por mês (sobrescrevem os valores base quando definidos)
+      const valoresPorMes: {
+        [ano: number]: {
+          [mes: number]: { kelly?: any[]; david?: any[]; casal?: any[] };
+        };
+      } = {
+        2026: {
+          // Janeiro 2026 - valores diferentes
+          1: {
+            kelly: [
+              {
+                tipo: 'Salário',
+                categoria: 'Fixa' as CategoriaReceita,
+                valor: 6200,
+              },
+              {
+                tipo: 'Bônus',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 1200,
+              }, // Bônus maior em janeiro
+              {
+                tipo: 'Freela',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 900,
+              },
+              {
+                tipo: 'Renda extra',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 350,
+              },
+            ],
+            david: [
+              {
+                tipo: 'Salário',
+                categoria: 'Fixa' as CategoriaReceita,
+                valor: 5500,
+              },
+              {
+                tipo: 'Bônus',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 600,
+              }, // Bônus maior em janeiro
+              {
+                tipo: 'Renda extra',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 450,
+              },
+            ],
+          },
+          // Fevereiro 2026
+          2: {
+            kelly: [
+              {
+                tipo: 'Salário',
+                categoria: 'Fixa' as CategoriaReceita,
+                valor: 6200,
+              },
+              {
+                tipo: 'Bônus',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 800,
+              }, // Bônus menor
+              {
+                tipo: 'Freela',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 750,
+              },
+              {
+                tipo: 'Renda extra',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 280,
+              },
+            ],
+          },
+          // Março 2026
+          3: {
+            kelly: [
+              {
+                tipo: 'Salário',
+                categoria: 'Fixa' as CategoriaReceita,
+                valor: 6200,
+              },
+              {
+                tipo: 'Bônus',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 1100,
+              },
+              {
+                tipo: 'Freela',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 850,
+              },
+              {
+                tipo: 'Renda extra',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 320,
+              },
+            ],
+            david: [
+              {
+                tipo: 'Salário',
+                categoria: 'Fixa' as CategoriaReceita,
+                valor: 5500,
+              },
+              {
+                tipo: 'Bônus',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 550,
+              },
+              {
+                tipo: 'Renda extra',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 420,
+              },
+            ],
+          },
+          // Junho 2026 - meio do ano, pode ter bônus maior
+          6: {
+            kelly: [
+              {
+                tipo: 'Salário',
+                categoria: 'Fixa' as CategoriaReceita,
+                valor: 6200,
+              },
+              {
+                tipo: 'Bônus',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 1500,
+              }, // Bônus de meio de ano
+              {
+                tipo: 'Freela',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 900,
+              },
+              {
+                tipo: 'Renda extra',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 400,
+              },
+            ],
+            david: [
+              {
+                tipo: 'Salário',
+                categoria: 'Fixa' as CategoriaReceita,
+                valor: 5500,
+              },
+              {
+                tipo: 'Bônus',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 800,
+              }, // Bônus de meio de ano
+              {
+                tipo: 'Renda extra',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 500,
+              },
+            ],
+          },
+          // Dezembro 2026 - fim do ano
+          12: {
+            kelly: [
+              {
+                tipo: 'Salário',
+                categoria: 'Fixa' as CategoriaReceita,
+                valor: 6200,
+              },
+              {
+                tipo: 'Bônus',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 2000,
+              }, // Bônus de fim de ano maior
+              {
+                tipo: 'Freela',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 1000,
+              },
+              {
+                tipo: 'Renda extra',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 500,
+              },
+            ],
+            david: [
+              {
+                tipo: 'Salário',
+                categoria: 'Fixa' as CategoriaReceita,
+                valor: 5500,
+              },
+              {
+                tipo: 'Bônus',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 1000,
+              }, // Bônus de fim de ano maior
+              {
+                tipo: 'Renda extra',
+                categoria: 'Variável' as CategoriaReceita,
+                valor: 600,
+              },
+            ],
+          },
+        },
+      };
+
+      // Obter valores base do ano
+      const base = valoresBase[ano] || valoresBase[2026];
+
+      // Verificar se há valores específicos para este mês
+      const especifico = valoresPorMes[ano]?.[mes];
+
+      // Mesclar valores: específicos do mês sobrescrevem os valores base
+      return {
+        kelly: especifico?.kelly || base.kelly,
+        david: especifico?.david || base.david,
+        casal: especifico?.casal || base.casal,
+      };
+    };
+
+    const valores = obterValoresPorMes(ano, mes);
+    const temDecimoTerceiro = mes === 12;
+
     this.receitasMensal = [
       // Receitas da Kelly
-      {
-        id: 1,
-        pessoa: 'Kelly',
-        tipo: 'Salário',
-        categoria: 'Fixa',
-        valor: 6200,
-      },
-      {
-        id: 2,
-        pessoa: 'Kelly',
-        tipo: 'Bônus',
-        categoria: 'Variável',
-        valor: 1000,
-      },
-      {
-        id: 3,
-        pessoa: 'Kelly',
-        tipo: 'Freela',
-        categoria: 'Variável',
-        valor: 800,
-      },
-      {
-        id: 4,
-        pessoa: 'Kelly',
-        tipo: 'Renda extra',
-        categoria: 'Variável',
-        valor: 300,
-      },
+      ...valores.kelly.map((r, index) => ({
+        id: `kelly-${ano}-${mes}-${index + 1}`,
+        pessoa: 'Kelly' as PessoaReceita,
+        tipo: r.tipo as TipoReceita,
+        categoria: r.categoria,
+        valor: r.valor,
+      })),
+      ...(temDecimoTerceiro
+        ? [
+            {
+              id: `kelly-${ano}-${mes}-13`,
+              pessoa: 'Kelly' as PessoaReceita,
+              tipo: 'Salário' as TipoReceita,
+              categoria: 'Fixa' as CategoriaReceita,
+              valor:
+                valores.kelly.find((r) => r.tipo === 'Salário')?.valor || 6200,
+            },
+          ]
+        : []),
+
       // Receitas do David
-      {
-        id: 5,
-        pessoa: 'David',
-        tipo: 'Salário',
-        categoria: 'Fixa',
-        valor: 5500,
-      },
-      {
-        id: 6,
-        pessoa: 'David',
-        tipo: 'Bônus',
-        categoria: 'Variável',
-        valor: 500,
-      },
-      {
-        id: 7,
-        pessoa: 'David',
-        tipo: 'Renda extra',
-        categoria: 'Variável',
-        valor: 400,
-      },
+      ...valores.david.map((r, index) => ({
+        id: `david-${ano}-${mes}-${index + 1}`,
+        pessoa: 'David' as PessoaReceita,
+        tipo: r.tipo as TipoReceita,
+        categoria: r.categoria,
+        valor: r.valor,
+      })),
+      ...(temDecimoTerceiro
+        ? [
+            {
+              id: `david-${ano}-${mes}-13`,
+              pessoa: 'David' as PessoaReceita,
+              tipo: 'Salário' as TipoReceita,
+              categoria: 'Fixa' as CategoriaReceita,
+              valor:
+                valores.david.find((r) => r.tipo === 'Salário')?.valor || 5500,
+            },
+          ]
+        : []),
+
       // Receitas do Casal
-      {
-        id: 8,
-        pessoa: 'Casal',
-        tipo: 'Aluguel',
-        categoria: 'Fixa',
-        valor: 1200,
-      },
+      ...valores.casal.map((r, index) => ({
+        id: `casal-${ano}-${mes}-${index + 1}`,
+        pessoa: 'Casal' as PessoaReceita,
+        tipo: r.tipo as TipoReceita,
+        categoria: r.categoria,
+        valor: r.valor,
+      })),
     ];
   }
 

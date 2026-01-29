@@ -10,8 +10,8 @@ import {
   HostListener,
   Renderer2,
   Inject,
-  DOCUMENT
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 
 import {
   Meta,
@@ -23,10 +23,10 @@ import { ModalEditarValorService } from '../../../../../core/services/modal-edit
 import { Subscription } from 'rxjs';
 
 @Component({
-    selector: 'app-executando-metas',
-    templateUrl: './executando-metas.component.html',
-    styleUrls: ['./executando-metas.component.scss'],
-    standalone: false
+  selector: 'app-executando-metas',
+  templateUrl: './executando-metas.component.html',
+  styleUrls: ['./executando-metas.component.scss'],
+  standalone: false,
 })
 export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   @Input() meses: string[] = [];

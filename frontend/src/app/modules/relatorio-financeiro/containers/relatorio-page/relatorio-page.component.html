@@ -83,15 +83,15 @@
   <!-- Gráficos ECharts -->
   <div class="charts-container">
     <div class="chart-section">
-      <div echarts [options]="chartOption" [merge]="mergeOptions" class="demo-chart"></div>
+      <div #chartSaldo class="demo-chart"></div>
     </div>
 
     <div class="chart-section">
-      <div echarts [options]="chartOptionReceitasDespesas" class="demo-chart"></div>
+      <div #chartReceitasDespesas class="demo-chart"></div>
     </div>
 
     <div class="chart-section">
-      <div echarts [options]="chartOptionDividasInvestimentos" class="demo-chart"></div>
+      <div #chartDividasInvestimentos class="demo-chart"></div>
     </div>
   </div>
 </div>

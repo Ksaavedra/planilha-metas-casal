@@ -386,6 +386,11 @@ th {
   box-sizing: border-box;
 }
 
+.demo-chart {
+  width: 100%;
+  height: 400px;
+}
+
 // Media queries para telas menores
 @media (max-width: 1200px) {
   table {
