@@ -6,12 +6,12 @@ import {
   OnInit,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ModalAdicionarUsuarioService } from '../../../../core/services/modal-adicionar-usuario.service';
-import { ModalExcluirReceitaService } from '../../../../core/services/modal-excluir-receita.service';
 import {
+  CategoriaReceita,
   ReceitaMensal,
-  ReceitasMensaisService,
-} from '../../../../core/services/receitas-mensais/receitas-mensais.service';
+  ReceitasService,
+  TipoReceita,
+} from '../../../../core/services/receitas/receitas.service';
 
 @Component({
   selector: 'app-receitas-page',
@@ -58,13 +58,11 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
   }[] {
     const map = new Map<string, { nome: string; receitas: ReceitaMensal[] }>();
     for (const r of this.receitasMensal) {
-      const key = r.pessoa.trim().toLowerCase();
+      const pessoa = r.pessoa.trim();
+      if (!pessoa) continue;
+      const key = pessoa.toLowerCase();
       if (!map.has(key)) {
-        const nomeExibir = r.pessoa.trim();
-        const nomeNormalizado =
-          nomeExibir.charAt(0).toUpperCase() +
-          nomeExibir.slice(1).toLowerCase();
-        map.set(key, { nome: nomeNormalizado, receitas: [] });
+        map.set(key, { nome: this.toTitleCase(pessoa), receitas: [] });
       }
       map.get(key)!.receitas.push(r);
     }
@@ -81,18 +79,18 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
   }
 
   constructor(
-    private modalAdicionarUsuarioService: ModalAdicionarUsuarioService,
-    private modalExcluirReceitaService: ModalExcluirReceitaService,
-    private receitasMensaisService: ReceitasMensaisService,
+    private receitasService: ReceitasService,
     private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.carregarReceitasDoMes();
-    this.saveSubscription = this.modalAdicionarUsuarioService.save$.subscribe(
+    this.saveSubscription = this.receitasService.save$.subscribe(
       (data: {
         nomeUsuario: string;
         valorSalario: number;
+        tipo: TipoReceita;
+        categoria: CategoriaReceita;
         meses: number[];
         ano: number;
         receitaId?: number;
@@ -102,6 +100,8 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
             data.receitaId,
             data.nomeUsuario,
             data.valorSalario,
+            data.tipo,
+            data.categoria,
           );
         } else {
           this.salvarUsuario(data);
@@ -109,14 +109,14 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
       },
     );
 
-    this.deleteSubscription =
-      this.modalExcluirReceitaService.confirmDelete$.subscribe((receitaId) => {
-        this.receitasMensaisService.delete(receitaId).subscribe({
+    this.deleteSubscription = this.receitasService.confirmDelete$.subscribe(
+      (receitaId) => {
+        this.receitasService.delete(receitaId).subscribe({
           next: () => {
             this.erroCarregar = null;
-            this.modalExcluirReceitaService.openSuccess();
+            this.receitasService.openSuccess();
             this.carregarReceitasDoMes();
-            this.receitasMensaisService.loadPessoasDistintas().subscribe();
+            this.receitasService.loadPessoasDistintas().subscribe();
             this.cdr.markForCheck();
           },
           error: (err) => {
@@ -124,7 +124,8 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
             this.cdr.markForCheck();
           },
         });
-      });
+      },
+    );
   }
 
   ngOnDestroy(): void {
@@ -132,13 +133,24 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
     this.deleteSubscription?.unsubscribe();
   }
 
+  private toTitleCase(value: string): string {
+    if (!value || !value.trim()) return value;
+    return value
+      .trim()
+      .split(/\s+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
   abrirModalAdicionarUsuario(): void {
-    this.modalAdicionarUsuarioService.open();
+    this.receitasService.open();
   }
 
   salvarUsuario(data: {
     nomeUsuario: string;
     valorSalario: number;
+    tipo: TipoReceita;
+    categoria: CategoriaReceita;
     meses: number[];
     ano: number;
   }): void {
@@ -146,16 +158,19 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
     this.erroCarregar = null;
     this.cdr.markForCheck();
 
-    this.receitasMensaisService
-      .createSalariosParaUsuario(
+    this.receitasService
+      .createReceitasParaUsuario(
         data.nomeUsuario,
         data.valorSalario,
+        data.tipo,
+        data.categoria,
         data.meses,
         data.ano,
       )
       .subscribe({
         next: () => {
-          this.receitasMensaisService.addPessoaToCache(data.nomeUsuario);
+          this.receitasService.addPessoaToCache(data.nomeUsuario);
+          this.receitasService.loadPessoasDistintas().subscribe();
           this.loading = false;
           this.carregarReceitasDoMes();
           this.cdr.markForCheck();
@@ -176,7 +191,7 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
     this.erroCarregar = null;
     this.cdr.markForCheck();
 
-    this.receitasMensaisService.getPorMesAno(ano, mes).subscribe({
+    this.receitasService.getPorMesAno(ano, mes).subscribe({
       next: (lista) => {
         this.receitasMensal = lista;
         this.loading = false;
@@ -224,32 +239,39 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
 
   editarReceita(receita: ReceitaMensal): void {
     if (receita.id == null) return;
-    this.modalAdicionarUsuarioService.openForEdit({
+    this.receitasService.openForEdit({
       id: receita.id,
       pessoa: receita.pessoa,
       valor: receita.valor,
+      tipo: receita.tipo,
+      categoria: receita.categoria,
       ano: receita.ano,
       mes: receita.mes,
     });
   }
 
-  private atualizarReceita(
+  atualizarReceita(
     receitaId: number,
     nomeUsuario: string,
     valorSalario: number,
+    tipo: TipoReceita,
+    categoria: CategoriaReceita,
   ): void {
     this.loading = true;
     this.erroCarregar = null;
     this.cdr.markForCheck();
-    this.receitasMensaisService
+    this.receitasService
       .update(receitaId, {
         pessoa: nomeUsuario.trim(),
         valor: valorSalario,
+        tipo,
+        categoria,
       })
       .subscribe({
         next: () => {
           this.loading = false;
           this.erroCarregar = null;
+          this.receitasService.loadPessoasDistintas().subscribe();
           this.carregarReceitasDoMes();
           this.cdr.markForCheck();
         },
@@ -263,6 +285,6 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
 
   excluirReceita(receita: ReceitaMensal): void {
     if (!receita.id) return;
-    this.modalExcluirReceitaService.openConfirm(receita);
+    this.receitasService.openConfirm(receita);
   }
 }

@@ -32,9 +32,31 @@
         </div>
         }
 
+        <div class="modal-input-group">
+          <label for="tipo-receita">Tipo de receita: <span class="required">*</span></label>
+          <select id="tipo-receita" class="modal-input modal-select"
+            [value]="tipoReceita"
+            (change)="onTipoChange($any($event.target).value)">
+            @for (t of tiposReceita; track t) {
+            <option [value]="t" [selected]="t === tipoReceita">{{ t }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="modal-input-group">
+          <label for="categoria-receita">Categoria: <span class="required">*</span></label>
+          <select id="categoria-receita" class="modal-input modal-select"
+            [value]="categoriaReceita"
+            (change)="onCategoriaChange($any($event.target).value)">
+            @for (c of categoriasReceita; track c) {
+            <option [value]="c" [selected]="c === categoriaReceita">{{ c }}</option>
+            }
+          </select>
+        </div>
+
         <div class="modal-input-group"
           [class.has-error]="valorSalarioFormControl.invalid && valorSalarioFormControl.touched">
-          <label for="valor-salario">Valor do Salário: <span class="required">*</span></label>
+          <label for="valor-salario">Valor: <span class="required">*</span></label>
           <input id="valor-salario" type="text" inputmode="decimal" class="modal-input"
             [formControl]="valorSalarioFormControl" placeholder="0,00" autocomplete="off" (keydown.enter)="onSave()"
             (keypress)="validarApenasNumeros($event)" (input)="onValorSalarioChange($any($event.target).value)" />

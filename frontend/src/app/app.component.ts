@@ -1,13 +1,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ModalAdicionarMetaService } from './core/services/modal-adicionar-meta.service';
-import { ModalEditarValorService } from './core/services/modal-editar-valor.service';
-import { ModalExcluirReceitaService } from './core/services/modal-excluir-receita.service';
+import { ModalAdicionarMetaService } from './core/services/metas/modal-adicionar-meta.service';
+import { ModalEditarValorService } from './core/services/metas/modal-editar-valor.service';
+import { ReceitasService } from './core/services/receitas/receitas.service';
 
 @Component({
-    selector: 'app-root',
-    templateUrl: './app.component.html',
-    standalone: false
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  standalone: false,
 })
 export class AppComponent implements OnInit, OnDestroy {
   modalState = {
@@ -65,7 +65,7 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor(
     private modalService: ModalAdicionarMetaService,
     private modalEditarValorService: ModalEditarValorService,
-    private modalExcluirReceitaService: ModalExcluirReceitaService,
+    private receitasService: ReceitasService,
   ) {}
 
   ngOnInit(): void {
@@ -76,7 +76,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.sucessoSubscription = this.modalService.sucessoState$.subscribe(
       (state) => {
         this.sucessoState = { ...state };
-      }
+      },
     );
 
     this.confirmarDeleteSubscription =
@@ -95,7 +95,7 @@ export class AppComponent implements OnInit, OnDestroy {
       });
 
     this.confirmarExcluirReceitaSubscription =
-      this.modalExcluirReceitaService.confirmState$.subscribe((state) => {
+      this.receitasService.confirmState$.subscribe((state) => {
         this.confirmarExcluirReceitaState = {
           isOpen: state.isOpen,
           message: state.message,
@@ -103,7 +103,7 @@ export class AppComponent implements OnInit, OnDestroy {
       });
 
     this.sucessoExcluirReceitaSubscription =
-      this.modalExcluirReceitaService.successState$.subscribe((state) => {
+      this.receitasService.successState$.subscribe((state) => {
         this.sucessoExcluirReceitaState = { isOpen: state.isOpen };
       });
 
@@ -198,14 +198,14 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onConfirmExcluirReceita(): void {
-    this.modalExcluirReceitaService.onConfirm();
+    this.receitasService.onConfirm();
   }
 
   onCancelExcluirReceita(): void {
-    this.modalExcluirReceitaService.onCancel();
+    this.receitasService.onCancel();
   }
 
   onCloseSucessoExcluirReceita(): void {
-    this.modalExcluirReceitaService.closeSuccess();
+    this.receitasService.closeSuccess();
   }
 }

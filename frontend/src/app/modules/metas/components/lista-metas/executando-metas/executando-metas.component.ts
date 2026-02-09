@@ -19,7 +19,7 @@ import {
   StatusMeta,
 } from '../../../../../core/interfaces/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
-import { ModalEditarValorService } from '../../../../../core/services/modal-editar-valor.service';
+import { ModalEditarValorService } from '../../../../../core/services/metas/modal-editar-valor.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -65,7 +65,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     private metasService: MetasService,
     private modalEditarValorService: ModalEditarValorService,
     private renderer: Renderer2,
-    @Inject(DOCUMENT) private document: Document
+    @Inject(DOCUMENT) private document: Document,
   ) {}
 
   private readonly MESES_PADRAO = [
@@ -111,7 +111,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
           mesId,
           valor,
         });
-      }
+      },
     );
   }
 
@@ -136,7 +136,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     const byName = new Map((meta.meses ?? []).map((m) => [m.nome, m]));
     meta.meses = header.map(
       (nome, i) =>
-        byName.get(nome) ?? { id: i + 1, nome, valor: 0, status: 'Vazio' }
+        byName.get(nome) ?? { id: i + 1, nome, valor: 0, status: 'Vazio' },
     );
   }
 
@@ -239,7 +239,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     this.renderer.setStyle(
       dropdown,
       'box-shadow',
-      '0 10px 22px rgba(0, 0, 0, 0.18)'
+      '0 10px 22px rgba(0, 0, 0, 0.18)',
     );
     this.renderer.setStyle(dropdown, 'display', 'block');
     this.renderer.setStyle(dropdown, 'visibility', 'visible');
@@ -314,20 +314,20 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     // Buscar o wrapper que contém o status-indicator
     // Pode estar no próprio elemento ou em algum parent
     let anchor = targetElement.closest(
-      '.status-indicator-wrapper'
+      '.status-indicator-wrapper',
     ) as HTMLElement;
 
     // Se não encontrou no target, tentar no currentTarget
     if (!anchor && event?.currentTarget) {
       anchor = (event.currentTarget as HTMLElement).closest(
-        '.status-indicator-wrapper'
+        '.status-indicator-wrapper',
       ) as HTMLElement;
     }
 
     // Se ainda não encontrou, buscar pela célula da tabela
     if (!anchor) {
       const cell = targetElement.closest(
-        '[data-meta-id][data-mes-id]'
+        '[data-meta-id][data-mes-id]',
       ) as HTMLElement;
       if (cell) {
         anchor = cell.querySelector('.status-indicator-wrapper') as HTMLElement;
@@ -379,11 +379,11 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     // Garantir que top e left sejam valores válidos e dentro da viewport
     const finalTop = Math.max(
       margin,
-      Math.min(top, viewportHeight - estimatedDropdownHeight - margin)
+      Math.min(top, viewportHeight - estimatedDropdownHeight - margin),
     );
     const finalLeft = Math.max(
       margin,
-      Math.min(left, viewportWidth - estimatedDropdownWidth - margin)
+      Math.min(left, viewportWidth - estimatedDropdownWidth - margin),
     );
 
     // Definir posição inicial ANTES de abrir
@@ -462,12 +462,15 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
           margin,
           Math.min(
             adjustedTop,
-            realViewportHeight - realDropdownHeight - margin
-          )
+            realViewportHeight - realDropdownHeight - margin,
+          ),
         );
         adjustedLeft = Math.max(
           margin,
-          Math.min(adjustedLeft, realViewportWidth - realDropdownWidth - margin)
+          Math.min(
+            adjustedLeft,
+            realViewportWidth - realDropdownWidth - margin,
+          ),
         );
 
         // Atualizar posição com valores reais
@@ -527,7 +530,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   selecionarStatus(
     meta: MetaExtended,
     mesId: number,
-    status: StatusMeta
+    status: StatusMeta,
   ): void {
     const mes = meta.meses.find((m) => m.id === mesId);
     if (!mes) return;
@@ -586,7 +589,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
       parabensMostrados.push(String(metaId));
       localStorage.setItem(
         'metas_parabens_mostrados',
-        JSON.stringify(parabensMostrados)
+        JSON.stringify(parabensMostrados),
       );
     } catch (error) {
       // Erro ao salvar parabéns no localStorage
@@ -624,7 +627,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
 
     // Encontrar meses que ainda não foram pagos (status diferente de 'Pago')
     const mesesParaFinalizar = meta.meses.filter(
-      (mes) => mes.status !== 'Pago'
+      (mes) => mes.status !== 'Pago',
     );
 
     if (mesesParaFinalizar.length === 0) {

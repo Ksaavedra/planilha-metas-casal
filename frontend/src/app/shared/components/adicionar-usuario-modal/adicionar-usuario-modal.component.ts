@@ -2,8 +2,13 @@ import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 import { map, startWith } from 'rxjs/operators';
-import { ModalAdicionarUsuarioService } from '../../../core/services/modal-adicionar-usuario.service';
-import { ReceitasMensaisService } from '../../../core/services/receitas-mensais/receitas-mensais.service';
+import {
+  CategoriaReceita,
+  CATEGORIAS_RECEITA,
+  ReceitasService,
+  TipoReceita,
+  TIPOS_RECEITA,
+} from '../../../core/services/receitas/receitas.service';
 
 @Component({
   selector: 'app-adicionar-usuario-modal',
@@ -17,8 +22,13 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
   receitaId: number | undefined;
   nomeUsuario = '';
   valorSalarioRaw = '';
+  tipoReceita: TipoReceita = 'Salário';
+  categoriaReceita: CategoriaReceita = 'Fixa';
   mesesSelecionados: number[] = [];
   ano: number = new Date().getFullYear();
+
+  readonly tiposReceita = TIPOS_RECEITA;
+  readonly categoriasReceita = CATEGORIAS_RECEITA;
 
   nomeFormControl = new FormControl('', [
     Validators.required,
@@ -51,15 +61,16 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
 
   anosDisponiveis: number[] = [];
 
-  /** No modo editar: valor ao abrir o modal; o botão Atualizar só habilita se o valor mudar. */
+  /** No modo editar: valores ao abrir; o botão Atualizar habilita se valor, tipo ou categoria mudar. */
   private initialValorEdit = '';
+  private initialTipoEdit: TipoReceita = 'Salário';
+  private initialCategoriaEdit: CategoriaReceita = 'Fixa';
   private editInitialsCaptured = false;
 
   private subscriptions = new Subscription();
 
   constructor(
-    private modalService: ModalAdicionarUsuarioService,
-    private receitasMensaisService: ReceitasMensaisService,
+    private receitasService: ReceitasService,
     private cdr: ChangeDetectorRef,
   ) {
     // Padrão Angular Material: Observable + startWith para exibir opções ao focar
@@ -89,12 +100,12 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
   private carregarPessoasDaApi(): void {
     // Não usar cache antigo: quem apagou os dados não deve ver nomes que não existem mais.
     // Mostra o cache primeiro (inclui quem acabou de adicionar); a API atualiza a lista em seguida.
-    this.options = this.receitasMensaisService.getPessoasCache();
+    this.options = this.receitasService.getPessoasCache();
     const valorAtual = this.nomeFormControl.value || '';
     this.nomeFormControl.setValue(valorAtual, { emitEvent: false });
     this.cdr.markForCheck();
 
-    this.receitasMensaisService.loadPessoasDistintas().subscribe((pessoas) => {
+    this.receitasService.loadPessoasDistintas().subscribe((pessoas) => {
       const nomes = (pessoas || [])
         .map((p) => this.toTitleCase((p || '').trim()))
         .filter(Boolean);
@@ -128,19 +139,21 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
     // Sincroniza valor com o modal ao digitar/selecionar
     this.subscriptions.add(
       this.nomeFormControl.valueChanges.subscribe((value) => {
-        const nomePessoa = value || '';
-        console.log('Input Nome do Usuário:', nomePessoa);
-        this.modalService.updateNomeUsuario(nomePessoa);
+        const v = value || '';
+        this.nomeUsuario = v;
+        this.receitasService.updateNomeUsuario(v);
       }),
     );
 
     this.subscriptions.add(
-      this.modalService.state$.subscribe((state) => {
+      this.receitasService.state$.subscribe((state) => {
         this.isOpen = state.isOpen;
         this.isEditMode = state.isEditMode;
         this.receitaId = state.receitaId;
         this.nomeUsuario = state.nomeUsuario;
         this.valorSalarioRaw = state.valorSalarioRaw;
+        this.tipoReceita = state.tipo;
+        this.categoriaReceita = state.categoria;
         this.mesesSelecionados = state.mesesSelecionados;
         this.ano = state.ano;
 
@@ -151,21 +164,23 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
           this.valorSalarioFormControl.setValue(state.valorSalarioRaw, {
             emitEvent: false,
           });
-          if (state.isEditMode && !this.editInitialsCaptured) {
-            this.initialValorEdit = state.valorSalarioRaw;
-            this.editInitialsCaptured = true;
+          if (state.isEditMode) {
+            if (!this.editInitialsCaptured) {
+              this.initialValorEdit = state.valorSalarioRaw;
+              this.initialTipoEdit = state.tipo;
+              this.initialCategoriaEdit = state.categoria;
+              this.editInitialsCaptured = true;
+            }
           }
-          // Modal Adicionar: atualizar lista da API (ex.: se excluiu Carla, ela some)
-          if (!state.isEditMode) {
-            const nomePessoa = state.nomeUsuario?.trim() || '(vazio)';
-            console.log('Modal Adicionar aberta – nome da pessoa:', nomePessoa);
-            this.carregarPessoasDaApi();
-          }
+          if (!state.isEditMode) this.carregarPessoasDaApi();
         } else {
           this.nomeFormControl.reset('', { emitEvent: false });
           this.valorSalarioFormControl.reset('', { emitEvent: false });
+          this.tipoReceita = 'Salário';
+          this.categoriaReceita = 'Fixa';
           this.editInitialsCaptured = false;
         }
+        this.cdr.markForCheck();
       }),
     );
   }
@@ -188,9 +203,19 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
     }
   }
 
+  onTipoChange(tipo: TipoReceita): void {
+    this.tipoReceita = tipo;
+    this.receitasService.updateTipo(tipo);
+  }
+
+  onCategoriaChange(categoria: CategoriaReceita): void {
+    this.categoriaReceita = categoria;
+    this.receitasService.updateCategoria(categoria);
+  }
+
   onValorSalarioChange(valor: string): void {
     const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
-    this.modalService.updateValorSalarioRaw(valorLimpo);
+    this.receitasService.updateValorSalarioRaw(valorLimpo);
     this.valorSalarioFormControl.setValue(valorLimpo);
   }
 
@@ -235,7 +260,7 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
   }
 
   toggleMes(mes: number): void {
-    this.modalService.toggleMes(mes);
+    this.receitasService.toggleMes(mes);
   }
 
   isMesSelecionado(mes: number): boolean {
@@ -243,11 +268,11 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
   }
 
   selecionarTodosMeses(): void {
-    this.modalService.selecionarTodosMeses();
+    this.receitasService.selecionarTodosMeses();
   }
 
   desmarcarTodosMeses(): void {
-    this.modalService.desmarcarTodosMeses();
+    this.receitasService.desmarcarTodosMeses();
   }
 
   getTodosMesesSelecionados(): boolean {
@@ -285,15 +310,18 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
   }
 
   onAnoChange(ano: number): void {
-    this.modalService.updateAno(ano);
+    this.receitasService.updateAno(ano);
   }
 
-  /** No adicionar: nome, valor e meses válidos. No editar: só valor válido e valor alterado. */
+  /** No adicionar: nome, valor, tipo, categoria e meses válidos. No editar: valor válido e algo alterado (valor, tipo ou categoria). */
   get podeSalvar(): boolean {
     if (this.isEditMode) {
       const valorValido = this.valorSalarioFormControl.valid;
       const valorMudou = this.valorSalarioRaw !== this.initialValorEdit;
-      return valorValido && valorMudou;
+      const tipoMudou = this.tipoReceita !== this.initialTipoEdit;
+      const categoriaMudou =
+        this.categoriaReceita !== this.initialCategoriaEdit;
+      return valorValido && (valorMudou || tipoMudou || categoriaMudou);
     }
     const valorEMesesOk =
       this.valorSalarioFormControl.valid && this.mesesSelecionados.length > 0;
@@ -312,25 +340,32 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const nomeUsuario = this.toTitleCase(this.nomeUsuario.trim());
+    const nomeUsuario = this.toTitleCase(
+      (this.nomeFormControl.value || '').trim(),
+    );
     const valorSalario = this.parseNumeroBR(this.valorSalarioRaw);
 
-    console.log('Modal Adicionar – salvando nome da pessoa:', nomeUsuario);
-
-    this.modalService.triggerSave(
+    this.receitasService.triggerSave(
       nomeUsuario,
       valorSalario,
+      this.tipoReceita,
+      this.categoriaReceita,
       this.mesesSelecionados,
       this.ano,
       this.isEditMode ? this.receitaId : undefined,
     );
-    this.modalService.close();
-    this.modalService.reset();
+    this.receitasService.close();
+    if (!this.isEditMode) {
+      this.receitasService.reset();
+    }
   }
 
   onCancel(): void {
-    this.modalService.close();
-    this.modalService.reset();
+    this.receitasService.close();
+
+    if (!this.isEditMode) {
+      this.receitasService.reset();
+    }
   }
 
   stop(event: Event): void {

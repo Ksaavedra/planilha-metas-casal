@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
-import { MetaExtended } from '../interfaces/mes-meta';
+import { MetaExtended } from '../../interfaces/mes-meta';
 
 export interface ModalEditarValorState {
   isOpen: boolean;

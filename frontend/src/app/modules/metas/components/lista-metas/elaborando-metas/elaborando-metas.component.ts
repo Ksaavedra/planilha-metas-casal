@@ -11,14 +11,14 @@ import {
   ModalAdicionarMeta,
 } from '../../../../../core/interfaces/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
-import { ModalAdicionarMetaService } from '../../../../../core/services/modal-adicionar-meta.service';
+import { ModalAdicionarMetaService } from '../../../../../core/services/metas/modal-adicionar-meta.service';
 import { Subscription } from 'rxjs';
 
 @Component({
-    selector: 'app-elaborando-metas',
-    templateUrl: './elaborando-metas.component.html',
-    styleUrls: ['./elaborando-metas.component.scss'],
-    standalone: false
+  selector: 'app-elaborando-metas',
+  templateUrl: './elaborando-metas.component.html',
+  styleUrls: ['./elaborando-metas.component.scss'],
+  standalone: false,
 })
 export class ElaborandoMetasComponent implements OnDestroy {
   @Input() metas: MetaExtended[] = [];
@@ -73,7 +73,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   constructor(
     private metasService: MetasService,
-    private modalService: ModalAdicionarMetaService
+    private modalService: ModalAdicionarMetaService,
   ) {
     // Escuta eventos de save do modal
     this.saveSubscription = this.modalService.save$.subscribe(() => {
@@ -84,7 +84,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
     this.confirmDeleteSubscription = this.modalService.confirmDelete$.subscribe(
       (metaId) => {
         this.processarExclusao(metaId);
-      }
+      },
     );
   }
 
@@ -96,7 +96,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
   // Métodos para edição de campos da Seção 1
   editarCampo(
     meta: MetaExtended,
-    campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual'
+    campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
   ): void {
     // Limpar estado anterior
     this.limparEstadosEdicao(meta);
@@ -184,7 +184,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   cancelarCampo(
     meta: MetaExtended,
-    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome'
+    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome',
   ) {
     const flag = `editando${campo.charAt(0).toUpperCase() + campo.slice(1)}` as
       | 'editandoNome'
@@ -216,7 +216,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
   confirmarCampoComValor(
     meta: MetaExtended,
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
-    ev: Event
+    ev: Event,
   ) {
     ev.preventDefault();
     ev.stopPropagation();
@@ -229,7 +229,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
   // Método para confirmar campo no blur (como no metas-page original)
   confirmarCampoBlur(
     meta: MetaExtended,
-    campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual'
+    campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
   ): void {
     const chave = `${meta.id}-${campo}`;
 
@@ -305,7 +305,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   confirmarCampo(
     meta: MetaExtended,
-    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome'
+    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome',
   ) {
     // valida ID (string do json-server)
     if (!meta.id || String(meta.id).trim() === '') {
@@ -403,7 +403,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
         setTimeout(() => {
           const currentMeta = this.metas.find(
-            (m) => String(m.id) === String(savedMetaId)
+            (m) => String(m.id) === String(savedMetaId),
           );
           if (currentMeta) {
             currentMeta.savedTickCampo = false;
@@ -437,27 +437,27 @@ export class ElaborandoMetasComponent implements OnDestroy {
     // Calcular todos os totais de uma vez
     this.totalValorMetaView = this.metas.reduce(
       (t, m) => t + (Number(m.valorMeta) || 0),
-      0
+      0,
     );
 
     this.totalValorPorMesView = this.metas.reduce(
       (t, m) => t + (Number(m.valorPorMes) || 0),
-      0
+      0,
     );
 
     this.totalMesesNecessariosView = this.metas.reduce(
       (t, m) => t + (Number(m.mesesNecessarios) || 0),
-      0
+      0,
     );
 
     this.totalValorAtualView = this.metas.reduce(
       (t, m) => t + (Number(m.valorAtual) || 0),
-      0
+      0,
     );
 
     this.totalContribuicoesView = this.metas.reduce(
       (total, meta) => total + this.getTotalContribuicoesMeta(meta as any),
-      0
+      0,
     );
 
     // Calcular percentual pago
@@ -573,7 +573,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
       parabensMostrados.push(String(metaId));
       localStorage.setItem(
         'metas_parabens_mostrados',
-        JSON.stringify(parabensMostrados)
+        JSON.stringify(parabensMostrados),
       );
     } catch (error) {
       // Erro ao salvar parabéns no localStorage
@@ -611,7 +611,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
     // Encontrar meses que ainda não foram pagos (status diferente de 'Pago')
     const mesesParaFinalizar = meta.meses.filter(
-      (mes) => mes.status !== 'Pago'
+      (mes) => mes.status !== 'Pago',
     );
 
     if (mesesParaFinalizar.length === 0) {
@@ -641,7 +641,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   private reloadMetas(
     savedMetaId?: string | number,
-    preserveSavedTick?: boolean
+    preserveSavedTick?: boolean,
   ): void {
     // Preservar estado savedTickCampo da meta que acabou de ser salva
     const savedMetaState = Boolean(preserveSavedTick && savedMetaId);
@@ -661,7 +661,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
       this.metas = metasValidas.map((m) => {
         // Preservar savedTickCampo se for a meta que acabou de ser salva
         const shouldPreserveTick = Boolean(
-          savedMetaId && String(m.id) === String(savedMetaId) && savedMetaState
+          savedMetaId && String(m.id) === String(savedMetaId) && savedMetaState,
         );
 
         const metaExtended: MetaExtended = {
@@ -745,7 +745,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
     // Validação do valor atual (se o checkbox estiver marcado, deve ser preenchido)
     if (modalState.temValorAtual && (!valorAtual || valorAtual < 0)) {
       alert(
-        'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).'
+        'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).',
       );
       return;
     }
@@ -799,7 +799,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
         // Depois mostra modal de sucesso através do serviço (renderizado no app.component)
         this.modalService.showSucesso(
           'Meta adicionada!',
-          'Sua meta foi criada com sucesso.'
+          'Sua meta foi criada com sucesso.',
         );
       },
       error: (err) => {
@@ -809,7 +809,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
             '⚠️ Erro de conexão: Não foi possível conectar ao servidor.\n\n' +
               'Verifique se o backend está rodando em http://localhost:3000\n\n' +
               'Erro: ' +
-              (err.message || 'Conexão recusada')
+              (err.message || 'Conexão recusada'),
           );
         } else {
           alert('Erro ao criar meta: ' + (err.message || 'Tente novamente.'));
@@ -868,7 +868,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
   onKeyUp(
     ev: KeyboardEvent,
     meta: MetaExtended,
-    campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual'
+    campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
   ): void {
     // Enter (inclui o do teclado numérico)
     if (ev.key === 'Enter' || ev.code === 'NumpadEnter') {
