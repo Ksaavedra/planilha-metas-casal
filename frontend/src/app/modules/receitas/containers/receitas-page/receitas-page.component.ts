@@ -9,9 +9,9 @@ import { Subscription } from 'rxjs';
 import {
   CategoriaReceita,
   ReceitaMensal,
-  ReceitasService,
   TipoReceita,
-} from '../../../../core/services/receitas/receitas.service';
+} from '../../../../core/interfaces/receitas';
+import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
 
 @Component({
   selector: 'app-receitas-page',

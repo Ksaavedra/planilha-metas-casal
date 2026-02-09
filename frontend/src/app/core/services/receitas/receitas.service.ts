@@ -2,69 +2,18 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, forkJoin, Observable, Subject } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { of } from 'rxjs';
+import {
+  CategoriaReceita,
+  ModalAdicionarUsuarioState,
+  ModalConfirmarExcluirReceitaState,
+  ModalSucessoExcluirReceitaState,
+  PessoaReceita,
+  ReceitaMensal,
+  TipoReceita,
+  TIPOS_RECEITA,
+} from '../../interfaces/receitas';
 import { ApiService } from '../api/api.service';
 
-// --- Tipos e interfaces da API ---
-export type PessoaReceita = string;
-export type TipoReceita =
-  | 'Salário'
-  | 'Bônus'
-  | 'Freela'
-  | 'Renda extra'
-  | 'Aluguel'
-  | 'Outras rendas compartilhadas';
-export type CategoriaReceita = 'Fixa' | 'Variável';
-
-/** Opções para select de Tipo de receita (ordem do dropdown). */
-export const TIPOS_RECEITA: TipoReceita[] = [
-  'Salário',
-  'Bônus',
-  'Freela',
-  'Renda extra',
-  'Aluguel',
-  'Outras rendas compartilhadas',
-];
-
-/** Opções para select de Categoria (Fixa / Variável). */
-export const CATEGORIAS_RECEITA: CategoriaReceita[] = ['Fixa', 'Variável'];
-
-export interface ReceitaMensal {
-  id?: number;
-  pessoa: PessoaReceita;
-  tipo: TipoReceita;
-  categoria: CategoriaReceita;
-  valor: number;
-  ano?: number;
-  mes?: number;
-}
-
-// --- Estado do modal Adicionar/Editar ---
-export interface ModalAdicionarUsuarioState {
-  isOpen: boolean;
-  isEditMode: boolean;
-  receitaId?: number;
-  nomeUsuario: string;
-  valorSalarioRaw: string;
-  tipo: TipoReceita;
-  categoria: CategoriaReceita;
-  mesesSelecionados: number[];
-  ano: number;
-}
-
-// --- Estado do modal Confirmar/Sucesso Excluir ---
-export interface ModalConfirmarExcluirReceitaState {
-  isOpen: boolean;
-  message: string;
-  receitaId: number | null;
-}
-
-export interface ModalSucessoExcluirReceitaState {
-  isOpen: boolean;
-}
-
-/**
- * Serviço principal de receitas: API, cache de pessoas, modal adicionar/editar e modal excluir.
- */
 @Injectable({ providedIn: 'root' })
 export class ReceitasService {
   // --- API + Cache ---
@@ -163,10 +112,6 @@ export class ReceitasService {
     return this.api.get<string[]>('/receitas/pessoas').pipe(
       catchError(() => of([])),
       tap((pessoas) => {
-        // const lista = (pessoas || [])
-        //   .map((p) => (p || '').trim())
-        //   .filter(Boolean)
-        //   .sort((a, b) => a.localeCompare(b));
         this.pessoasCache$.next(this.normalizarListaPessoas(pessoas || []));
       }),
     );
@@ -260,13 +205,17 @@ export class ReceitasService {
   }
 
   private normalizarTipo(tipo?: string | TipoReceita): TipoReceita {
-    if (tipo && TIPOS_RECEITA.includes(tipo as TipoReceita)) return tipo as TipoReceita;
+    if (tipo && TIPOS_RECEITA.includes(tipo as TipoReceita))
+      return tipo as TipoReceita;
     return 'Salário';
   }
 
-  private normalizarCategoria(cat?: string | CategoriaReceita): CategoriaReceita {
+  private normalizarCategoria(
+    cat?: string | CategoriaReceita,
+  ): CategoriaReceita {
     if (cat === 'Variável' || cat === 'Fixa') return cat;
-    if (typeof cat === 'string' && /variavel|variável/i.test(cat)) return 'Variável';
+    if (typeof cat === 'string' && /variavel|variável/i.test(cat))
+      return 'Variável';
     return 'Fixa';
   }
 

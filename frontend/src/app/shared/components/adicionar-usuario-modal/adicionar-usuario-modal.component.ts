@@ -5,10 +5,10 @@ import { map, startWith } from 'rxjs/operators';
 import {
   CategoriaReceita,
   CATEGORIAS_RECEITA,
-  ReceitasService,
   TipoReceita,
   TIPOS_RECEITA,
-} from '../../../core/services/receitas/receitas.service';
+} from '../../../core/interfaces/receitas';
+import { ReceitasService } from '../../../core/services/receitas/receitas.service';
 
 @Component({
   selector: 'app-adicionar-usuario-modal',
