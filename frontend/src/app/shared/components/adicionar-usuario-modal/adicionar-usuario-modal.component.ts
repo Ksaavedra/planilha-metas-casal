@@ -128,7 +128,9 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
     // Sincroniza valor com o modal ao digitar/selecionar
     this.subscriptions.add(
       this.nomeFormControl.valueChanges.subscribe((value) => {
-        this.modalService.updateNomeUsuario(value || '');
+        const nomePessoa = value || '';
+        console.log('Input Nome do Usuário:', nomePessoa);
+        this.modalService.updateNomeUsuario(nomePessoa);
       }),
     );
 
@@ -154,7 +156,11 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
             this.editInitialsCaptured = true;
           }
           // Modal Adicionar: atualizar lista da API (ex.: se excluiu Carla, ela some)
-          if (!state.isEditMode) this.carregarPessoasDaApi();
+          if (!state.isEditMode) {
+            const nomePessoa = state.nomeUsuario?.trim() || '(vazio)';
+            console.log('Modal Adicionar aberta – nome da pessoa:', nomePessoa);
+            this.carregarPessoasDaApi();
+          }
         } else {
           this.nomeFormControl.reset('', { emitEvent: false });
           this.valorSalarioFormControl.reset('', { emitEvent: false });
@@ -308,6 +314,8 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
 
     const nomeUsuario = this.toTitleCase(this.nomeUsuario.trim());
     const valorSalario = this.parseNumeroBR(this.valorSalarioRaw);
+
+    console.log('Modal Adicionar – salvando nome da pessoa:', nomeUsuario);
 
     this.modalService.triggerSave(
       nomeUsuario,

@@ -53,7 +53,7 @@ export class ReceitasMensaisService {
   /** Carrega pessoas da API e atualiza o cache. Chamar ao abrir a página e ao abrir o modal. */
   loadPessoasDistintas(): Observable<string[]> {
     // Limpa o cache antes de buscar: a lista exibida deve vir só da API (evita David/Kelly antigos).
-    this.pessoasCache$.next([]);
+    // this.pessoasCache$.next([]);
     return this.api.get<string[]>('/receitas/pessoas').pipe(
       catchError(() => of([])),
       tap((pessoas) => {

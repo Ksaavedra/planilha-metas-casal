@@ -116,6 +116,7 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
             this.erroCarregar = null;
             this.modalExcluirReceitaService.openSuccess();
             this.carregarReceitasDoMes();
+            this.receitasMensaisService.loadPessoasDistintas().subscribe();
             this.cdr.markForCheck();
           },
           error: (err) => {
