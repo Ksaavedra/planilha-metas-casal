@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ModalAdicionarMetaService } from './core/services/modal-adicionar-meta.service';
 import { ModalEditarValorService } from './core/services/modal-editar-valor.service';
+import { ModalExcluirReceitaService } from './core/services/modal-excluir-receita.service';
 
 @Component({
     selector: 'app-root',
@@ -44,15 +45,27 @@ export class AppComponent implements OnInit, OnDestroy {
     meses: [] as string[],
   };
 
+  confirmarExcluirReceitaState = {
+    isOpen: false,
+    message: '',
+  };
+
+  sucessoExcluirReceitaState = {
+    isOpen: false,
+  };
+
   private subscription?: Subscription;
   private sucessoSubscription?: Subscription;
   private confirmarDeleteSubscription?: Subscription;
   private sucessoDeleteSubscription?: Subscription;
   private editarValorSubscription?: Subscription;
+  private confirmarExcluirReceitaSubscription?: Subscription;
+  private sucessoExcluirReceitaSubscription?: Subscription;
 
   constructor(
     private modalService: ModalAdicionarMetaService,
-    private modalEditarValorService: ModalEditarValorService
+    private modalEditarValorService: ModalEditarValorService,
+    private modalExcluirReceitaService: ModalExcluirReceitaService,
   ) {}
 
   ngOnInit(): void {
@@ -81,6 +94,19 @@ export class AppComponent implements OnInit, OnDestroy {
         this.editarValorState = { ...state };
       });
 
+    this.confirmarExcluirReceitaSubscription =
+      this.modalExcluirReceitaService.confirmState$.subscribe((state) => {
+        this.confirmarExcluirReceitaState = {
+          isOpen: state.isOpen,
+          message: state.message,
+        };
+      });
+
+    this.sucessoExcluirReceitaSubscription =
+      this.modalExcluirReceitaService.successState$.subscribe((state) => {
+        this.sucessoExcluirReceitaState = { isOpen: state.isOpen };
+      });
+
     // O elaborando-metas já está escutando confirmDelete$ diretamente
   }
 
@@ -90,6 +116,8 @@ export class AppComponent implements OnInit, OnDestroy {
     this.confirmarDeleteSubscription?.unsubscribe();
     this.sucessoDeleteSubscription?.unsubscribe();
     this.editarValorSubscription?.unsubscribe();
+    this.confirmarExcluirReceitaSubscription?.unsubscribe();
+    this.sucessoExcluirReceitaSubscription?.unsubscribe();
   }
 
   onNomeChange(value: string): void {
@@ -167,5 +195,17 @@ export class AppComponent implements OnInit, OnDestroy {
   onCancelEditarValor(): void {
     this.modalEditarValorService.close();
     this.modalEditarValorService.reset();
+  }
+
+  onConfirmExcluirReceita(): void {
+    this.modalExcluirReceitaService.onConfirm();
+  }
+
+  onCancelExcluirReceita(): void {
+    this.modalExcluirReceitaService.onCancel();
+  }
+
+  onCloseSucessoExcluirReceita(): void {
+    this.modalExcluirReceitaService.closeSuccess();
   }
 }

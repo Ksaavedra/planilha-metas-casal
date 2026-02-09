@@ -1,22 +1,34 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { FormControl, Validators } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
+import { map, startWith } from 'rxjs/operators';
 import { ModalAdicionarUsuarioService } from '../../../core/services/modal-adicionar-usuario.service';
+import { ReceitasMensaisService } from '../../../core/services/receitas-mensais/receitas-mensais.service';
 
 @Component({
-    selector: 'app-adicionar-usuario-modal',
-    templateUrl: './adicionar-usuario-modal.component.html',
-    styleUrls: ['./adicionar-usuario-modal.component.scss'],
-    standalone: false
+  selector: 'app-adicionar-usuario-modal',
+  templateUrl: './adicionar-usuario-modal.component.html',
+  styleUrls: ['./adicionar-usuario-modal.component.scss'],
+  standalone: false,
 })
 export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
   isOpen = false;
+  isEditMode = false;
+  receitaId: number | undefined;
   nomeUsuario = '';
   valorSalarioRaw = '';
   mesesSelecionados: number[] = [];
   ano: number = new Date().getFullYear();
 
-  nomeFormControl = new FormControl('', [Validators.required]);
+  nomeFormControl = new FormControl('', [
+    Validators.required,
+    Validators.minLength(2),
+  ]);
+
+  /** Sugestões só da API (pessoas que existem em receitas). Campo aceita qualquer nome digitado. */
+  options: string[] = [];
+  filteredOptions!: Observable<string[]>;
+
   valorSalarioFormControl = new FormControl('', [
     Validators.required,
     this.valorGreaterThanZero,
@@ -39,9 +51,69 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
 
   anosDisponiveis: number[] = [];
 
-  private subscription?: Subscription;
+  /** No modo editar: valor ao abrir o modal; o botão Atualizar só habilita se o valor mudar. */
+  private initialValorEdit = '';
+  private editInitialsCaptured = false;
 
-  constructor(private modalService: ModalAdicionarUsuarioService) {}
+  private subscriptions = new Subscription();
+
+  constructor(
+    private modalService: ModalAdicionarUsuarioService,
+    private receitasMensaisService: ReceitasMensaisService,
+    private cdr: ChangeDetectorRef,
+  ) {
+    // Padrão Angular Material: Observable + startWith para exibir opções ao focar
+    this.filteredOptions = this.nomeFormControl.valueChanges.pipe(
+      startWith(''),
+      map((value) => this._filter(value || '')),
+    );
+  }
+
+  private _filter(value: string): string[] {
+    const filterValue = value.toLowerCase();
+    return this.options.filter((option) =>
+      option.toLowerCase().includes(filterValue),
+    );
+  }
+
+  /** Title Case: primeira letra de cada palavra maiúscula. Ex: "Kelly Silva". */
+  private toTitleCase(value: string): string {
+    if (!value || !value.trim()) return value;
+    return value
+      .trim()
+      .split(/\s+/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  private carregarPessoasDaApi(): void {
+    // Não usar cache antigo: quem apagou os dados não deve ver nomes que não existem mais.
+    // Mostra o cache primeiro (inclui quem acabou de adicionar); a API atualiza a lista em seguida.
+    this.options = this.receitasMensaisService.getPessoasCache();
+    const valorAtual = this.nomeFormControl.value || '';
+    this.nomeFormControl.setValue(valorAtual, { emitEvent: false });
+    this.cdr.markForCheck();
+
+    this.receitasMensaisService.loadPessoasDistintas().subscribe((pessoas) => {
+      const nomes = (pessoas || [])
+        .map((p) => this.toTitleCase((p || '').trim()))
+        .filter(Boolean);
+      // Remove duplicatas por nome normalizado (ex.: "kelly" e "Kelly" da API → só "Kelly")
+      const vistos = new Set<string>();
+      this.options = nomes
+        .filter((n) => {
+          const key = n.toLowerCase();
+          if (vistos.has(key)) return false;
+          vistos.add(key);
+          return true;
+        })
+        .sort((a, b) => a.localeCompare(b));
+      this.nomeFormControl.setValue(this.nomeFormControl.value || '', {
+        emitEvent: false,
+      });
+      this.cdr.markForCheck();
+    });
+  }
 
   ngOnInit(): void {
     // Gerar lista de anos (ano atual - 3 até ano atual + 3)
@@ -50,28 +122,50 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
       this.anosDisponiveis.push(i);
     }
 
-    this.subscription = this.modalService.state$.subscribe((state) => {
-      this.isOpen = state.isOpen;
-      this.nomeUsuario = state.nomeUsuario;
-      this.valorSalarioRaw = state.valorSalarioRaw;
-      this.mesesSelecionados = state.mesesSelecionados;
+    // Pré-carregar pessoas da API (autocomplete já tem lista ao abrir o modal)
+    this.carregarPessoasDaApi();
 
-      // Garantir que o ano seja sempre o ano atual quando o modal abrir
-      if (state.isOpen) {
-        const anoAtualCalculado = new Date().getFullYear();
-        this.ano = anoAtualCalculado;
-        this.nomeFormControl.setValue(state.nomeUsuario);
-        this.valorSalarioFormControl.setValue(state.valorSalarioRaw);
-      } else {
+    // Sincroniza valor com o modal ao digitar/selecionar
+    this.subscriptions.add(
+      this.nomeFormControl.valueChanges.subscribe((value) => {
+        this.modalService.updateNomeUsuario(value || '');
+      }),
+    );
+
+    this.subscriptions.add(
+      this.modalService.state$.subscribe((state) => {
+        this.isOpen = state.isOpen;
+        this.isEditMode = state.isEditMode;
+        this.receitaId = state.receitaId;
+        this.nomeUsuario = state.nomeUsuario;
+        this.valorSalarioRaw = state.valorSalarioRaw;
+        this.mesesSelecionados = state.mesesSelecionados;
         this.ano = state.ano;
-        this.nomeFormControl.reset();
-        this.valorSalarioFormControl.reset();
-      }
-    });
+
+        if (state.isOpen) {
+          this.nomeFormControl.setValue(state.nomeUsuario, {
+            emitEvent: false,
+          });
+          this.valorSalarioFormControl.setValue(state.valorSalarioRaw, {
+            emitEvent: false,
+          });
+          if (state.isEditMode && !this.editInitialsCaptured) {
+            this.initialValorEdit = state.valorSalarioRaw;
+            this.editInitialsCaptured = true;
+          }
+          // Modal Adicionar: atualizar lista da API (ex.: se excluiu Carla, ela some)
+          if (!state.isEditMode) this.carregarPessoasDaApi();
+        } else {
+          this.nomeFormControl.reset('', { emitEvent: false });
+          this.valorSalarioFormControl.reset('', { emitEvent: false });
+          this.editInitialsCaptured = false;
+        }
+      }),
+    );
   }
 
   ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
+    this.subscriptions.unsubscribe();
   }
 
   valorGreaterThanZero(control: FormControl): { [key: string]: any } | null {
@@ -80,9 +174,12 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
     return valor > 0 ? null : { mustBeGreaterThanZero: true };
   }
 
-  onNomeChange(nome: string): void {
-    this.modalService.updateNomeUsuario(nome);
-    this.nomeFormControl.setValue(nome);
+  onNomeBlur(): void {
+    const valor = this.nomeFormControl.value || '';
+    const formatado = this.toTitleCase(valor);
+    if (formatado !== valor) {
+      this.nomeFormControl.setValue(formatado);
+    }
   }
 
   onValorSalarioChange(valor: string): void {
@@ -185,6 +282,18 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
     this.modalService.updateAno(ano);
   }
 
+  /** No adicionar: nome, valor e meses válidos. No editar: só valor válido e valor alterado. */
+  get podeSalvar(): boolean {
+    if (this.isEditMode) {
+      const valorValido = this.valorSalarioFormControl.valid;
+      const valorMudou = this.valorSalarioRaw !== this.initialValorEdit;
+      return valorValido && valorMudou;
+    }
+    const valorEMesesOk =
+      this.valorSalarioFormControl.valid && this.mesesSelecionados.length > 0;
+    return this.nomeFormControl.valid && valorEMesesOk;
+  }
+
   onSave(): void {
     if (this.nomeFormControl.invalid || this.valorSalarioFormControl.invalid) {
       this.nomeFormControl.markAllAsTouched();
@@ -192,19 +301,20 @@ export class AdicionarUsuarioModalComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.mesesSelecionados.length === 0) {
+    if (!this.isEditMode && this.mesesSelecionados.length === 0) {
       alert('Por favor, selecione pelo menos um mês.');
       return;
     }
 
-    const nomeUsuario = this.nomeUsuario.trim();
+    const nomeUsuario = this.toTitleCase(this.nomeUsuario.trim());
     const valorSalario = this.parseNumeroBR(this.valorSalarioRaw);
 
     this.modalService.triggerSave(
       nomeUsuario,
       valorSalario,
       this.mesesSelecionados,
-      this.ano
+      this.ano,
+      this.isEditMode ? this.receitaId : undefined,
     );
     this.modalService.close();
     this.modalService.reset();

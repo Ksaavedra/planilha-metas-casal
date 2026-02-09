@@ -92,6 +92,24 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+.receitas-loading,
+.receitas-erro {
+  text-align: center;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+}
+
+.receitas-loading {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.receitas-erro {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
 .btn-nav {
   background: transparent;
   border: 2px solid #e2e8f0;
@@ -229,64 +247,132 @@
   margin: 0;
   font-size: 1.4rem;
   font-weight: 700;
+}
+
+.secao-length {
+  font-weight: 500;
+  opacity: 0.9;
+  font-size: 0.95em;
   letter-spacing: -0.02em;
 }
 
-/* Kelly - Roxo suave */
-.secao-kelly {
+/* Cores por índice (sem nome de pessoa): 0 roxo, 1 azul, 2 verde, 3 âmbar */
+.secao-cor-0 {
   background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
 }
 
-.secao-kelly .secao-header {
+.secao-cor-0 .secao-header {
   color: #7c3aed;
   border-bottom-color: #c4b5fd;
 }
 
-.secao-kelly .secao-header .material-icons {
+.secao-cor-0 .secao-header .material-icons {
   color: #a855f7;
 }
 
-.secao-kelly .secao-total {
+.secao-cor-0 .secao-total {
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
   color: white;
 }
 
-/* David - Azul */
-.secao-david {
+.secao-cor-1 {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
 }
 
-.secao-david .secao-header {
+.secao-cor-1 .secao-header {
   color: #1e40af;
   border-bottom-color: #93c5fd;
 }
 
-.secao-david .secao-header .material-icons {
+.secao-cor-1 .secao-header .material-icons {
   color: #3b82f6;
 }
 
-.secao-david .secao-total {
+.secao-cor-1 .secao-total {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
 }
 
-/* Casal - Cinza/Azul neutro */
-.secao-casal {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+.secao-cor-2 {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
 }
 
-.secao-casal .secao-header {
-  color: #475569;
-  border-bottom-color: #cbd5e1;
+.secao-cor-2 .secao-header {
+  color: #166534;
+  border-bottom-color: #bbf7d0;
 }
 
-.secao-casal .secao-header .material-icons {
-  color: #64748b;
+.secao-cor-2 .secao-header .material-icons {
+  color: #22c55e;
 }
 
-.secao-casal .secao-total {
-  background: linear-gradient(135deg, #475569 0%, #334155 100%);
+.secao-cor-2 .secao-total {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
   color: white;
+}
+
+.secao-cor-3 {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.secao-cor-3 .secao-header {
+  color: #b45309;
+  border-bottom-color: #fde68a;
+}
+
+.secao-cor-3 .secao-header .material-icons {
+  color: #f59e0b;
+}
+
+.secao-cor-3 .secao-total {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: white;
+}
+
+/* Card Livre: só length + total (sem lista, sem nomes) */
+.secao-livre-resumo .secao-livre-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.secao-livre-length {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #5b21b6;
+}
+
+/* Um único card: length + total */
+.secao-unico {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.secao-unico .secao-header {
+  color: #166534;
+  border-bottom-color: #bbf7d0;
+}
+
+.secao-unico .secao-header .material-icons {
+  color: #22c55e;
+}
+
+.secao-unico .secao-total {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: white;
+}
+
+.secao-unico-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.secao-unico-length {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #166534;
 }
 
 /* Lista de Receitas */
@@ -347,11 +433,53 @@
   color: #334155;
 }
 
+.pessoa-nome {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-left: 0.25rem;
+}
+
 .receita-valor {
   font-size: 1rem;
   font-weight: 600;
   color: #1e293b;
   white-space: nowrap;
+}
+
+.receita-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.btn-icon .material-icons {
+  font-size: 1.25rem;
+}
+
+.btn-icon:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btn-icon-delete:hover {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 /* Total da Seção */

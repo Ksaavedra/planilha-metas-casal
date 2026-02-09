@@ -30,16 +30,18 @@
     </button>
   </div>
 
-  <!-- Seção: Receitas do Mês -->
-  <div class="receitas-mes">
-    <!-- Receitas da Kelly -->
-    <div class="secao-receitas secao-kelly">
+  <!-- Loading / Erro -->
+  <div *ngIf="loading" class="receitas-loading">Carregando receitas...</div>
+  <div *ngIf="erroCarregar && !loading" class="receitas-erro">{{ erroCarregar }}</div>
+
+  <div class="receitas-mes" *ngIf="!loading">
+    <div class="secao-receitas" *ngFor="let card of cardsPorPessoa; let i = index" [ngClass]="'secao-cor-' + (i % 4)">
       <div class="secao-header">
         <span class="material-icons">person</span>
-        <h2>Kelly</h2>
+        <h2>{{ card.nome }}</h2>
       </div>
       <div class="receitas-list">
-        <div class="receita-item" *ngFor="let receita of receitasKelly">
+        <div class="receita-item" *ngFor="let receita of card.receitas">
           <div class="receita-tipo">
             <span class="categoria-badge" [class.fixa]="receita.categoria === 'Fixa'"
               [class.variavel]="receita.categoria === 'Variável'">
@@ -48,65 +50,26 @@
             <span class="tipo-nome">{{ receita.tipo }}</span>
           </div>
           <div class="receita-valor">{{ receita.valor | currency:'BRL' }}</div>
-        </div>
-      </div>
-      <div class="secao-total">
-        <div class="total-label">Total Kelly</div>
-        <div class="total-valor">{{ totalKelly | currency:'BRL' }}</div>
-      </div>
-    </div>
-
-    <!-- Receitas do David -->
-    <div class="secao-receitas secao-david">
-      <div class="secao-header">
-        <span class="material-icons">person</span>
-        <h2>David</h2>
-      </div>
-      <div class="receitas-list">
-        <div class="receita-item" *ngFor="let receita of receitasDavid">
-          <div class="receita-tipo">
-            <span class="categoria-badge" [class.fixa]="receita.categoria === 'Fixa'"
-              [class.variavel]="receita.categoria === 'Variável'">
-              {{ receita.categoria }}
-            </span>
-            <span class="tipo-nome">{{ receita.tipo }}</span>
+          <div class="receita-actions">
+            <button type="button" class="btn-icon" (click)="editarReceita(receita)" title="Editar" aria-label="Editar">
+              <span class="material-icons">edit</span>
+            </button>
+            <button type="button" class="btn-icon btn-icon-delete" (click)="excluirReceita(receita)" title="Excluir"
+              aria-label="Excluir">
+              <span class="material-icons">delete</span>
+            </button>
           </div>
-          <div class="receita-valor">{{ receita.valor | currency:'BRL' }}</div>
         </div>
       </div>
       <div class="secao-total">
-        <div class="total-label">Total David</div>
-        <div class="total-valor">{{ totalDavid | currency:'BRL' }}</div>
-      </div>
-    </div>
-
-    <!-- Receitas do Casal -->
-    <div class="secao-receitas secao-casal">
-      <div class="secao-header">
-        <span class="material-icons">home</span>
-        <h2>Casal</h2>
-      </div>
-      <div class="receitas-list">
-        <div class="receita-item" *ngFor="let receita of receitasCasal">
-          <div class="receita-tipo">
-            <span class="categoria-badge" [class.fixa]="receita.categoria === 'Fixa'"
-              [class.variavel]="receita.categoria === 'Variável'">
-              {{ receita.categoria }}
-            </span>
-            <span class="tipo-nome">{{ receita.tipo }}</span>
-          </div>
-          <div class="receita-valor">{{ receita.valor | currency:'BRL' }}</div>
-        </div>
-      </div>
-      <div class="secao-total">
-        <div class="total-label">Total Casal</div>
-        <div class="total-valor">{{ totalCasal | currency:'BRL' }}</div>
+        <div class="total-label">Total</div>
+        <div class="total-valor">{{ card.total | currency:'BRL' }}</div>
       </div>
     </div>
   </div>
 
   <!-- Total Geral do Mês -->
-  <div class="total-geral">
+  <div class="total-geral" *ngIf="!loading">
     <div class="total-geral-header">
       <span class="material-icons">favorite</span>
       <span>Total Geral do Mês</span>

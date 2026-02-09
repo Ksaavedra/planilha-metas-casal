@@ -3,10 +3,12 @@ import { BehaviorSubject, Observable, Subject } from 'rxjs';
 
 export interface ModalAdicionarUsuarioState {
   isOpen: boolean;
+  isEditMode: boolean;
+  receitaId?: number;
   nomeUsuario: string;
   valorSalarioRaw: string;
-  mesesSelecionados: number[]; // Array de números de mês (1-12)
-  ano: number; // Ano selecionado
+  mesesSelecionados: number[];
+  ano: number;
 }
 
 @Injectable({
@@ -15,6 +17,7 @@ export interface ModalAdicionarUsuarioState {
 export class ModalAdicionarUsuarioService {
   private initialState: ModalAdicionarUsuarioState = {
     isOpen: false,
+    isEditMode: false,
     nomeUsuario: '',
     valorSalarioRaw: '',
     mesesSelecionados: [],
@@ -22,24 +25,19 @@ export class ModalAdicionarUsuarioService {
   };
 
   private stateSubject = new BehaviorSubject<ModalAdicionarUsuarioState>(
-    this.initialState
+    this.initialState,
   );
   public state$: Observable<ModalAdicionarUsuarioState> =
     this.stateSubject.asObservable();
 
-  // Subject para emitir evento de save
   private saveSubject = new Subject<{
     nomeUsuario: string;
     valorSalario: number;
     meses: number[];
     ano: number;
+    receitaId?: number; // presente quando for edição
   }>();
-  public save$: Observable<{
-    nomeUsuario: string;
-    valorSalario: number;
-    meses: number[];
-    ano: number;
-  }> = this.saveSubject.asObservable();
+  public save$ = this.saveSubject.asObservable();
 
   getState(): ModalAdicionarUsuarioState {
     return this.stateSubject.value;
@@ -50,7 +48,30 @@ export class ModalAdicionarUsuarioService {
     this.stateSubject.next({
       ...this.initialState,
       isOpen: true,
-      ano: anoAtual, // Ano atual por padrão
+      isEditMode: false,
+      ano: anoAtual,
+    });
+  }
+
+  /** Abre o modal para editar uma receita (mesmo layout do adicionar). */
+  openForEdit(receita: {
+    id?: number;
+    pessoa: string;
+    valor: number;
+    ano?: number;
+    mes?: number;
+  }): void {
+    const valorRaw =
+      receita.valor == null ? '' : receita.valor.toFixed(2).replace('.', ',');
+    this.stateSubject.next({
+      ...this.initialState,
+      isOpen: true,
+      isEditMode: true,
+      receitaId: receita.id,
+      nomeUsuario: receita.pessoa?.trim() ?? '',
+      valorSalarioRaw: valorRaw,
+      mesesSelecionados: receita.mes != null ? [receita.mes] : [],
+      ano: receita.ano ?? new Date().getFullYear(),
     });
   }
 
@@ -63,6 +84,7 @@ export class ModalAdicionarUsuarioService {
 
   updateNomeUsuario(nome: string): void {
     const currentState = this.stateSubject.value;
+    if (currentState.nomeUsuario === nome) return;
     this.stateSubject.next({
       ...currentState,
       nomeUsuario: nome,
@@ -71,6 +93,7 @@ export class ModalAdicionarUsuarioService {
 
   updateValorSalarioRaw(valor: string): void {
     const currentState = this.stateSubject.value;
+    if (currentState.valorSalarioRaw === valor) return;
     this.stateSubject.next({
       ...currentState,
       valorSalarioRaw: valor,
@@ -123,9 +146,16 @@ export class ModalAdicionarUsuarioService {
     nomeUsuario: string,
     valorSalario: number,
     meses: number[],
-    ano: number
+    ano: number,
+    receitaId?: number,
   ): void {
-    this.saveSubject.next({ nomeUsuario, valorSalario, meses, ano });
+    this.saveSubject.next({
+      nomeUsuario,
+      valorSalario,
+      meses,
+      ano,
+      receitaId,
+    });
   }
 
   reset(): void {

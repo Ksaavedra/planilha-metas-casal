@@ -1,8 +1,8 @@
 @if (isOpen) {
 <div class="modal-overlay">
-  <div class="modal-content" (click)="stop($event)">
+  <div class="modal-content" [class.modal-edit]="isEditMode" (click)="stop($event)">
     <div class="modal-header">
-      <h2>Adicionar Usuário</h2>
+      <h2>{{ isEditMode ? 'Editar Receita' : 'Adicionar Usuário' }}</h2>
       <button type="button" class="btn-close" (click)="onCancel()">
         <span class="material-icons">close</span>
       </button>
@@ -10,15 +10,27 @@
 
     <div class="modal-body">
       <form class="modal-form">
+        @if (!isEditMode) {
         <div class="modal-input-group" [class.has-error]="nomeFormControl.invalid && nomeFormControl.touched">
           <label for="nome-usuario">Nome do Usuário: <span class="required">*</span></label>
-          <input id="nome-usuario" type="text" class="modal-input" [formControl]="nomeFormControl"
-            placeholder="Digite o nome do usuário" autocomplete="off" autofocus
-            (input)="onNomeChange($any($event.target).value)" />
+          <mat-form-field class="modal-form-field mat-form-field-custom example-full-width" appearance="outline">
+            <mat-label>Digite ou escolha da lista</mat-label>
+            <input id="nome-usuario" type="text" matInput [formControl]="nomeFormControl" placeholder="Nome da pessoa"
+              autocomplete="off" autofocus [matAutocomplete]="auto" (blur)="onNomeBlur()" />
+            <mat-autocomplete autoActiveFirstOption panelClass="modal-autocomplete-panel" #auto="matAutocomplete">
+              @for (option of (filteredOptions | async) ?? []; track option) {
+              <mat-option [value]="option">{{ option }}</mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
           @if (nomeFormControl.hasError('required') && nomeFormControl.touched) {
           <span class="error-message">Nome do usuário é <strong>obrigatório</strong></span>
           }
+          @if (nomeFormControl.hasError('minlength') && nomeFormControl.touched) {
+          <span class="error-message">Nome deve ter pelo menos <strong>2 caracteres</strong></span>
+          }
         </div>
+        }
 
         <div class="modal-input-group"
           [class.has-error]="valorSalarioFormControl.invalid && valorSalarioFormControl.touched">
@@ -35,6 +47,7 @@
           }
         </div>
 
+        @if (!isEditMode) {
         <div class="modal-input-group">
           <label for="ano">Ano: <span class="required">*</span></label>
           <select id="ano" class="modal-input modal-select" [value]="ano.toString()"
@@ -67,12 +80,15 @@
           <span class="error-message">Selecione pelo menos <strong>um mês</strong></span>
           }
         </div>
+        }
       </form>
     </div>
 
     <div class="modal-footer">
       <button type="button" class="btn btn-cancel" (click)="onCancel()">Cancelar</button>
-      <button type="button" class="btn btn-save" (click)="onSave()">Salvar</button>
+      <button type="button" class="btn btn-save" (click)="onSave()" [disabled]="!podeSalvar">
+        {{ isEditMode ? 'Atualizar' : 'Salvar' }}
+      </button>
     </div>
   </div>
 </div>

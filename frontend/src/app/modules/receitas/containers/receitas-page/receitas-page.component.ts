@@ -1,30 +1,17 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
-  OnInit,
   OnDestroy,
+  OnInit,
 } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ModalAdicionarUsuarioService } from '../../../../core/services/modal-adicionar-usuario.service';
-
-export type PessoaReceita = 'Kelly' | 'David' | 'Casal';
-export type TipoReceita =
-  | 'Salário'
-  | 'Bônus'
-  | 'Freela'
-  | 'Renda extra'
-  | 'Aluguel'
-  | 'Outras rendas compartilhadas';
-export type CategoriaReceita = 'Fixa' | 'Variável';
-
-export interface ReceitaMensal {
-  id?: string | number;
-  pessoa: PessoaReceita;
-  tipo: TipoReceita;
-  categoria: CategoriaReceita;
-  valor: number;
-  mes?: string;
-}
+import { ModalExcluirReceitaService } from '../../../../core/services/modal-excluir-receita.service';
+import {
+  ReceitaMensal,
+  ReceitasMensaisService,
+} from '../../../../core/services/receitas-mensais/receitas-mensais.service';
 
 @Component({
   selector: 'app-receitas-page',
@@ -35,11 +22,12 @@ export interface ReceitaMensal {
 })
 export class ReceitasPageComponent implements OnInit, OnDestroy {
   mesAtual: Date = new Date();
-
-  // Receitas do mês atual (podem variar por mês)
   receitasMensal: ReceitaMensal[] = [];
+  loading = false;
+  erroCarregar: string | null = null;
 
   private saveSubscription?: Subscription;
+  private deleteSubscription?: Subscription;
 
   meses = [
     'Janeiro',
@@ -62,68 +50,85 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
     return `${this.meses[mes]} ${ano}`;
   }
 
-  get receitasKelly(): ReceitaMensal[] {
-    return this.receitasMensal.filter((r) => r.pessoa === 'Kelly');
-  }
-
-  get receitasDavid(): ReceitaMensal[] {
-    return this.receitasMensal.filter((r) => r.pessoa === 'David');
-  }
-
-  get receitasCasal(): ReceitaMensal[] {
-    return this.receitasMensal.filter((r) => r.pessoa === 'Casal');
-  }
-
-  get totalKelly(): number {
-    return this.receitasKelly.reduce(
-      (total, receita) => total + receita.valor,
-      0
-    );
-  }
-
-  get totalDavid(): number {
-    return this.receitasDavid.reduce(
-      (total, receita) => total + receita.valor,
-      0
-    );
-  }
-
-  get totalCasal(): number {
-    return this.receitasCasal.reduce(
-      (total, receita) => total + receita.valor,
-      0
-    );
+  /** Cards por pessoa (dados da API): agrupa por nome ignorando maiúsculas. Ordem alfabética. */
+  get cardsPorPessoa(): {
+    nome: string;
+    receitas: ReceitaMensal[];
+    total: number;
+  }[] {
+    const map = new Map<string, { nome: string; receitas: ReceitaMensal[] }>();
+    for (const r of this.receitasMensal) {
+      const key = r.pessoa.trim().toLowerCase();
+      if (!map.has(key)) {
+        const nomeExibir = r.pessoa.trim();
+        const nomeNormalizado =
+          nomeExibir.charAt(0).toUpperCase() +
+          nomeExibir.slice(1).toLowerCase();
+        map.set(key, { nome: nomeNormalizado, receitas: [] });
+      }
+      map.get(key)!.receitas.push(r);
+    }
+    const nomesOrdenados = [...map.keys()].sort((a, b) => a.localeCompare(b));
+    return nomesOrdenados.map((key) => {
+      const { nome, receitas } = map.get(key)!;
+      const total = receitas.reduce((s, r) => s + r.valor, 0);
+      return { nome, receitas, total };
+    });
   }
 
   get totalMensal(): number {
-    return this.receitasMensal.reduce(
-      (total, receita) => total + receita.valor,
-      0
-    );
+    return this.receitasMensal.reduce((s, r) => s + r.valor, 0);
   }
 
   constructor(
-    private modalAdicionarUsuarioService: ModalAdicionarUsuarioService
+    private modalAdicionarUsuarioService: ModalAdicionarUsuarioService,
+    private modalExcluirReceitaService: ModalExcluirReceitaService,
+    private receitasMensaisService: ReceitasMensaisService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.carregarReceitasDoMes();
-
-    // Escutar evento de save do modal
     this.saveSubscription = this.modalAdicionarUsuarioService.save$.subscribe(
       (data: {
         nomeUsuario: string;
         valorSalario: number;
         meses: number[];
         ano: number;
+        receitaId?: number;
       }) => {
-        this.salvarUsuario(data);
-      }
+        if (data.receitaId != null) {
+          this.atualizarReceita(
+            data.receitaId,
+            data.nomeUsuario,
+            data.valorSalario,
+          );
+        } else {
+          this.salvarUsuario(data);
+        }
+      },
     );
+
+    this.deleteSubscription =
+      this.modalExcluirReceitaService.confirmDelete$.subscribe((receitaId) => {
+        this.receitasMensaisService.delete(receitaId).subscribe({
+          next: () => {
+            this.erroCarregar = null;
+            this.modalExcluirReceitaService.openSuccess();
+            this.carregarReceitasDoMes();
+            this.cdr.markForCheck();
+          },
+          error: (err) => {
+            this.erroCarregar = err?.error?.error || 'Erro ao excluir.';
+            this.cdr.markForCheck();
+          },
+        });
+      });
   }
 
   ngOnDestroy(): void {
     this.saveSubscription?.unsubscribe();
+    this.deleteSubscription?.unsubscribe();
   }
 
   abrirModalAdicionarUsuario(): void {
@@ -136,477 +141,127 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
     meses: number[];
     ano: number;
   }): void {
-    // TODO: Salvar no backend
-    // Por enquanto, apenas adicionar à lista local
-    console.log('Salvando usuário:', data);
+    this.loading = true;
+    this.erroCarregar = null;
+    this.cdr.markForCheck();
 
-    // Aqui você pode adicionar lógica para salvar no backend
-    // e atualizar a lista de receitas mensais
-    alert(
-      `Usuário ${
-        data.nomeUsuario
-      } adicionado com salário de R$ ${data.valorSalario.toFixed(
-        2
-      )} para os meses selecionados no ano ${data.ano}.`
-    );
+    this.receitasMensaisService
+      .createSalariosParaUsuario(
+        data.nomeUsuario,
+        data.valorSalario,
+        data.meses,
+        data.ano,
+      )
+      .subscribe({
+        next: () => {
+          this.receitasMensaisService.addPessoaToCache(data.nomeUsuario);
+          this.loading = false;
+          this.carregarReceitasDoMes();
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.loading = false;
+          this.erroCarregar = err?.error?.error || 'Erro ao salvar receitas.';
+          this.cdr.markForCheck();
+        },
+      });
   }
 
   carregarReceitasDoMes(): void {
-    // TODO: Buscar receitas do backend para o mês atual
-    // Por enquanto, usando dados de exemplo
-    // Os valores podem ser diferentes para cada mês (13º, bonificações, etc)
-    // Em produção, isso virá do backend com os valores reais do mês selecionado
-
     const ano = this.mesAtual.getFullYear();
-    const mes = this.mesAtual.getMonth() + 1; // 1-12
+    const mes = this.mesAtual.getMonth() + 1;
 
-    // Função auxiliar para obter valores por mês e ano
-    const obterValoresPorMes = (
-      ano: number,
-      mes: number
-    ): { kelly: any[]; david: any[]; casal: any[] } => {
-      // Valores base por ano (usados quando não há valores específicos do mês)
-      const valoresBase: {
-        [key: number]: { kelly: any[]; david: any[]; casal: any[] };
-      } = {
-        2024: {
-          kelly: [
-            {
-              tipo: 'Salário',
-              categoria: 'Fixa' as CategoriaReceita,
-              valor: 6000,
-            },
-            {
-              tipo: 'Bônus',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 800,
-            },
-            {
-              tipo: 'Freela',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 700,
-            },
-            {
-              tipo: 'Renda extra',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 250,
-            },
-          ],
-          david: [
-            {
-              tipo: 'Salário',
-              categoria: 'Fixa' as CategoriaReceita,
-              valor: 5200,
-            },
-            {
-              tipo: 'Bônus',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 400,
-            },
-            {
-              tipo: 'Renda extra',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 350,
-            },
-          ],
-          casal: [
-            {
-              tipo: 'Aluguel',
-              categoria: 'Fixa' as CategoriaReceita,
-              valor: 1100,
-            },
-          ],
-        },
-        2025: {
-          kelly: [
-            {
-              tipo: 'Salário',
-              categoria: 'Fixa' as CategoriaReceita,
-              valor: 6100,
-            },
-            {
-              tipo: 'Bônus',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 900,
-            },
-            {
-              tipo: 'Freela',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 750,
-            },
-            {
-              tipo: 'Renda extra',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 280,
-            },
-          ],
-          david: [
-            {
-              tipo: 'Salário',
-              categoria: 'Fixa' as CategoriaReceita,
-              valor: 5350,
-            },
-            {
-              tipo: 'Bônus',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 450,
-            },
-            {
-              tipo: 'Renda extra',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 380,
-            },
-          ],
-          casal: [
-            {
-              tipo: 'Aluguel',
-              categoria: 'Fixa' as CategoriaReceita,
-              valor: 1150,
-            },
-          ],
-        },
-        2026: {
-          kelly: [
-            {
-              tipo: 'Salário',
-              categoria: 'Fixa' as CategoriaReceita,
-              valor: 6200,
-            },
-            {
-              tipo: 'Bônus',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 1000,
-            },
-            {
-              tipo: 'Freela',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 800,
-            },
-            {
-              tipo: 'Renda extra',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 300,
-            },
-          ],
-          david: [
-            {
-              tipo: 'Salário',
-              categoria: 'Fixa' as CategoriaReceita,
-              valor: 5500,
-            },
-            {
-              tipo: 'Bônus',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 500,
-            },
-            {
-              tipo: 'Renda extra',
-              categoria: 'Variável' as CategoriaReceita,
-              valor: 400,
-            },
-          ],
-          casal: [
-            {
-              tipo: 'Aluguel',
-              categoria: 'Fixa' as CategoriaReceita,
-              valor: 1200,
-            },
-          ],
-        },
-      };
+    this.loading = true;
+    this.erroCarregar = null;
+    this.cdr.markForCheck();
 
-      // Valores específicos por mês (sobrescrevem os valores base quando definidos)
-      const valoresPorMes: {
-        [ano: number]: {
-          [mes: number]: { kelly?: any[]; david?: any[]; casal?: any[] };
-        };
-      } = {
-        2026: {
-          // Janeiro 2026 - valores diferentes
-          1: {
-            kelly: [
-              {
-                tipo: 'Salário',
-                categoria: 'Fixa' as CategoriaReceita,
-                valor: 6200,
-              },
-              {
-                tipo: 'Bônus',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 1200,
-              }, // Bônus maior em janeiro
-              {
-                tipo: 'Freela',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 900,
-              },
-              {
-                tipo: 'Renda extra',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 350,
-              },
-            ],
-            david: [
-              {
-                tipo: 'Salário',
-                categoria: 'Fixa' as CategoriaReceita,
-                valor: 5500,
-              },
-              {
-                tipo: 'Bônus',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 600,
-              }, // Bônus maior em janeiro
-              {
-                tipo: 'Renda extra',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 450,
-              },
-            ],
-          },
-          // Fevereiro 2026
-          2: {
-            kelly: [
-              {
-                tipo: 'Salário',
-                categoria: 'Fixa' as CategoriaReceita,
-                valor: 6200,
-              },
-              {
-                tipo: 'Bônus',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 800,
-              }, // Bônus menor
-              {
-                tipo: 'Freela',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 750,
-              },
-              {
-                tipo: 'Renda extra',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 280,
-              },
-            ],
-          },
-          // Março 2026
-          3: {
-            kelly: [
-              {
-                tipo: 'Salário',
-                categoria: 'Fixa' as CategoriaReceita,
-                valor: 6200,
-              },
-              {
-                tipo: 'Bônus',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 1100,
-              },
-              {
-                tipo: 'Freela',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 850,
-              },
-              {
-                tipo: 'Renda extra',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 320,
-              },
-            ],
-            david: [
-              {
-                tipo: 'Salário',
-                categoria: 'Fixa' as CategoriaReceita,
-                valor: 5500,
-              },
-              {
-                tipo: 'Bônus',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 550,
-              },
-              {
-                tipo: 'Renda extra',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 420,
-              },
-            ],
-          },
-          // Junho 2026 - meio do ano, pode ter bônus maior
-          6: {
-            kelly: [
-              {
-                tipo: 'Salário',
-                categoria: 'Fixa' as CategoriaReceita,
-                valor: 6200,
-              },
-              {
-                tipo: 'Bônus',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 1500,
-              }, // Bônus de meio de ano
-              {
-                tipo: 'Freela',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 900,
-              },
-              {
-                tipo: 'Renda extra',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 400,
-              },
-            ],
-            david: [
-              {
-                tipo: 'Salário',
-                categoria: 'Fixa' as CategoriaReceita,
-                valor: 5500,
-              },
-              {
-                tipo: 'Bônus',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 800,
-              }, // Bônus de meio de ano
-              {
-                tipo: 'Renda extra',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 500,
-              },
-            ],
-          },
-          // Dezembro 2026 - fim do ano
-          12: {
-            kelly: [
-              {
-                tipo: 'Salário',
-                categoria: 'Fixa' as CategoriaReceita,
-                valor: 6200,
-              },
-              {
-                tipo: 'Bônus',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 2000,
-              }, // Bônus de fim de ano maior
-              {
-                tipo: 'Freela',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 1000,
-              },
-              {
-                tipo: 'Renda extra',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 500,
-              },
-            ],
-            david: [
-              {
-                tipo: 'Salário',
-                categoria: 'Fixa' as CategoriaReceita,
-                valor: 5500,
-              },
-              {
-                tipo: 'Bônus',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 1000,
-              }, // Bônus de fim de ano maior
-              {
-                tipo: 'Renda extra',
-                categoria: 'Variável' as CategoriaReceita,
-                valor: 600,
-              },
-            ],
-          },
-        },
-      };
-
-      // Obter valores base do ano
-      const base = valoresBase[ano] || valoresBase[2026];
-
-      // Verificar se há valores específicos para este mês
-      const especifico = valoresPorMes[ano]?.[mes];
-
-      // Mesclar valores: específicos do mês sobrescrevem os valores base
-      return {
-        kelly: especifico?.kelly || base.kelly,
-        david: especifico?.david || base.david,
-        casal: especifico?.casal || base.casal,
-      };
-    };
-
-    const valores = obterValoresPorMes(ano, mes);
-    const temDecimoTerceiro = mes === 12;
-
-    this.receitasMensal = [
-      // Receitas da Kelly
-      ...valores.kelly.map((r, index) => ({
-        id: `kelly-${ano}-${mes}-${index + 1}`,
-        pessoa: 'Kelly' as PessoaReceita,
-        tipo: r.tipo as TipoReceita,
-        categoria: r.categoria,
-        valor: r.valor,
-      })),
-      ...(temDecimoTerceiro
-        ? [
-            {
-              id: `kelly-${ano}-${mes}-13`,
-              pessoa: 'Kelly' as PessoaReceita,
-              tipo: 'Salário' as TipoReceita,
-              categoria: 'Fixa' as CategoriaReceita,
-              valor:
-                valores.kelly.find((r) => r.tipo === 'Salário')?.valor || 6200,
-            },
-          ]
-        : []),
-
-      // Receitas do David
-      ...valores.david.map((r, index) => ({
-        id: `david-${ano}-${mes}-${index + 1}`,
-        pessoa: 'David' as PessoaReceita,
-        tipo: r.tipo as TipoReceita,
-        categoria: r.categoria,
-        valor: r.valor,
-      })),
-      ...(temDecimoTerceiro
-        ? [
-            {
-              id: `david-${ano}-${mes}-13`,
-              pessoa: 'David' as PessoaReceita,
-              tipo: 'Salário' as TipoReceita,
-              categoria: 'Fixa' as CategoriaReceita,
-              valor:
-                valores.david.find((r) => r.tipo === 'Salário')?.valor || 5500,
-            },
-          ]
-        : []),
-
-      // Receitas do Casal
-      ...valores.casal.map((r, index) => ({
-        id: `casal-${ano}-${mes}-${index + 1}`,
-        pessoa: 'Casal' as PessoaReceita,
-        tipo: r.tipo as TipoReceita,
-        categoria: r.categoria,
-        valor: r.valor,
-      })),
-    ];
+    this.receitasMensaisService.getPorMesAno(ano, mes).subscribe({
+      next: (lista) => {
+        this.receitasMensal = lista;
+        this.loading = false;
+        this.erroCarregar = null;
+        this.cdr.markForCheck();
+        // Console: mostrar dados do mês
+        // const nomeMes = this.meses[mes - 1];
+        // console.log(`📅 Receitas – ${nomeMes} ${ano}`, {
+        //   mes: mes,
+        //   ano: ano,
+        //   totalRegistros: lista.length,
+        //   totalValor: lista.reduce((s, r) => s + r.valor, 0),
+        //   dados: lista,
+        // });
+      },
+      error: (err) => {
+        this.receitasMensal = [];
+        this.loading = false;
+        this.erroCarregar = err?.error?.error || 'Erro ao carregar receitas.';
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   mesAnterior(): void {
-    const novaData = new Date(this.mesAtual);
-    novaData.setMonth(novaData.getMonth() - 1);
-    this.mesAtual = novaData;
+    const d = new Date(this.mesAtual);
+    d.setMonth(d.getMonth() - 1);
+    this.mesAtual = d;
     this.carregarReceitasDoMes();
   }
 
   proximoMes(): void {
-    const novaData = new Date(this.mesAtual);
-    novaData.setMonth(novaData.getMonth() + 1);
-    this.mesAtual = novaData;
+    const d = new Date(this.mesAtual);
+    d.setMonth(d.getMonth() + 1);
+    this.mesAtual = d;
     this.carregarReceitasDoMes();
   }
 
-  onDateChange(event: any): void {
-    if (event && event.value) {
+  onDateChange(event: { value?: Date }): void {
+    if (event?.value) {
       this.mesAtual = event.value;
       this.carregarReceitasDoMes();
     }
+  }
+
+  editarReceita(receita: ReceitaMensal): void {
+    if (receita.id == null) return;
+    this.modalAdicionarUsuarioService.openForEdit({
+      id: receita.id,
+      pessoa: receita.pessoa,
+      valor: receita.valor,
+      ano: receita.ano,
+      mes: receita.mes,
+    });
+  }
+
+  private atualizarReceita(
+    receitaId: number,
+    nomeUsuario: string,
+    valorSalario: number,
+  ): void {
+    this.loading = true;
+    this.erroCarregar = null;
+    this.cdr.markForCheck();
+    this.receitasMensaisService
+      .update(receitaId, {
+        pessoa: nomeUsuario.trim(),
+        valor: valorSalario,
+      })
+      .subscribe({
+        next: () => {
+          this.loading = false;
+          this.erroCarregar = null;
+          this.carregarReceitasDoMes();
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          this.loading = false;
+          this.erroCarregar = err?.error?.error || 'Erro ao atualizar.';
+          this.cdr.markForCheck();
+        },
+      });
+  }
+
+  excluirReceita(receita: ReceitaMensal): void {
+    if (!receita.id) return;
+    this.modalExcluirReceitaService.openConfirm(receita);
   }
 }
