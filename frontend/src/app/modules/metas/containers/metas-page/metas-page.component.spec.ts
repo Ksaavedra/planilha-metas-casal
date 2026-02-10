@@ -3,7 +3,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 import { MetasPageComponent } from './metas-page.component';
 import { MetasService } from '../../../../core/services/metas/metas.service';
-import { Meta, StatusMeta } from '../../../../core/interfaces/mes-meta';
+import { Meta, StatusMeta } from '../../../../core/interfaces/metas/mes-meta';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 
 describe('MetasPageComponent', () => {
@@ -347,7 +347,7 @@ describe('MetasPageComponent', () => {
       component.confirmarCampo(meta, 'nome');
 
       expect(alertSpy).toHaveBeenCalledWith(
-        'Erro: Meta sem ID válido. Recarregue a página e tente novamente.'
+        'Erro: Meta sem ID válido. Recarregue a página e tente novamente.',
       );
       alertSpy.mockRestore();
     });

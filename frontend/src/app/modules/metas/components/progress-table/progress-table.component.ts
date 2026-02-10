@@ -10,14 +10,14 @@ import {
   AfterViewInit,
   HostListener,
 } from '@angular/core';
-import { MetaExtended } from '../../../../core/interfaces/mes-meta';
+import { MetaExtended } from '../../../../core/interfaces/metas/mes-meta';
 import { AVAILABLE_META_ICONS } from '../../../../core/constants/meta-icons.constant';
 
 @Component({
-    selector: 'app-progress-table',
-    templateUrl: './progress-table.component.html',
-    styleUrls: ['./progress-table.component.scss'],
-    standalone: false
+  selector: 'app-progress-table',
+  templateUrl: './progress-table.component.html',
+  styleUrls: ['./progress-table.component.scss'],
+  standalone: false,
 })
 export class ProgressTableComponent
   implements OnInit, OnDestroy, OnChanges, AfterViewInit
@@ -284,7 +284,7 @@ export class ProgressTableComponent
     if (!wrapper || !content) return;
 
     const firstCard = content.querySelector<HTMLElement>(
-      '.meta-card:not(.placeholder-card)'
+      '.meta-card:not(.placeholder-card)',
     );
 
     if (firstCard) {
@@ -301,7 +301,7 @@ export class ProgressTableComponent
 
     this.visibleWidth = Math.max(
       0,
-      wrapper.clientWidth - paddingLeft - paddingRight
+      wrapper.clientWidth - paddingLeft - paddingRight,
     );
 
     // ✅ AQUI ERA O BUG (faltava o "=")

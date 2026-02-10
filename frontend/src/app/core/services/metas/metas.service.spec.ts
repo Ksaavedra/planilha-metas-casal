@@ -1,12 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import {
-  MetasService,
-  CreateMetaRequest,
-  UpdateMetaRequest,
-} from './metas.service';
+import { CreateMetaRequest, Meta, UpdateMetaRequest } from '../../interfaces/metas';
 import { ApiService } from '../api/api.service';
-import { Meta } from '../../interfaces/mes-meta';
+import { MetasService } from './metas.service';
 
 describe('MetasService', () => {
   let service: MetasService;
@@ -167,7 +163,7 @@ describe('MetasService', () => {
 
       expect(apiService.patch).toHaveBeenCalledWith(
         '/metas/1',
-        mockUpdateRequest
+        mockUpdateRequest,
       );
     });
 
@@ -182,7 +178,7 @@ describe('MetasService', () => {
 
       expect(apiService.patch).toHaveBeenCalledWith(
         '/metas/1',
-        mockUpdateRequest
+        mockUpdateRequest,
       );
     });
 

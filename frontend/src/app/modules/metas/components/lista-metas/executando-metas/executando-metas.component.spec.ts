@@ -3,7 +3,10 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ExecutandoMetasComponent } from './executando-metas.component';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
-import { Meta, StatusMeta } from '../../../../../core/interfaces/mes-meta';
+import {
+  Meta,
+  StatusMeta,
+} from '../../../../../core/interfaces/metas/mes-meta';
 
 describe('ExecutandoMetasComponent', () => {
   let component: ExecutandoMetasComponent;
@@ -490,7 +493,7 @@ describe('ExecutandoMetasComponent', () => {
 
       expect(setItemSpy).toHaveBeenCalledWith(
         'metas_parabens_mostrados',
-        JSON.stringify(['123'])
+        JSON.stringify(['123']),
       );
     });
 
@@ -702,7 +705,7 @@ describe('ExecutandoMetasComponent', () => {
       const marcarSpy = jest.spyOn(component as any, 'marcarParabensMostrado');
       const finalizarSpy = jest.spyOn(
         component as any,
-        'marcarMesesComoFinalizado'
+        'marcarMesesComoFinalizado',
       );
 
       component['verificarMetaCompleta'](meta);
@@ -884,7 +887,7 @@ describe('ExecutandoMetasComponent', () => {
       component.salvarValorModal();
 
       expect(alertSpy).toHaveBeenCalledWith(
-        'Mês não encontrado. Reabra o modal e tente novamente.'
+        'Mês não encontrado. Reabra o modal e tente novamente.',
       );
       expect(spy).not.toHaveBeenCalled();
     });

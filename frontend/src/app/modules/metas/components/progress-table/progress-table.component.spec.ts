@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProgressTableComponent } from './progress-table.component';
-import { MetaExtended } from '../../../../core/interfaces/mes-meta';
+import { MetaExtended } from '../../../../core/interfaces/metas/mes-meta';
 import { LOCALE_ID } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt';
@@ -289,8 +289,10 @@ describe('ProgressTableComponent', () => {
 
   it('should clear interval on ngOnDestroy', () => {
     const spy = jest.spyOn(global, 'clearInterval');
-    (component as unknown as { interval: any }).interval = setInterval(() => {},
-    5000);
+    (component as unknown as { interval: any }).interval = setInterval(
+      () => {},
+      5000,
+    );
     component.ngOnDestroy();
     expect(spy).toHaveBeenCalled();
   });

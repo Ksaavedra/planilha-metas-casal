@@ -6,13 +6,13 @@ import {
   Output,
   SimpleChanges,
 } from '@angular/core';
-import { MetaExtended } from '../../../core/interfaces/mes-meta';
+import { MetaExtended } from '../../../core/interfaces/metas/mes-meta';
 
 @Component({
-    selector: 'app-editar-valor-modal',
-    templateUrl: './editar-valor-modal.component.html',
-    styleUrls: ['./editar-valor-modal.component.scss'],
-    standalone: false
+  selector: 'app-editar-valor-modal',
+  templateUrl: './editar-valor-modal.component.html',
+  styleUrls: ['./editar-valor-modal.component.scss'],
+  standalone: false,
 })
 export class EditarValorModalComponent implements OnChanges {
   @Input() isOpen = false;

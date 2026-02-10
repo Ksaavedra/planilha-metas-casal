@@ -17,9 +17,8 @@ import {
   Meta,
   MetaExtended,
   StatusMeta,
-} from '../../../../../core/interfaces/mes-meta';
+} from '../../../../../core/interfaces/metas/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
-import { ModalEditarValorService } from '../../../../../core/services/metas/modal-editar-valor.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -63,7 +62,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
 
   constructor(
     private metasService: MetasService,
-    private modalEditarValorService: ModalEditarValorService,
     private renderer: Renderer2,
     @Inject(DOCUMENT) private document: Document,
   ) {}
@@ -93,7 +91,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   ngOnInit() {
     // Componente de apresentação - dados vêm via @Input()
     // Escutar eventos de save da modal de editar valor
-    this.editarValorSubscription = this.modalEditarValorService.save$.subscribe(
+    this.editarValorSubscription = this.metasService.editarValorSave$.subscribe(
       (data: { metaId: number | string; mesId: number; valor: number }) => {
         const { metaId, mesId, valor } = data;
         const meta = this.metas.find((m) => String(m.id) === String(metaId));
@@ -142,7 +140,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
 
   // Métodos para edição de valores
   abrirModalEdicao(meta: MetaExtended, mesId: number): void {
-    this.modalEditarValorService.open(meta, mesId, this.meses);
+    this.metasService.openEditarValor(meta, mesId, this.meses);
   }
 
   // Métodos para formatação de moeda

@@ -4,16 +4,16 @@ import {
   Meta,
   MetaExtended,
   ModalEdicao,
-} from '../../../../core/interfaces/mes-meta';
+} from '../../../../core/interfaces/metas/mes-meta';
 import { ElaborandoMetasComponent } from '../../components/lista-metas/elaborando-metas/elaborando-metas.component';
 
 type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
 
 @Component({
-    selector: 'app-metas-page',
-    templateUrl: './metas-page.component.html',
-    styleUrls: ['./metas-page.component.scss'],
-    standalone: false
+  selector: 'app-metas-page',
+  templateUrl: './metas-page.component.html',
+  styleUrls: ['./metas-page.component.scss'],
+  standalone: false,
 })
 export class MetasPageComponent implements OnInit {
   @ViewChild('elaborandoMetas') elaborandoMetas!: ElaborandoMetasComponent;
@@ -143,7 +143,7 @@ export class MetasPageComponent implements OnInit {
         if (shouldPreserveTick && savedTickValue) {
           setTimeout(() => {
             const currentMeta = this.metas.find(
-              (meta) => String(meta.id) === String(m.id)
+              (meta) => String(meta.id) === String(m.id),
             );
             if (currentMeta) {
               currentMeta.savedTickCampo = false;
@@ -175,7 +175,7 @@ export class MetasPageComponent implements OnInit {
     const byName = new Map((meta.meses ?? []).map((m) => [m.nome, m]));
     meta.meses = header.map(
       (nome, i) =>
-        byName.get(nome) ?? { id: i + 1, nome, valor: 0, status: 'Vazio' }
+        byName.get(nome) ?? { id: i + 1, nome, valor: 0, status: 'Vazio' },
     );
   }
 
@@ -183,27 +183,27 @@ export class MetasPageComponent implements OnInit {
     // Calcular todos os totais de uma vez
     this.totalValorMetaView = this.metas.reduce(
       (t, m) => t + (Number(m.valorMeta) || 0),
-      0
+      0,
     );
 
     this.totalValorPorMesView = this.metas.reduce(
       (t, m) => t + (Number(m.valorPorMes) || 0),
-      0
+      0,
     );
 
     this.totalMesesNecessariosView = this.metas.reduce(
       (t, m) => t + (Number(m.mesesNecessarios) || 0),
-      0
+      0,
     );
 
     this.totalValorAtualView = this.metas.reduce(
       (t, m) => t + (Number(m.valorAtual) || 0),
-      0
+      0,
     );
 
     this.totalContribuicoesView = this.metas.reduce(
       (total, meta) => total + this.getTotalContribuicoesMeta(meta as any),
-      0
+      0,
     );
 
     // Calcular percentual pago (considerando "quanto já temos" + "quanto já pagamos")
@@ -312,7 +312,7 @@ export class MetasPageComponent implements OnInit {
   confirmarCampoComValor(
     meta: MetaExtended,
     campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome',
-    ev: Event
+    ev: Event,
   ) {
     // Prevenir comportamento padrão do Enter
     ev.preventDefault();
@@ -328,7 +328,7 @@ export class MetasPageComponent implements OnInit {
 
   confirmarCampo(
     meta: MetaExtended,
-    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome'
+    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome',
   ) {
     // valida ID (string do json-server)
     if (!meta.id || String(meta.id).trim() === '') {
@@ -418,7 +418,7 @@ export class MetasPageComponent implements OnInit {
 
   cancelarCampo(
     meta: MetaExtended,
-    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome'
+    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome',
   ) {
     const flag = `editando${campo.charAt(0).toUpperCase() + campo.slice(1)}` as
       | 'editandoNome'

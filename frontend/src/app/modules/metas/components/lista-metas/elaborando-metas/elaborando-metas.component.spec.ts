@@ -3,7 +3,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ElaborandoMetasComponent } from './elaborando-metas.component';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
-import { MetaExtended } from '../../../../../core/interfaces/mes-meta';
+import { MetaExtended } from '../../../../../core/interfaces/metas/mes-meta';
 
 describe('ElaborandoMetasComponent', () => {
   let component: ElaborandoMetasComponent;
@@ -367,7 +367,7 @@ describe('ElaborandoMetasComponent', () => {
       component.confirmarCampo(meta, 'nome');
 
       expect(alertSpy).toHaveBeenCalledWith(
-        'Erro: Meta sem ID válido. Recarregue a página e tente novamente.'
+        'Erro: Meta sem ID válido. Recarregue a página e tente novamente.',
       );
       alertSpy.mockRestore();
     });
@@ -780,7 +780,7 @@ describe('ElaborandoMetasComponent', () => {
       // Mock marcarMesesComoFinalizado
       const marcarSpy = jest.spyOn(
         component as any,
-        'marcarMesesComoFinalizado'
+        'marcarMesesComoFinalizado',
       );
 
       const progress = component.getProgressoRealMeta(meta);
@@ -895,7 +895,7 @@ describe('ElaborandoMetasComponent', () => {
       component.confirmarExclusao();
 
       expect(alertSpy).toHaveBeenCalledWith(
-        'Não foi possível excluir. Tente novamente.'
+        'Não foi possível excluir. Tente novamente.',
       );
       alertSpy.mockRestore();
     });
@@ -970,7 +970,7 @@ describe('ElaborandoMetasComponent', () => {
       component.salvarMetaModal();
 
       expect(alertSpy).toHaveBeenCalledWith(
-        'Erro ao criar meta. Tente novamente.'
+        'Erro ao criar meta. Tente novamente.',
       );
       alertSpy.mockRestore();
     });
@@ -1127,7 +1127,7 @@ describe('ElaborandoMetasComponent', () => {
 
       // Simular filtro de metas em elaboração
       const result = component.metas.filter(
-        (meta) => meta.mesesNecessarios > 0
+        (meta) => meta.mesesNecessarios > 0,
       );
 
       expect(result.length).toBe(1);

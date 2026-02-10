@@ -9,9 +9,8 @@ import {
   Meta,
   MetaExtended,
   ModalAdicionarMeta,
-} from '../../../../../core/interfaces/mes-meta';
+} from '../../../../../core/interfaces/metas/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
-import { ModalAdicionarMetaService } from '../../../../../core/services/metas/modal-adicionar-meta.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -71,21 +70,15 @@ export class ElaborandoMetasComponent implements OnDestroy {
   private saveSubscription?: Subscription;
   private confirmDeleteSubscription?: Subscription;
 
-  constructor(
-    private metasService: MetasService,
-    private modalService: ModalAdicionarMetaService,
-  ) {
-    // Escuta eventos de save do modal
-    this.saveSubscription = this.modalService.save$.subscribe(() => {
+  constructor(private metasService: MetasService) {
+    this.saveSubscription = this.metasService.save$.subscribe(() => {
       this.salvarMetaModal();
     });
 
-    // Escuta eventos de confirmação de exclusão
-    this.confirmDeleteSubscription = this.modalService.confirmDelete$.subscribe(
-      (metaId) => {
+    this.confirmDeleteSubscription =
+      this.metasService.confirmDelete$.subscribe((metaId) => {
         this.processarExclusao(metaId);
-      },
-    );
+      });
   }
 
   ngOnDestroy(): void {
@@ -131,7 +124,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
     // Abrir modal de confirmação através do serviço
     this.metaParaExcluir = meta;
-    this.modalService.openConfirmarDelete(meta.id, meta.nome || '');
+    this.metasService.openConfirmarDelete(meta.id, meta.nome || '');
   }
 
   processarExclusao(metaId: number): void {
@@ -149,7 +142,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
       this.metas = this.metas.filter((m) => String(m.id) !== String(id));
       this.recalcResumo();
       this.metasAtualizadas.emit();
-      this.modalService.showSucessoDelete();
+      this.metasService.showSucessoDelete();
       return;
     }
 
@@ -158,7 +151,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
       this.metas = this.metas.filter((m) => m !== meta);
       this.recalcResumo();
       this.metasAtualizadas.emit();
-      this.modalService.showSucessoDelete();
+      this.metasService.showSucessoDelete();
       return;
     }
 
@@ -166,7 +159,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
     this.metasService.deleteMeta(id).subscribe({
       next: () => {
         this.metasAtualizadas.emit();
-        this.modalService.showSucessoDelete();
+        this.metasService.showSucessoDelete();
       },
       error: (e) => {
         // Se for 404, a meta não existe no servidor, então remove da lista local
@@ -174,7 +167,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
           this.metas = this.metas.filter((m) => String(m.id) !== String(id));
           this.recalcResumo();
           this.metasAtualizadas.emit();
-          this.modalService.showSucessoDelete();
+          this.metasService.showSucessoDelete();
         } else {
           alert('Não foi possível excluir. Tente novamente.');
         }
@@ -690,7 +683,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   // Métodos para o modal de adicionar meta
   abrirModalAdicionarMeta(): void {
-    this.modalService.open();
+    this.metasService.open();
     // Sincronizar estado local
     this.modalAdicionarMeta.isOpen = true;
     this.modalAdicionarMeta.nome = '';
@@ -703,7 +696,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
   }
 
   fecharModalAdicionarMeta(): void {
-    this.modalService.close();
+    this.metasService.close();
     // Sincronizar estado local
     this.modalAdicionarMeta.isOpen = false;
     this.modalAdicionarMeta.nome = '';
@@ -717,7 +710,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   salvarMetaModal(): void {
     // Busca dados do serviço
-    const modalState = this.modalService.getState();
+    const modalState = this.metasService.getState();
     const nome = modalState.nome;
     const valorMeta = this.parseNumeroBR(modalState.valorMetaRaw);
     const valorPorMes = this.parseNumeroBR(modalState.valorPorMesRaw);
@@ -793,11 +786,10 @@ export class ElaborandoMetasComponent implements OnDestroy {
       next: () => {
         this.metasAtualizadas.emit();
         // Fecha o modal de adicionar primeiro
-        this.modalService.close();
-        this.modalService.reset();
+        this.metasService.close();
+        this.metasService.reset();
         this.fecharModalAdicionarMeta();
-        // Depois mostra modal de sucesso através do serviço (renderizado no app.component)
-        this.modalService.showSucesso(
+        this.metasService.showSucesso(
           'Meta adicionada!',
           'Sua meta foi criada com sucesso.',
         );
@@ -827,7 +819,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
     // Remove caracteres inválidos, mantém apenas números, vírgula e ponto
     const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
     // Atualiza no serviço
-    this.modalService.updateValorMetaRaw(valorLimpo);
+    this.metasService.updateValorMetaRaw(valorLimpo);
     // Sincroniza estado local
     this.valorMetaRaw = valorLimpo;
     const valorProcessado = this.parseNumeroBR(valorLimpo);
@@ -836,7 +828,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   onValorPorMesChange(valor: any): void {
     const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
-    this.modalService.updateValorPorMesRaw(valorLimpo);
+    this.metasService.updateValorPorMesRaw(valorLimpo);
     this.valorPorMesRaw = valorLimpo;
     const valorProcessado = this.parseNumeroBR(valorLimpo);
     this.modalAdicionarMeta.valorPorMes = valorProcessado;
@@ -844,7 +836,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   onValorAtualChange(valor: any): void {
     const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
-    this.modalService.updateValorAtualRaw(valorLimpo);
+    this.metasService.updateValorAtualRaw(valorLimpo);
     this.valorAtualRaw = valorLimpo;
     const valorProcessado = this.parseNumeroBR(valorLimpo);
     this.modalAdicionarMeta.valorAtual = valorProcessado;
