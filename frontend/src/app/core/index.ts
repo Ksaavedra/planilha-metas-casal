@@ -1,8 +1,4 @@
-export * from './services/api/api.service';
-export * from './services/categorias/categorias.service';
-export * from './services/despesas/a .service';
-export * from './services/metas/metas.service';
-export * from './services/relatorios/receitas.service';
-export * from './services/sidebar/sidebar.service';
-export * from './services/receitas/relatorios.service';
-export * from './interfaces/metas/mes-meta';
+export * from './components';
+export * from './constants';
+export * from './interfaces';
+export * from './services';

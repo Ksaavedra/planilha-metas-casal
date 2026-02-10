@@ -11,10 +11,14 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "paths": {
+      "@app/*": ["src/app/*"],
+      "app/*": ["src/app/*"],
+      "core": ["src/app/core"],
       "core/*": ["src/app/core/*"],
+      "shared": ["src/app/shared"],
       "shared/*": ["src/app/shared/*"],
-      "features/*": ["src/app/features/*"],
-      "app/*": ["src/app/*"]
+      "modules": ["src/app/modules"],
+      "modules/*": ["src/app/modules/*"]
     },
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
@@ -26,5 +30,7 @@
     "lib": ["ES2022", "dom"],
     "esModuleInterop": true,
     "useDefineForClassFields": false
-  }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "out-tsc"]
 }
