@@ -384,28 +384,59 @@
   margin-bottom: 1.5rem;
 }
 
-.receita-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
+/* Bloco por tipo de receita: título (Freela, Salário…) + linhas (Fixa/Variável, R$, ações) */
+.receita-grupo-tipo {
   background: white;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid #e2e8f0;
-  transition: all 0.2s ease;
+  padding: 0.75rem 1rem 0.5rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.receita-item:hover {
+.receita-grupo-tipo:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
-.receita-tipo {
+.receita-titulo-tipo {
+  margin: 0 0 0.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.receita-detalhes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.receita-linha {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex: 1;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  justify-content: space-around;
+}
+
+.receita-linha:last-child {
+  border-bottom: none;
+  padding-bottom: 0.15rem;
+}
+
+.receita-linha .categoria-badge {
+  margin-left: 0.1rem;
+}
+
+.receita-valor-acoes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .categoria-badge {
@@ -427,12 +458,6 @@
   color: #92400e;
 }
 
-.tipo-nome {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #334155;
-}
-
 .pessoa-nome {
   font-size: 0.85rem;
   color: #64748b;
@@ -440,17 +465,24 @@
 }
 
 .receita-valor {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
   white-space: nowrap;
+  padding: 0.35rem 0.6rem;
+  background: #f1f5f9;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
 .receita-actions {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  margin-left: 0.5rem;
+  gap: 0.2rem;
+  padding: 0.15rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
 }
 
 .btn-icon {
@@ -583,12 +615,28 @@
     font-size: 1.2rem;
   }
 
-  .receita-item {
-    padding: 0.6rem 0.8rem;
+  .receita-grupo-tipo {
+    padding: 0.65rem 0.85rem 0.45rem;
   }
 
-  .tipo-nome {
-    font-size: 0.9rem;
+  .receita-titulo-tipo {
+    font-size: 1rem;
+  }
+
+  .receita-linha {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .receita-linha::before {
+    display: none;
+  }
+
+  .receita-valor-acoes {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .receita-valor {

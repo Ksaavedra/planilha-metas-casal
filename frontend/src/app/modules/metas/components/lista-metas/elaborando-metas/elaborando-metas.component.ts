@@ -6,12 +6,18 @@ import {
   OnDestroy,
 } from '@angular/core';
 import {
+  MesMeta,
   Meta,
   MetaExtended,
   ModalAdicionarMeta,
 } from '../../../../../core/interfaces/metas/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { Subscription } from 'rxjs';
+import {
+  CreateMetaRequest,
+  ModalStateSalvar,
+  ValoresSalvarMetaModal,
+} from '@app/core';
 
 @Component({
   selector: 'app-elaborando-metas',
@@ -75,10 +81,11 @@ export class ElaborandoMetasComponent implements OnDestroy {
       this.salvarMetaModal();
     });
 
-    this.confirmDeleteSubscription =
-      this.metasService.confirmDelete$.subscribe((metaId) => {
+    this.confirmDeleteSubscription = this.metasService.confirmDelete$.subscribe(
+      (metaId) => {
         this.processarExclusao(metaId);
-      });
+      },
+    );
   }
 
   ngOnDestroy(): void {
@@ -268,8 +275,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
     }
 
     // Se não tem vírgula nem ponto, é só número
-    const resultado = parseFloat(limpo);
-    return isNaN(resultado) ? 0 : resultado;
+    return parseFloat(limpo);
   }
 
   formatBR(valor: number): string {
@@ -300,7 +306,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
     meta: MetaExtended,
     campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome',
   ) {
-    // valida ID (string do json-server)
     if (!meta.id || String(meta.id).trim() === '') {
       alert('Erro: Meta sem ID válido. Recarregue a página e tente novamente.');
       return;
@@ -320,37 +325,42 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
     const tempVal = (meta as any)[tempKey];
 
-    // ====== 1) Atualização de NOME ======
     if (campo === 'nome') {
-      const novoNome = String(tempVal ?? '').trim();
-      if (!novoNome || novoNome === meta.nome) {
-        this.cancelarCampo(meta, 'nome');
-        return;
-      }
+      this.confirmarCampoNome(meta, tempVal);
+    } else {
+      this.confirmarCampoNumerico(meta, campo, tempVal);
+    }
 
-      // aplica localmente
-      meta.nome = novoNome;
+    (meta as any)[flag] = false;
+    (meta as any)[tempKey] = undefined;
+  }
 
-      // salva (PATCH parcial)
-      this.metasService.updateMeta(meta.id, { nome: novoNome }).subscribe({
-        next: () => {
-          meta.savedTickCampo = true;
-          setTimeout(() => (meta.savedTickCampo = false), 5000);
-          this.metasAtualizadas.emit();
-        },
-        error: (_e) => {
-          alert('Erro ao salvar. Tente novamente.');
-        },
-      });
-
-      // encerra estado de edição
-      (meta as any)[flag] = false;
-      (meta as any)[tempKey] = undefined;
+  private confirmarCampoNome(meta: MetaExtended, tempVal: any): void {
+    const novoNome = String(tempVal ?? '').trim();
+    if (!novoNome || novoNome === meta.nome) {
+      this.cancelarCampo(meta, 'nome');
       return;
     }
 
-    // ====== 2) Atualização de CAMPOS NUMÉRICOS ======
-    // Sempre parsear (suporta "3.123,00", "3123.00", "200")
+    meta.nome = novoNome;
+
+    this.metasService.updateMeta(meta.id, { nome: novoNome }).subscribe({
+      next: () => this.onUpdateMetaSuccessNome(meta),
+      error: () => this.onUpdateMetaError(),
+    });
+  }
+
+  private onUpdateMetaSuccessNome(meta: MetaExtended): void {
+    meta.savedTickCampo = true;
+    setTimeout(() => (meta.savedTickCampo = false), 5000);
+    this.metasAtualizadas.emit();
+  }
+
+  private confirmarCampoNumerico(
+    meta: MetaExtended,
+    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual',
+    tempVal: any,
+  ): void {
     const novo = this.parseNumeroBR(tempVal);
     const atual = Number((meta as any)[campo]) || 0;
 
@@ -359,16 +369,27 @@ export class ElaborandoMetasComponent implements OnDestroy {
       return;
     }
 
-    // aplica localmente
     (meta as any)[campo] = novo;
 
-    // monta patch; se mudar valorPorMes, recalc mesesNecessarios e atualiza todos os meses
-    const patch: any = { [campo]: novo };
+    const patch = this.buildPatchCampoNumerico(meta, campo, novo);
+
+    this.metasService.updateMeta(meta.id, patch).subscribe({
+      next: () => this.onUpdateMetaSuccessNumerico(meta, campo, novo),
+      error: () => this.onUpdateMetaError(),
+    });
+  }
+
+  private buildPatchCampoNumerico(
+    meta: MetaExtended,
+    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual',
+    novo: number,
+  ): Record<string, unknown> {
+    const patch: Record<string, unknown> = { [campo]: novo };
+
     if (campo === 'valorPorMes') {
       patch.mesesNecessarios =
         novo > 0 ? Math.ceil((meta.valorMeta || 0) / novo) : 0;
 
-      // Atualizar todos os meses com o novo valorPorMes
       if (meta.meses && meta.meses.length > 0) {
         patch.meses = meta.meses.map((mes) => ({
           ...mes,
@@ -378,52 +399,44 @@ export class ElaborandoMetasComponent implements OnDestroy {
       }
     }
 
-    this.metasService.updateMeta(meta.id, patch).subscribe({
-      next: () => {
-        // Atualizar localmente os meses se foi valorPorMes
-        if (campo === 'valorPorMes' && meta.meses && meta.meses.length > 0) {
-          meta.meses.forEach((mes) => {
-            mes.valor = novo > 0 ? novo : 0;
-            mes.status = novo > 0 ? 'Programado' : 'Vazio';
-          });
-        }
+    return patch;
+  }
 
-        meta.savedTickCampo = true;
-        const savedMetaId = meta.id;
+  private onUpdateMetaSuccessNumerico(
+    meta: MetaExtended,
+    campo: 'valorMeta' | 'valorPorMes' | 'valorAtual',
+    novo: number,
+  ): void {
+    if (campo === 'valorPorMes' && meta.meses && meta.meses.length > 0) {
+      meta.meses.forEach((mes) => {
+        mes.valor = novo > 0 ? novo : 0;
+        mes.status = novo > 0 ? 'Programado' : 'Vazio';
+      });
+    }
 
-        // Preservar o estado antes de recarregar
-        const shouldPreserveTick = true;
+    meta.savedTickCampo = true;
+    const savedMetaId = meta.id;
+    const shouldPreserveTick = true;
 
-        setTimeout(() => {
-          const currentMeta = this.metas.find(
-            (m) => String(m.id) === String(savedMetaId),
-          );
-          if (currentMeta) {
-            currentMeta.savedTickCampo = false;
-          }
-        }, 5000);
+    setTimeout(() => {
+      const currentMeta = this.metas.find(
+        (m) => String(m.id) === String(savedMetaId),
+      );
+      if (currentMeta) {
+        currentMeta.savedTickCampo = false;
+      }
+    }, 5000);
 
-        this.recalcResumo();
+    this.recalcResumo();
 
-        // Aguardar um pouco para garantir que o servidor processou a atualização
-        // antes de recarregar e atualizar a tabela
-        setTimeout(() => {
-          // Emitir evento para o componente pai atualizar a tabela executando-metas
-          // Isso recarrega as metas do servidor e atualiza o array @Input() passado para executando-metas
-          this.metasAtualizadas.emit();
+    setTimeout(() => {
+      this.metasAtualizadas.emit();
+      this.reloadMetas(savedMetaId, shouldPreserveTick);
+    }, 200);
+  }
 
-          // Recarregar localmente também para manter sincronizado
-          this.reloadMetas(savedMetaId, shouldPreserveTick);
-        }, 200);
-      },
-      error: (_e) => {
-        alert('Erro ao salvar. Tente novamente.');
-      },
-    });
-
-    // encerra estado de edição
-    (meta as any)[flag] = false;
-    (meta as any)[tempKey] = undefined;
+  private onUpdateMetaError(): void {
+    alert('Erro ao salvar. Tente novamente.');
   }
 
   private recalcResumo(): void {
@@ -709,41 +722,106 @@ export class ElaborandoMetasComponent implements OnDestroy {
   }
 
   salvarMetaModal(): void {
-    // Busca dados do serviço
-    const modalState = this.metasService.getState();
-    const nome = modalState.nome;
+    const modalState = this.metasService.getState() as ModalStateSalvar;
+
+    const valores = this.validarEstadoModalSalvar(modalState);
+    if (!valores) return;
+
+    const dadosParaEnviar = this.buildDadosMetaParaEnviar(modalState, valores);
+
+    this.metasService.createMeta(dadosParaEnviar).subscribe({
+      next: () => this.onSalvarMetaSuccess(),
+      error: (err) => this.onSalvarMetaError(err),
+    });
+  }
+
+  private validarEstadoModalSalvar(
+    modalState: ModalStateSalvar,
+  ): ValoresSalvarMetaModal | null {
+    const valores = this.extrairValoresModalSalvar(modalState);
+
+    const erro = this.validarValoresModalSalvar(modalState, valores);
+    if (erro) return this.alertAndReturn(erro);
+
+    return valores;
+  }
+
+  private extrairValoresModalSalvar(
+    modalState: ModalStateSalvar,
+  ): ValoresSalvarMetaModal {
+    const nome = (modalState.nome ?? '').trim();
+
     const valorMeta = this.parseNumeroBR(modalState.valorMetaRaw);
     const valorPorMes = this.parseNumeroBR(modalState.valorPorMesRaw);
-    // Se o checkbox não estiver marcado, valorAtual deve ser 0
+
+    const valorAtualRaw = (modalState.valorAtualRaw ?? '').trim();
     const valorAtual = modalState.temValorAtual
-      ? this.parseNumeroBR(modalState.valorAtualRaw)
+      ? this.parseNumeroBR(valorAtualRaw)
       : 0;
 
-    // Validação de campos obrigatórios
-    if (!nome || !nome.trim()) {
-      alert('Por favor, preencha o nome da meta.');
-      return;
-    }
+    return { nome, valorMeta, valorPorMes, valorAtual };
+  }
 
-    if (!valorMeta || valorMeta <= 0) {
-      alert('Por favor, preencha o valor da meta (deve ser maior que zero).');
-      return;
-    }
+  private validarValoresModalSalvar(
+    modalState: ModalStateSalvar,
+    valores: ValoresSalvarMetaModal,
+  ): string | null {
+    if (!valores.nome) return 'Por favor, preencha o nome da meta.';
 
-    if (!valorPorMes || valorPorMes <= 0) {
-      alert('Por favor, preencha o valor por mês (deve ser maior que zero).');
-      return;
-    }
+    if (valores.valorMeta <= 0)
+      return 'Por favor, preencha o valor da meta (deve ser maior que zero).';
 
-    // Validação do valor atual (se o checkbox estiver marcado, deve ser preenchido)
-    if (modalState.temValorAtual && (!valorAtual || valorAtual < 0)) {
-      alert(
-        'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).',
-      );
-      return;
-    }
+    if (valores.valorPorMes <= 0)
+      return 'Por favor, preencha o valor por mês (deve ser maior que zero).';
 
-    const mesesPadrao = [
+    if (modalState.temValorAtual)
+      return this.validarValorAtual(modalState, valores);
+
+    return null;
+  }
+
+  private validarValorAtual(
+    modalState: ModalStateSalvar,
+    valores: ValoresSalvarMetaModal,
+  ): string | null {
+    const valorAtualRaw = (modalState.valorAtualRaw ?? '').trim();
+
+    if (!valorAtualRaw)
+      return 'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).';
+
+    if (valores.valorAtual < 0)
+      return 'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).';
+
+    return null;
+  }
+
+  private buildDadosMetaParaEnviar(
+    modalState: ModalStateSalvar,
+    valores: ValoresSalvarMetaModal,
+  ): CreateMetaRequest {
+    const mesesPadrao = this.getMesesPadrao();
+    const iconSelecionado = this.getIconSelecionado(modalState);
+
+    const mesesNecessarios =
+      valores.valorPorMes > 0
+        ? Math.ceil(valores.valorMeta / valores.valorPorMes)
+        : 0;
+
+    const valorAtualFinal = modalState.temValorAtual ? valores.valorAtual : 0;
+
+    return {
+      nome: valores.nome,
+      valorMeta: valores.valorMeta,
+      valorPorMes: valores.valorPorMes,
+      mesesNecessarios,
+      valorAtual: valorAtualFinal,
+      icon: iconSelecionado,
+      meses: this.buildMeses(mesesPadrao, valores.valorPorMes),
+    };
+  }
+
+  private getMesesPadrao(): string[] {
+    return [
       'Janeiro',
       'Fevereiro',
       'Março',
@@ -757,57 +835,65 @@ export class ElaborandoMetasComponent implements OnDestroy {
       'Novembro',
       'Dezembro',
     ];
+  }
 
-    const iconSelecionado =
-      modalState.icon && modalState.icon.trim() !== ''
-        ? modalState.icon
-        : 'bi-bullseye';
+  private getIconSelecionado(modalState: ModalStateSalvar): string {
+    return modalState.icon && modalState.icon.trim() !== ''
+      ? modalState.icon
+      : 'bi-bullseye';
+  }
 
-    const dadosParaEnviar = {
-      nome: nome.trim(),
-      valorMeta: valorMeta || 0,
-      valorPorMes: valorPorMes || 0,
-      mesesNecessarios:
-        valorPorMes > 0 ? Math.ceil((valorMeta || 0) / valorPorMes) : 0,
-      valorAtual: valorAtual || 0,
-      icon: iconSelecionado, // Ícone selecionado
-      meses: mesesPadrao.map((n, i) => ({
-        id: i + 1,
-        nome: n,
-        valor: valorPorMes || 0,
-        status:
-          valorPorMes && valorPorMes > 0
-            ? ('Programado' as 'Programado')
-            : ('Vazio' as 'Vazio'),
-      })),
-    };
+  private buildMeses(
+    mesesPadrao: string[],
+    valorPorMes: number,
+  ): Partial<MesMeta>[] {
+    const valor = valorPorMes > 0 ? valorPorMes : 0;
+    const status = (valorPorMes > 0 ? 'Programado' : 'Vazio') as
+      | 'Programado'
+      | 'Vazio';
 
-    this.metasService.createMeta(dadosParaEnviar).subscribe({
-      next: () => {
-        this.metasAtualizadas.emit();
-        // Fecha o modal de adicionar primeiro
-        this.metasService.close();
-        this.metasService.reset();
-        this.fecharModalAdicionarMeta();
-        this.metasService.showSucesso(
-          'Meta adicionada!',
-          'Sua meta foi criada com sucesso.',
-        );
-      },
-      error: (err) => {
-        // Mensagem de erro mais específica
-        if (err.status === 0 || err.statusText === 'Unknown Error') {
-          alert(
-            '⚠️ Erro de conexão: Não foi possível conectar ao servidor.\n\n' +
-              'Verifique se o backend está rodando em http://localhost:3000\n\n' +
-              'Erro: ' +
-              (err.message || 'Conexão recusada'),
-          );
-        } else {
-          alert('Erro ao criar meta: ' + (err.message || 'Tente novamente.'));
-        }
-      },
-    });
+    return mesesPadrao.map((nome, i) => ({
+      id: i + 1,
+      nome,
+      valor,
+      status,
+    }));
+  }
+
+  private onSalvarMetaSuccess(): void {
+    this.metasAtualizadas.emit();
+
+    this.metasService.close();
+    this.metasService.reset();
+    this.fecharModalAdicionarMeta();
+
+    this.metasService.showSucesso(
+      'Meta adicionada!',
+      'Sua meta foi criada com sucesso.',
+    );
+  }
+
+  private onSalvarMetaError(err: {
+    status?: number;
+    statusText?: string;
+    message?: string;
+  }): void {
+    if (err.status === 0 || err.statusText === 'Unknown Error') {
+      alert(
+        '⚠️ Erro de conexão: Não foi possível conectar ao servidor.\n\n' +
+          'Verifique se o backend está rodando em http://localhost:3000\n\n' +
+          'Erro: ' +
+          (err.message || 'Conexão recusada'),
+      );
+      return;
+    }
+
+    alert('Erro ao criar meta: ' + (err.message || 'Tente novamente.'));
+  }
+
+  private alertAndReturn(message: string): null {
+    alert(message);
+    return null;
   }
 
   cancelarAdicionarMeta(): void {

@@ -1,5 +1,6 @@
 import {
   CUSTOM_ELEMENTS_SCHEMA,
+  LOCALE_ID,
   NgModule,
   NO_ERRORS_SCHEMA,
 } from '@angular/core';
@@ -23,7 +24,7 @@ import { SharedModule } from './shared/shared.module';
     RouterModule,
     SharedModule,
   ],
-  providers: [],
+  providers: [{ provide: LOCALE_ID, useValue: 'pt-BR' }],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
   bootstrap: [AppComponent],
 })

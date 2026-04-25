@@ -52,3 +52,19 @@ export interface ModalEditarValorState {
   valor: number;
   meses: string[];
 }
+
+export interface ModalStateSalvar {
+  nome: string;
+  valorMetaRaw: string;
+  valorPorMesRaw: string;
+  valorAtualRaw: string;
+  temValorAtual: boolean;
+  icon?: string;
+}
+
+export type ValoresSalvarMetaModal = {
+  nome: string;
+  valorMeta: number;
+  valorPorMes: number;
+  valorAtual: number;
+};

@@ -287,4 +287,29 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
     if (!receita.id) return;
     this.receitasService.openConfirm(receita);
   }
+
+  /**
+   * Agrupa as receitas de uma pessoa por tipo (ex.: Freela, Salário).
+   * Cada tipo vira um bloco com uma ou mais linhas (Fixa / Variável, valor, ações).
+   */
+  receitasAgrupadasPorTipo(
+    receitas: ReceitaMensal[],
+  ): { tipo: string; itens: ReceitaMensal[] }[] {
+    const map = new Map<string, ReceitaMensal[]>();
+    for (const r of receitas) {
+      const t = (r.tipo || '').trim() || '—';
+      if (!map.has(t)) map.set(t, []);
+      map.get(t)!.push(r);
+    }
+    const tipos = [...map.keys()].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    return tipos.map((tipo) => {
+      const itens = [...(map.get(tipo) || [])].sort((a, b) => {
+        const ord = (c: CategoriaReceita) => (c === 'Fixa' ? 0 : 1);
+        const d = ord(a.categoria) - ord(b.categoria);
+        if (d !== 0) return d;
+        return (a.id ?? 0) - (b.id ?? 0);
+      });
+      return { tipo, itens };
+    });
+  }
 }
