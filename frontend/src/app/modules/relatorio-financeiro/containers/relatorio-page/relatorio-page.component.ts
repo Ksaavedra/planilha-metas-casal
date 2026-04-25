@@ -1,11 +1,20 @@
 import {
-  AfterContentInit,
+  AfterViewInit,
   Component,
   ElementRef,
   ViewChild,
 } from '@angular/core';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import { ReceitaMensal } from '../../../../core/interfaces/receitas';
+import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
 declare const echarts: unknown;
 type EChartsOption = Record<string, unknown>;
+
+/** Anos exibidos no gráfico comparativo; o ano atual recebe receitas pela API. */
+const ANOS_COMPARACAO: readonly number[] = [
+  2020, 2021, 2022, 2023, 2024, 2025, 2026,
+];
 
 @Component({
   selector: 'app-relatorio-page',
@@ -13,7 +22,7 @@ type EChartsOption = Record<string, unknown>;
   styleUrls: ['./relatorio-page.component.scss'],
   standalone: false,
 })
-export class RelatorioPageComponent implements AfterContentInit {
+export class RelatorioPageComponent implements AfterViewInit {
   @ViewChild('chartSaldo') chartSaldo!: ElementRef;
   @ViewChild('chartReceitasDespesas') chartReceitasDespesas!: ElementRef;
   @ViewChild('chartDividasInvestimentos')
@@ -34,8 +43,9 @@ export class RelatorioPageComponent implements AfterContentInit {
     'Dezembro',
   ];
 
-  anosDisponiveis = [2020, 2021, 2022, 2023, 2024, 2025];
-  anoSelecionado = 2024;
+  readonly anosComparacao = ANOS_COMPARACAO;
+  /** Ano exibido na tela e tabelas: ano civil de hoje (em 2026 = 2026). */
+  anoSelecionado = new Date().getFullYear();
 
   // Propriedades de dados
   dadosReceitas: number[] = [];
@@ -132,10 +142,19 @@ export class RelatorioPageComponent implements AfterContentInit {
         1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200,
       ],
     },
+    /** Receitas por mês: preenchido pela API; demais séries fixas em 0 (mock). */
+    2026: {
+      receitas: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      despesas: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      dividas: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      investimentos: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
   };
 
   ngAfterViewInit(): void {
     this.initCharts();
+    this.sincronizarGraficoSaldoECharts();
+    this.sincronizarGraficosBarraELinha();
   }
 
   private initCharts() {
@@ -151,6 +170,39 @@ export class RelatorioPageComponent implements AfterContentInit {
     dividasChart.setOption(this.chartOptionDividasInvestimentos);
   }
 
+  private sincronizarGraficoSaldoECharts(): void {
+    this.chartOption = {
+      ...this.chartOption,
+      dataset: { source: this.getDatasetSource() },
+    };
+    const el = this.chartSaldo?.nativeElement;
+    if (!el) return;
+    const e = echarts as any;
+    const chart = e.getInstanceByDom
+      ? e.getInstanceByDom(el) || e.init(el)
+      : e.init(el);
+    chart.setOption(this.chartOption, { notMerge: false });
+  }
+
+  private sincronizarGraficosBarraELinha(): void {
+    const el2 = this.chartReceitasDespesas?.nativeElement;
+    const el3 = this.chartDividasInvestimentos?.nativeElement;
+    if (!el2 && !el3) return;
+    const e = echarts as any;
+    if (el2) {
+      const c = e.getInstanceByDom
+        ? e.getInstanceByDom(el2) || e.init(el2)
+        : e.init(el2);
+      c.setOption(this.chartOptionReceitasDespesas, { notMerge: false });
+    }
+    if (el3) {
+      const c = e.getInstanceByDom
+        ? e.getInstanceByDom(el3) || e.init(el3)
+        : e.init(el3);
+      c.setOption(this.chartOptionDividasInvestimentos, { notMerge: false });
+    }
+  }
+
   // Configuração do gráfico ECharts com dataset
   chartOption: EChartsOption = {
     title: {
@@ -163,7 +215,7 @@ export class RelatorioPageComponent implements AfterContentInit {
       },
     },
     legend: {
-      data: ['2020', '2021', '2022', '2023', '2024', '2025'],
+      data: ANOS_COMPARACAO.map(String),
       bottom: 10,
     },
     tooltip: {
@@ -247,6 +299,11 @@ export class RelatorioPageComponent implements AfterContentInit {
         type: 'bar',
         name: '2025',
         itemStyle: { color: '#3ba272' },
+      },
+      {
+        type: 'bar',
+        name: '2026',
+        itemStyle: { color: '#9a60b4' },
       },
     ],
   };
@@ -512,6 +569,7 @@ export class RelatorioPageComponent implements AfterContentInit {
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
+    this.sincronizarGraficosBarraELinha();
   }
 
   private atualizarGraficoReceitasDespesas() {
@@ -623,7 +681,7 @@ export class RelatorioPageComponent implements AfterContentInit {
     this.mergeOptions = {
       dataset: {
         source: [
-          ['Mês', '2020', '2021', '2022', '2023', '2024', '2025'],
+          ['Mês', ...ANOS_COMPARACAO.map((a) => String(a))],
           ['Janeiro', ...this.getRandomValues()],
           ['Fevereiro', ...this.getRandomValues()],
           ['Março', ...this.getRandomValues()],
@@ -643,20 +701,21 @@ export class RelatorioPageComponent implements AfterContentInit {
 
   private getRandomValues() {
     const res: number[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < ANOS_COMPARACAO.length; i++) {
       res.push(Math.random() * 20000 - 10000); // Valores entre -10.000 e +10.000
     }
     return res;
   }
 
   private getDatasetSource() {
-    const source = [['Mês', '2020', '2021', '2022', '2023', '2024', '2025']];
+    const source: (string | number)[][] = [
+      ['Mês', ...ANOS_COMPARACAO.map((a) => String(a))],
+    ];
 
     this.meses.forEach((mes, index) => {
-      const row: any[] = [mes];
+      const row: (string | number)[] = [mes];
 
-      // Adicionar dados de cada ano
-      [2020, 2021, 2022, 2023, 2024, 2025].forEach((ano) => {
+      ANOS_COMPARACAO.forEach((ano) => {
         const dadosAno = this.dadosPorAno[ano];
         if (dadosAno) {
           const saldo =
@@ -683,13 +742,40 @@ export class RelatorioPageComponent implements AfterContentInit {
   chartOptionInvestimentos: EChartsOption = {};
   chartOptionSaldo: EChartsOption = {};
 
-  constructor() {
+  constructor(private receitasService: ReceitasService) {
+    this.carregarReceitasAno(this.anoSelecionado);
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
   }
-  ngAfterContentInit(): void {
-    throw new Error('Method not implemented.');
+
+  /**
+   * Soma as receitas do banco (API) mês a mês e atualiza `dadosPorAno[ano].receitas`.
+   */
+  private carregarReceitasAno(ano: number): void {
+    if (!this.dadosPorAno[ano]) return;
+    const porMes$ = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((mes) =>
+      this.receitasService.getPorMesAno(ano, mes).pipe(
+        catchError(() => of([] as ReceitaMensal[])),
+        map((lista) =>
+          (lista || []).reduce((s, r) => s + (Number(r.valor) || 0), 0),
+        ),
+      ),
+    );
+    forkJoin(porMes$).subscribe({
+      next: (totaisPorMes) => {
+        this.dadosPorAno[ano].receitas = totaisPorMes;
+        this.aoAtualizarReceitasDaApi();
+      },
+    });
+  }
+
+  private aoAtualizarReceitasDaApi(): void {
+    this.calcularTotais();
+    this.configurarGraficosCards();
+    this.atualizarGraficoReceitasDespesas();
+    this.sincronizarGraficoSaldoECharts();
+    this.sincronizarGraficosBarraELinha();
   }
 
   configurarGraficosCards() {

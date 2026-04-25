@@ -1,14 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { RelatorioPageComponent } from './relatorio-page.component';
 import { NGX_ECHARTS_CONFIG } from 'ngx-echarts';
+import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
 
 describe('RelatorioPageComponent', () => {
   let component: RelatorioPageComponent;
   let fixture: ComponentFixture<RelatorioPageComponent>;
 
   beforeEach(async () => {
+    const receitasStub = {
+      getPorMesAno: jest.fn().mockReturnValue(of([])),
+    };
+
     await TestBed.configureTestingModule({
       declarations: [RelatorioPageComponent],
+      providers: [{ provide: ReceitasService, useValue: receitasStub }],
     })
       .overrideComponent(RelatorioPageComponent, {
         set: {
@@ -34,17 +41,20 @@ describe('RelatorioPageComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('inicia no ano 2024 com 12 valores em cada série', () => {
-    expect(component.anoSelecionado).toBe(2024);
+  it('inicia no ano civil atual com 12 valores em cada série', () => {
+    expect(component.anoSelecionado).toBe(new Date().getFullYear());
     expect(component.dadosReceitas.length).toBe(12);
     expect(component.dadosDespesas.length).toBe(12);
     expect(component.dadosDividas.length).toBe(12);
     expect(component.dadosInvestimentos.length).toBe(12);
   });
 
-  it('dadosTotal (Jan/2024) = receitas - despesas - dívidas - investimentos', () => {
+  it('dadosTotal (Jan) = receitas - despesas - dívidas - investimentos', () => {
+    const y = 2024;
+    component.anoSelecionado = y;
+    component.onAnoChange();
     const i = 0;
-    const ds = component.dadosPorAno[2024];
+    const ds = component.dadosPorAno[y];
     const esperado =
       ds.receitas[i] - ds.despesas[i] - ds.dividas[i] - ds.investimentos[i];
     expect(component.dadosTotal[i]).toBeCloseTo(esperado, 6);
@@ -63,7 +73,7 @@ describe('RelatorioPageComponent', () => {
     expect(component.saldoTotal).toBeCloseTo(r - d - di - inv, 6);
   });
 
-  it('dataset do gráfico principal: 13 linhas (header + 12) e 7 colunas', () => {
+  it('dataset do gráfico principal: 13 linhas (header + 12) e 8 colunas', () => {
     const src = (component.chartOption.dataset as any).source as any[];
     expect(src.length).toBe(component.meses.length + 1);
     expect(src[0]).toEqual([
@@ -74,8 +84,9 @@ describe('RelatorioPageComponent', () => {
       '2023',
       '2024',
       '2025',
+      '2026',
     ]);
-    src.slice(1).forEach((row) => expect(row.length).toBe(7));
+    src.slice(1).forEach((row) => expect(row.length).toBe(8));
   });
 
   it('getDatasetSource calcula saldos por ano (linha de Janeiro)', () => {
@@ -91,10 +102,11 @@ describe('RelatorioPageComponent', () => {
       '2023',
       '2024',
       '2025',
+      '2026',
     ]);
     expect(janeiro[0]).toBe('Janeiro');
 
-    for (let col = 1, ano = 2020; ano <= 2025; ano++, col++) {
+    for (let col = 1, ano = 2020; ano <= 2026; ano++, col++) {
       const ds = component.dadosPorAno[ano];
       const esperado =
         ds.receitas[0] - ds.despesas[0] - ds.dividas[0] - ds.investimentos[0];
@@ -115,7 +127,7 @@ describe('RelatorioPageComponent', () => {
     expect(fmt(1234)).toContain('R$');
   });
 
-  it('randomDataset gera mergeOptions.dataset.source com 13x7', () => {
+  it('randomDataset gera mergeOptions.dataset.source com 13x8', () => {
     jest.spyOn(Math, 'random').mockReturnValue(0.5); // determinístico
     component.randomDataset();
 
@@ -129,10 +141,11 @@ describe('RelatorioPageComponent', () => {
       '2023',
       '2024',
       '2025',
+      '2026',
     ]);
     ds.slice(1).forEach((row) => {
-      expect(row.length).toBe(7);
-      expect(row.slice(1)).toEqual([0, 0, 0, 0, 0, 0]); // com random=0.5 cai em 0
+      expect(row.length).toBe(8);
+      expect(row.slice(1)).toEqual([0, 0, 0, 0, 0, 0, 0]); // com random=0.5 cai em 0
     });
   });
 
@@ -242,7 +255,7 @@ describe('RelatorioPageComponent', () => {
 
   it('propriedades mantêm valores anteriores quando o ano não existe (fallback)', () => {
     // Primeiro define um ano válido para ter dados
-    component.anoSelecionado = 2024;
+    component.anoSelecionado = new Date().getFullYear();
     component.onAnoChange();
     
     // Salva os valores atuais
