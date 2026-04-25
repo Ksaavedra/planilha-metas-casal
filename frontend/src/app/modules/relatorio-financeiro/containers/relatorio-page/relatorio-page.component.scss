@@ -6,101 +6,282 @@
   min-height: 100vh;
 }
 
-.title-container {
+/* ===== Cabeçalho: card unificado, alinhado à página de Receitas (violeta + slate) ===== */
+.relatorio-hero {
   margin-bottom: 2rem;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow:
+    0 4px 6px -1px rgba(15, 23, 42, 0.06),
+    0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
 }
 
-.title {
-  background: #364152;
-  color: #ffffff;
-  padding: 1rem;
-  text-align: center;
-  border-radius: 8px 8px 0 0;
-  font-size: 1.1rem;
-  font-weight: bold;
-  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
-  text-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
-
-  h1 {
-    color: #ffffff;
-    margin: 0;
-  }
+.relatorio-hero__accent {
+  height: 4px;
+  background: linear-gradient(90deg, #5b21b6 0%, #7c3aed 35%, #a855f7 70%, #c4b5fd 100%);
 }
 
-.title-content {
-  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
-  padding: 1rem;
+.relatorio-hero__inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1.5rem;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  justify-content: space-between;
+  gap: 1.25rem 1.5rem;
+  padding: 1.35rem 1.5rem 1.15rem;
 }
 
-.categorias-btn {
-  background: linear-gradient(135deg, #9ca3af 0%, #d1d5db 100%);
-  border: none;
-  color: #374151;
-  padding: 1rem 2rem;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.1);
-
-  &:hover {
-    background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
-    color: #ffffff;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
-  }
-}
-
-.title-banner {
-  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
-  color: #ffffff;
-  // padding: 1rem 2rem;
-  // border-radius: 10px;
+.relatorio-hero__brand {
   display: flex;
   align-items: center;
   gap: 1rem;
-  font-weight: 700;
-  font-size: 1.3rem;
-  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+  min-width: 0;
 }
 
-.year-selector {
-  margin-left: auto;
+.relatorio-hero__icon-wrap {
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 1px solid #e9d5ff;
+  color: #6d28d9;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
 
-  select {
-    background: #f3f4f6;
-    border: 2px solid #d1d5db;
-    border-radius: 10px;
-    padding: 1rem 2rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #374151;
-    cursor: pointer;
-    outline: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.1);
+.relatorio-hero__icon {
+  font-size: 1.75rem;
+}
 
-    &:hover {
-      background: #e5e7eb;
-      border-color: #8b5cf6;
-      transform: translateY(-1px);
-    }
+.relatorio-hero__text {
+  min-width: 0;
+}
 
-    &:focus {
-      border-color: #8b5cf6;
-      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
-    }
+.relatorio-hero__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  line-height: 1.25;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+}
+
+.relatorio-hero__year-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem 0.22rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #5b21b6;
+  background: #f3e8ff;
+  border: 1px solid #d8b4fe;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
+.relatorio-hero__subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.relatorio-hero__field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.relatorio-hero__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin: 0;
+  align-self: flex-end;
+}
+
+.relatorio-hero__select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.relatorio-hero__select-icon {
+  position: absolute;
+  left: 0.75rem;
+  pointer-events: none;
+  font-size: 1.15rem;
+  color: #7c3aed;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+.relatorio-hero__select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 7.5rem;
+  padding: 0.55rem 2.15rem 0.55rem 2.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M3 4.5L6 7.5L9 4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  &:hover {
+    background-color: #fff;
+    border-color: #c4b5fd;
   }
+
+  &:focus {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+  }
+}
+
+.relatorio-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem 0.9rem;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+}
+
+.relatorio-hero__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  line-height: 1.2;
+  user-select: none;
+  cursor: pointer;
+  color: #64748b;
+  background: #fff;
+  transition:
+    color 0.2s,
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+
+  &:hover:not(:disabled) {
+    color: #5b21b6;
+    border-color: #d8b4fe;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #7c3aed;
+    outline-offset: 2px;
+  }
+}
+
+.relatorio-hero__chip.is-active {
+  color: #5b21b6;
+  background: #fff;
+  border-color: #e9d5ff;
+  box-shadow: 0 1px 2px rgba(91, 33, 182, 0.06);
+  cursor: default;
+}
+
+/* Categorias (receitas) */
+.relatorio-categorias {
+  margin-bottom: 2.5rem;
+  animation: relatorio-cat-fade 0.25s ease;
+}
+
+@keyframes relatorio-cat-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.relatorio-categorias__intro {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.relatorio-categorias__h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+
+  &+.data-table {
+    margin-bottom: 2rem;
+  }
+}
+
+.relatorio-categorias__vazio {
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 10px;
+}
+
+.data-table--categorias {
+  table {
+    font-size: 0.68rem;
+  }
+
+  th,
+  td {
+    font-size: 0.68rem;
+  }
+}
+
+tr.natureza-receita--fixa {
+  background: rgba(34, 197, 94, 0.08);
+  color: #15803d;
+  font-weight: 500;
+}
+
+tr.natureza-receita--variavel {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  font-weight: 500;
+}
+
+tr.tipo-receita-linha:nth-child(odd) {
+  background: rgba(139, 92, 246, 0.05);
 }
 
 .data-table {
@@ -206,19 +387,27 @@ th {
     padding: 1rem;
   }
 
-  .header-banner {
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
+  .relatorio-hero__inner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1.1rem 1.1rem 0.95rem;
   }
 
-  .title-banner {
-    padding: 0.5rem 1rem;
-    font-size: 1rem;
+  .relatorio-hero__field {
+    align-items: stretch;
   }
 
-  .categorias-btn {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
+  .relatorio-hero__label {
+    align-self: flex-start;
+  }
+
+  .relatorio-hero__select {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .relatorio-hero__title {
+    font-size: 1.2rem;
   }
 }
 

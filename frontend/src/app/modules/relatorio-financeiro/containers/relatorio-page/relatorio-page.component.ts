@@ -1,12 +1,13 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   ViewChild,
 } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { ReceitaMensal } from '../../../../core/interfaces/receitas';
+import { CategoriaReceita, ReceitaMensal } from '../../../../core/interfaces/receitas';
 import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
 declare const echarts: unknown;
 type EChartsOption = Record<string, unknown>;
@@ -46,6 +47,20 @@ export class RelatorioPageComponent implements AfterViewInit {
   readonly anosComparacao = ANOS_COMPARACAO;
   /** Ano exibido na tela e tabelas: ano civil de hoje (em 2026 = 2026). */
   anoSelecionado = new Date().getFullYear();
+
+  /** Aba: resumo geral vs receitas agregadas por categoria. */
+  visaoRelatorio: 'resumo' | 'categorias' = 'resumo';
+
+  /** Fixa e variável, valores por mês (12 posições). */
+  naturezaReceitaLinhas: {
+    id: 'fixa' | 'variavel';
+    label: string;
+    valores: number[];
+    total: number;
+  }[] = [];
+
+  /** Uma linha por tipo de receita (Salário, Freela, etc.). */
+  receitasPorTipoLinhas: { tipo: string; valores: number[]; total: number }[] = [];
 
   // Propriedades de dados
   dadosReceitas: number[] = [];
@@ -235,7 +250,7 @@ export class RelatorioPageComponent implements AfterViewInit {
         result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
         result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">Total: R$ ${valor.toLocaleString(
           'pt-BR',
-          { minimumFractionDigits: 2 }
+          { minimumFractionDigits: 2 },
         )}</span>`;
         result += `</div>`;
         result += `</div>`;
@@ -342,7 +357,7 @@ export class RelatorioPageComponent implements AfterViewInit {
         result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
         result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
           'pt-BR',
-          { minimumFractionDigits: 2 }
+          { minimumFractionDigits: 2 },
         )}</span>`;
         result += `</div>`;
         result += `</div>`;
@@ -443,7 +458,7 @@ export class RelatorioPageComponent implements AfterViewInit {
           result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 50%;"></div>`;
           result += `<span style="color: #6b7280; font-weight: bold;">${nome}: R$ ${valor.toLocaleString(
             'pt-BR',
-            { minimumFractionDigits: 2 }
+            { minimumFractionDigits: 2 },
           )}</span>`;
           result += `</div>`;
         });
@@ -540,19 +555,19 @@ export class RelatorioPageComponent implements AfterViewInit {
 
       this.totalReceitas = this.dadosReceitas.reduce(
         (sum, valor) => sum + valor,
-        0
+        0,
       );
       this.totalDespesas = this.dadosDespesas.reduce(
         (sum, valor) => sum + valor,
-        0
+        0,
       );
       this.totalDividas = this.dadosDividas.reduce(
         (sum, valor) => sum + valor,
-        0
+        0,
       );
       this.totalInvestimentos = this.dadosInvestimentos.reduce(
         (sum, valor) => sum + valor,
-        0
+        0,
       );
 
       this.dadosTotal = this.dadosReceitas.map(
@@ -560,16 +575,78 @@ export class RelatorioPageComponent implements AfterViewInit {
           receita -
           this.dadosDespesas[index] -
           this.dadosDividas[index] -
-          this.dadosInvestimentos[index]
+          this.dadosInvestimentos[index],
       );
     }
   }
 
   onAnoChange() {
+    this.carregarReceitasAno(this.anoSelecionado);
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
     this.sincronizarGraficosBarraELinha();
+  }
+
+  selecionarVisao(visao: 'resumo' | 'categorias'): void {
+    const anterior = this.visaoRelatorio;
+    this.visaoRelatorio = visao;
+    if (visao === 'resumo' && anterior === 'categorias') {
+      this.cdr.detectChanges();
+      setTimeout(() => this.reinicializarGraficosAposVoltarResumo(), 0);
+    }
+  }
+
+  /**
+   * O *ngIf remove os hosts do ECharts em "Categorias". Ao voltar, o DOM é novo
+   * e o ngAfterViewInit não dispara de novo: é preciso init + setOption outra vez.
+   */
+  private reinicializarGraficosAposVoltarResumo(): void {
+    this.disposeEchartsNosTresConteiners();
+    if (
+      !this.chartSaldo?.nativeElement ||
+      !this.chartReceitasDespesas?.nativeElement ||
+      !this.chartDividasInvestimentos?.nativeElement
+    ) {
+      return;
+    }
+    this.initCharts();
+    this.sincronizarGraficoSaldoECharts();
+    this.sincronizarGraficosBarraELinha();
+    this.resizeTodosGraficosResumo();
+  }
+
+  private disposeEchartsNosTresConteiners(): void {
+    const e = echarts as {
+      getInstanceByDom?: (d: HTMLElement) => { dispose: () => void } | null;
+    };
+    if (!e.getInstanceByDom) return;
+    for (const ref of [
+      this.chartSaldo,
+      this.chartReceitasDespesas,
+      this.chartDividasInvestimentos,
+    ]) {
+      const el = ref?.nativeElement;
+      if (!el) continue;
+      const inst = e.getInstanceByDom(el);
+      inst?.dispose();
+    }
+  }
+
+  private resizeTodosGraficosResumo(): void {
+    const e = echarts as {
+      getInstanceByDom?: (d: HTMLElement) => { resize: () => void } | null;
+    };
+    if (!e.getInstanceByDom) return;
+    for (const ref of [
+      this.chartSaldo,
+      this.chartReceitasDespesas,
+      this.chartDividasInvestimentos,
+    ]) {
+      const el = ref?.nativeElement;
+      if (!el) continue;
+      e.getInstanceByDom(el)?.resize();
+    }
   }
 
   private atualizarGraficoReceitasDespesas() {
@@ -604,7 +681,7 @@ export class RelatorioPageComponent implements AfterViewInit {
           result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
           result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
             'pt-BR',
-            { minimumFractionDigits: 2 }
+            { minimumFractionDigits: 2 },
           )}</span>`;
           result += `</div>`;
           result += `</div>`;
@@ -742,7 +819,10 @@ export class RelatorioPageComponent implements AfterViewInit {
   chartOptionInvestimentos: EChartsOption = {};
   chartOptionSaldo: EChartsOption = {};
 
-  constructor(private receitasService: ReceitasService) {
+  constructor(
+    private receitasService: ReceitasService,
+    private cdr: ChangeDetectorRef,
+  ) {
     this.carregarReceitasAno(this.anoSelecionado);
     this.calcularTotais();
     this.configurarGraficosCards();
@@ -750,24 +830,76 @@ export class RelatorioPageComponent implements AfterViewInit {
   }
 
   /**
-   * Soma as receitas do banco (API) mês a mês e atualiza `dadosPorAno[ano].receitas`.
+   * Soma as receitas do banco mês a mês, preenche o resumo e a aba Categorias.
    */
   private carregarReceitasAno(ano: number): void {
     if (!this.dadosPorAno[ano]) return;
     const porMes$ = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((mes) =>
       this.receitasService.getPorMesAno(ano, mes).pipe(
         catchError(() => of([] as ReceitaMensal[])),
-        map((lista) =>
-          (lista || []).reduce((s, r) => s + (Number(r.valor) || 0), 0),
-        ),
+        map((lista) => lista || []),
       ),
     );
     forkJoin(porMes$).subscribe({
-      next: (totaisPorMes) => {
-        this.dadosPorAno[ano].receitas = totaisPorMes;
+      next: (listasPorMes) => {
+        this.dadosPorAno[ano].receitas = listasPorMes.map((lista) =>
+          lista.reduce((s, r) => s + (Number(r.valor) || 0), 0),
+        );
+        this.agregarReceitasPorCategorias(listasPorMes);
         this.aoAtualizarReceitasDaApi();
       },
     });
+  }
+
+  private normalizarCategoriaReceita(
+    c: CategoriaReceita | string | undefined,
+  ): 'fixa' | 'variavel' {
+    if (c === 'Variável') return 'variavel';
+    if (typeof c === 'string' && /variável|variavel/i.test(c)) return 'variavel';
+    return 'fixa';
+  }
+
+  private agregarReceitasPorCategorias(listasPorMes: ReceitaMensal[][]): void {
+    const fixa = new Array(12).fill(0) as number[];
+    const variavel = new Array(12).fill(0) as number[];
+    const porTipo = new Map<string, number[]>();
+
+    for (let m = 0; m < 12; m++) {
+      for (const r of listasPorMes[m] || []) {
+        const v = Number(r.valor) || 0;
+        if (v === 0) continue;
+        const nat = this.normalizarCategoriaReceita(r.categoria);
+        if (nat === 'variavel') variavel[m] += v;
+        else fixa[m] += v;
+        const tipo = String(r.tipo || 'Outras').trim() || 'Outras';
+        if (!porTipo.has(tipo)) porTipo.set(tipo, new Array(12).fill(0));
+        porTipo.get(tipo)![m] += v;
+      }
+    }
+
+    const sum = (a: number[]) => a.reduce((s, n) => s + n, 0);
+    this.naturezaReceitaLinhas = [
+      {
+        id: 'fixa',
+        label: 'Receitas fixas',
+        valores: fixa,
+        total: sum(fixa),
+      },
+      {
+        id: 'variavel',
+        label: 'Receitas variáveis',
+        valores: variavel,
+        total: sum(variavel),
+      },
+    ];
+    this.receitasPorTipoLinhas = Array.from(porTipo.entries())
+      .map(([tipo, valores]) => ({
+        tipo,
+        valores,
+        total: sum(valores),
+      }))
+      .filter((l) => l.total > 0)
+      .sort((a, b) => a.tipo.localeCompare(b.tipo, 'pt-BR'));
   }
 
   private aoAtualizarReceitasDaApi(): void {

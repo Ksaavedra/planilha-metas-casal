@@ -1,28 +1,46 @@
 <div class="relatorio-container">
   <!-- Title -->
-  <div class="title-container">
-    <div class="title">
-      <h1>💰 Relatório Financeiro {{ anoSelecionado }}</h1>
+  <header class="relatorio-hero" role="banner" aria-label="Cabeçalho do relatório financeiro">
+    <div class="relatorio-hero__accent" aria-hidden="true"></div>
+    <div class="relatorio-hero__inner">
+      <div class="relatorio-hero__brand">
+        <div class="relatorio-hero__icon-wrap" aria-hidden="true">
+          <span class="material-icons relatorio-hero__icon">insights</span>
+        </div>
+        <div class="relatorio-hero__text">
+          <h1 class="relatorio-hero__title">
+            Relatório financeiro
+            <span class="relatorio-hero__year-pill">{{ anoSelecionado }}</span>
+          </h1>
+          <p class="relatorio-hero__subtitle">Receitas, despesas, dívidas e investimentos mês a mês</p>
+        </div>
+      </div>
+      <div class="relatorio-hero__field">
+        <label class="relatorio-hero__label" for="anoSelect">Exercício</label>
+        <div class="relatorio-hero__select-wrap">
+          <span class="material-icons relatorio-hero__select-icon" aria-hidden="true">calendar_today</span>
+          <select id="anoSelect" class="relatorio-hero__select" [(ngModel)]="anoSelecionado" (change)="onAnoChange()"
+            [attr.aria-label]="'Selecionar ano, atual ' + anoSelecionado">
+            <option *ngFor="let ano of anosComparacao" [ngValue]="ano">{{ ano }}</option>
+          </select>
+        </div>
+      </div>
     </div>
-    <div class="title-content">
-      <div class="categorias-btn">
-        <span>📊</span>
-        <span>Categorias</span>
-      </div>
-      <div class="title-banner">
-        <span>📈</span>
-        <span>Relatório {{ anoSelecionado }}</span>
-      </div>
-      <div class="year-selector">
-        <label for="anoSelect">Ano: </label>
-        <select id="anoSelect" [(ngModel)]="anoSelecionado" (change)="onAnoChange()">
-          <option *ngFor="let ano of anosComparacao" [ngValue]="ano">{{ ano }}</option>
-        </select>
-      </div>
+    <div class="relatorio-hero__chips" role="tablist" aria-label="Tipo de visão do relatório">
+      <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'resumo'"
+        (click)="selecionarVisao('resumo')" role="tab" [attr.aria-selected]="visaoRelatorio === 'resumo'">
+        Resumo anual
+      </button>
+      <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'categorias'"
+        (click)="selecionarVisao('categorias')" role="tab"
+        [attr.aria-selected]="visaoRelatorio === 'categorias'">
+        Categorias
+      </button>
     </div>
-  </div>
+  </header>
 
   <!-- Tabela de Dados -->
+  <ng-container *ngIf="visaoRelatorio === 'resumo'">
   <div class="data-table">
     <table>
       <thead>
@@ -48,14 +66,14 @@
           <td>{{ totalDespesas | currency : 'BRL' }}</td>
         </tr>
         <tr class="dividas-row">
-          <td>Dívidas pagas</td>
+          <td>Dívidas</td>
           <td *ngFor="let valor of dadosDividas">
             {{ valor | currency : 'BRL' }}
           </td>
           <td>{{ totalDividas | currency : 'BRL' }}</td>
         </tr>
         <tr class="investimentos-row">
-          <td>Investimentos realizados</td>
+          <td>Investimentos</td>
           <td *ngFor="let valor of dadosInvestimentos">
             {{ valor | currency : 'BRL' }}
           </td>
@@ -75,7 +93,6 @@
     </table>
   </div>
 
-  <!-- Gráficos ECharts -->
   <div class="charts-container">
     <div class="chart-section">
       <div #chartSaldo class="demo-chart"></div>
@@ -89,4 +106,55 @@
       <div #chartDividasInvestimentos class="demo-chart"></div>
     </div>
   </div>
+  </ng-container>
+
+  <section *ngIf="visaoRelatorio === 'categorias'" class="relatorio-categorias"
+    [attr.aria-label]="'Receitas em ' + anoSelecionado + ' por categoria'">
+    <p class="relatorio-categorias__intro">
+      Valores com base nas receitas lançadas no exercício <strong>{{ anoSelecionado }}</strong> (mesma origem da página Receitas).
+    </p>
+
+    <h2 class="relatorio-categorias__h2">Natureza: fixa e variável</h2>
+    <div class="data-table data-table--categorias">
+      <table>
+        <thead>
+          <tr>
+            <th>Receita</th>
+            <th *ngFor="let mes of meses">{{ mes }}</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of naturezaReceitaLinhas" [ngClass]="'natureza-receita--' + row.id">
+            <td>{{ row.label }}</td>
+            <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
+            <td>{{ row.total | currency : 'BRL' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="relatorio-categorias__h2">Por tipo (Salário, Freela, etc.)</h2>
+    <div class="data-table data-table--categorias" *ngIf="receitasPorTipoLinhas.length">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th *ngFor="let mes of meses">{{ mes }}</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of receitasPorTipoLinhas" class="tipo-receita-linha">
+            <td>{{ row.tipo }}</td>
+            <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
+            <td>{{ row.total | currency : 'BRL' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p *ngIf="!receitasPorTipoLinhas.length" class="relatorio-categorias__vazio">
+      Nenhum lançamento de receita com valor neste exercício, ou ainda não há tipos agregados.
+    </p>
+  </section>
 </div>
