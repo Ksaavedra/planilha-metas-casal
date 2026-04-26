@@ -126,7 +126,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
       if (changes['metas'].currentValue) {
         this.setHeaderMesesFromData();
         this.metas.forEach((m) => this.normalizeMeses(m));
-        this.recalcResumo();
       }
     }
   }
@@ -352,7 +351,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     return { top: finalTop, left: finalLeft };
   }
 
-  /** A âncora visual do clique: wrapper do indicador ou célula [data-meta-id][data-mes-id]. */
   private resolveStatusIndicatorAnchor(event: MouseEvent): HTMLElement | null {
     const targetElement =
       (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
@@ -644,8 +642,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
       return [];
     }
   }
-
-  private recalcResumo(): void {}
 
   private marcarMesesComoFinalizado(meta: MetaExtended): void {
     if (!meta.meses || meta.meses.length === 0) return;

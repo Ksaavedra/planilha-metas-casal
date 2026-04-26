@@ -229,13 +229,11 @@ describe('ExecutandoMetasComponent', () => {
 
       const setHeaderSpy = jest.spyOn(component, 'setHeaderMesesFromData');
       const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
-      const recalcSpy = jest.spyOn(component as any, 'recalcResumo');
 
       component.ngOnChanges(changes);
 
       expect(setHeaderSpy).toHaveBeenCalled();
       expect(normalizeSpy).toHaveBeenCalledTimes(mockMetas.length);
-      expect(recalcSpy).toHaveBeenCalled();
     });
 
     it('should not process changes when metas is null', () => {
@@ -250,13 +248,11 @@ describe('ExecutandoMetasComponent', () => {
 
       const setHeaderSpy = jest.spyOn(component, 'setHeaderMesesFromData');
       const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
-      const recalcSpy = jest.spyOn(component as any, 'recalcResumo');
 
       component.ngOnChanges(changes);
 
       expect(setHeaderSpy).not.toHaveBeenCalled();
       expect(normalizeSpy).not.toHaveBeenCalled();
-      expect(recalcSpy).not.toHaveBeenCalled();
     });
 
     it('ngOnChanges deve ignorar quando não existe changes de metas', () => {
@@ -1530,18 +1526,6 @@ describe('ExecutandoMetasComponent', () => {
       const result = component['getParabensMostrados']();
 
       expect(result).toEqual([]);
-    });
-  });
-
-  describe('recalcResumo', () => {
-    it('should recalculate summary values', () => {
-      component.metas = mockMetas;
-
-      component['recalcResumo']();
-
-      expect(typeof component.totalValorMetaView).toBe('number');
-      expect(typeof component.totalValorAtualView).toBe('number');
-      expect(typeof component.totalValorPorMesView).toBe('number');
     });
   });
 
