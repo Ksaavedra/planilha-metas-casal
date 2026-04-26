@@ -1,17 +1,28 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { NO_ERRORS_SCHEMA } from '@angular/core';
+// import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ExecutandoMetasComponent } from './executando-metas.component';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import {
   Meta,
   StatusMeta,
 } from '../../../../../core/interfaces/metas/mes-meta';
+import { of, Subject } from 'rxjs';
 
 describe('ExecutandoMetasComponent', () => {
   let component: ExecutandoMetasComponent;
   let fixture: ComponentFixture<ExecutandoMetasComponent>;
+  let editarValorSave$!: Subject<{
+    metaId: number | string;
+    mesId: number;
+    valor: number;
+  }>;
 
+  const metasServiceMock = {
+    editarValorSave$: undefined as any,
+    openEditarValor: jest.fn(),
+    updateMeta: jest.fn(),
+  };
   const mockMetas: Meta[] = [
     {
       id: 1,
@@ -97,17 +108,33 @@ describe('ExecutandoMetasComponent', () => {
   ];
 
   beforeEach(async () => {
+    editarValorSave$ = new Subject<{
+      metaId: number | string;
+      mesId: number;
+      valor: number;
+    }>();
+
+    metasServiceMock.editarValorSave$ = editarValorSave$.asObservable();
+    metasServiceMock.openEditarValor.mockClear();
+    metasServiceMock.updateMeta.mockReturnValue(of({}));
+
     await TestBed.configureTestingModule({
       declarations: [ExecutandoMetasComponent],
       imports: [HttpClientTestingModule],
-      providers: [MetasService],
-      schemas: [NO_ERRORS_SCHEMA],
+      providers: [{ provide: MetasService, useValue: metasServiceMock }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ExecutandoMetasComponent);
     component = fixture.componentInstance;
     component.metas = mockMetas;
+
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    localStorage.clear();
+    document.body.innerHTML = '';
   });
 
   it('should create', () => {
@@ -207,7 +234,6 @@ describe('ExecutandoMetasComponent', () => {
     const mockMes = mockMeta.meses[0];
     const spy = jest.spyOn(component.alternarStatus, 'emit');
 
-    // Test different status values
     component.selecionarStatus(mockMeta, mockMes.id, 'Pago');
     expect(spy).toHaveBeenCalledWith({
       metaId: mockMeta.id,
@@ -247,27 +273,9 @@ describe('ExecutandoMetasComponent', () => {
     });
   });
 
-  it('should handle modal interactions', () => {
-    const mockMeta = mockMetas[0];
-    const mockMes = mockMeta.meses[0];
-
-    // Test modal opening
-    component.modalEdicao = {
-      meta: mockMeta,
-      mesId: mockMes.id,
-      valor: mockMes.valor,
-      isOpen: true,
-    };
-
-    expect(component.modalEdicao.isOpen).toBe(true);
-    expect(component.modalEdicao.meta).toBe(mockMeta);
-    expect(component.modalEdicao.mesId).toBe(mockMes.id);
-  });
-
   it('should calculate totals correctly', () => {
     const mockMeta = mockMetas[0];
 
-    // Simulate calculation by setting values directly
     component.totalValorMetaView = mockMeta.valorMeta;
     component.totalValorAtualView = mockMeta.valorAtual;
     component.totalValorPorMesView = mockMeta.valorPorMes;
@@ -282,11 +290,10 @@ describe('ExecutandoMetasComponent', () => {
   it('should handle percentual calculation', () => {
     const mockMeta = mockMetas[0];
 
-    // Simulate percentual calculation
     component.percentualPagoView =
       (mockMeta.valorAtual / mockMeta.valorMeta) * 100;
 
-    expect(component.percentualPagoView).toBe(30); // 3000 / 10000 * 100
+    expect(component.percentualPagoView).toBe(30);
   });
 
   it('should handle empty metas array', () => {
@@ -318,7 +325,6 @@ describe('ExecutandoMetasComponent', () => {
       component.metas = mockMetas;
       component.setHeaderMesesFromData();
 
-      // The method gets all unique month names from all metas
       expect(component.meses).toContain('Janeiro');
       expect(component.meses).toContain('Fevereiro');
       expect(component.meses).toContain('Março');
@@ -331,7 +337,6 @@ describe('ExecutandoMetasComponent', () => {
       component.metas = [];
       component.setHeaderMesesFromData();
 
-      // When metas is empty, it should use MESES_PADRAO
       expect(component.meses).toEqual([
         'Janeiro',
         'Fevereiro',
@@ -349,23 +354,8 @@ describe('ExecutandoMetasComponent', () => {
     });
   });
 
-  describe('abrirModalEdicao', () => {
-    it('should open modal for editing', () => {
-      const meta = mockMetas[0];
-      const mesId = 1;
-
-      component.abrirModalEdicao(meta, mesId);
-
-      expect(component.modalEdicao.isOpen).toBe(true);
-      expect(component.modalEdicao.meta).toBe(meta);
-      expect(component.modalEdicao.mesId).toBe(mesId);
-      expect(component.modalEdicao.valor).toBe(500);
-    });
-  });
-
   describe('formatBR', () => {
     it('should format number in Brazilian format', () => {
-      // The method returns the actual formatted value, let's check what it actually returns
       const result1 = component.formatBR(1234.56);
       const result2 = component.formatBR(1000);
       const result3 = component.formatBR(0);
@@ -376,34 +366,11 @@ describe('ExecutandoMetasComponent', () => {
     });
   });
 
-  describe('toggleDropdown', () => {
-    it('should toggle dropdown state', () => {
-      const meta = mockMetas[0];
-      const mesId = 1;
-
-      // Just test that the method can be called without errors
-      expect(() => component.toggleDropdown(meta, mesId)).not.toThrow();
-    });
-
-    it('should close other dropdowns when opening new one', () => {
-      const meta = mockMetas[0];
-      const mesId1 = 1;
-      const mesId2 = 2;
-
-      // Just test that the method can be called without errors
-      expect(() => {
-        component.toggleDropdown(meta, mesId1);
-        component.toggleDropdown(meta, mesId2);
-      }).not.toThrow();
-    });
-  });
-
   describe('getTotalContribuicoesMeta', () => {
     it('should calculate total contributions for meta', () => {
       const meta = mockMetas[0];
       const total = component.getTotalContribuicoesMeta(meta);
 
-      // Let's check what the actual total is
       expect(total).toBeGreaterThan(0);
       expect(typeof total).toBe('number');
     });
@@ -421,66 +388,8 @@ describe('ExecutandoMetasComponent', () => {
       const meta = mockMetas[0];
       const restantes = component.getMesesRestantes(meta);
 
-      // Let's check what the actual result is
       expect(restantes).toBeGreaterThan(0);
       expect(typeof restantes).toBe('number');
-    });
-  });
-
-  describe('fecharModalEdicao', () => {
-    it('should close modal', () => {
-      component.modalEdicao.isOpen = true;
-
-      component.fecharModalEdicao();
-
-      expect(component.modalEdicao.isOpen).toBe(false);
-    });
-  });
-
-  describe('onValorChange', () => {
-    it('should parse and set valor', () => {
-      component.onValorChange('1.234,56');
-
-      expect(component.modalEdicao.valor).toBe(1234.56);
-    });
-  });
-
-  describe('formatarMoeda', () => {
-    it('should format currency in Brazilian format', () => {
-      const result1 = component.formatarMoeda(1234.56);
-      const result2 = component.formatarMoeda(1000);
-
-      expect(result1).toContain('1.234,56');
-      expect(result2).toContain('1.000,00');
-    });
-  });
-
-  describe('validarApenasNumeros', () => {
-    it('should allow numeric keys', () => {
-      const event = new KeyboardEvent('keydown', { key: '5' });
-      jest.spyOn(event, 'preventDefault');
-
-      component.validarApenasNumeros(event);
-
-      expect(event.preventDefault).not.toHaveBeenCalled();
-    });
-
-    it('should prevent non-numeric keys', () => {
-      const event = new KeyboardEvent('keydown', { key: 'a' });
-      jest.spyOn(event, 'preventDefault');
-
-      component.validarApenasNumeros(event);
-
-      expect(event.preventDefault).toHaveBeenCalled();
-    });
-
-    it('should allow special keys', () => {
-      const event = new KeyboardEvent('keydown', { key: 'Backspace' });
-      jest.spyOn(event, 'preventDefault');
-
-      component.validarApenasNumeros(event);
-
-      expect(event.preventDefault).not.toHaveBeenCalled();
     });
   });
 
@@ -580,7 +489,6 @@ describe('ExecutandoMetasComponent', () => {
 
       component['marcarMesesComoFinalizado'](meta);
 
-      // Check that months with status 'Vazio' or 'Programado' are now 'Finalizado'
       meta.meses.forEach((mes, index) => {
         if (
           originalMeses[index].status === 'Vazio' ||
@@ -602,6 +510,21 @@ describe('ExecutandoMetasComponent', () => {
       expect(meta.meses).toBeDefined();
       expect(meta.meses.length).toBe(2);
     });
+
+    it('normalizeMeses deve usar MESES_PADRAO quando meses estiver vazio', () => {
+      component.meses = [];
+
+      const meta = {
+        ...mockMetas[0],
+        meses: [],
+      };
+
+      component['normalizeMeses'](meta as any);
+
+      expect(meta.meses.length).toBe(12);
+      expect((meta.meses[0] as any).nome).toBe('Janeiro');
+      expect((meta.meses[11] as any).nome).toBe('Dezembro');
+    });
   });
 
   describe('recalcResumo', () => {
@@ -610,7 +533,6 @@ describe('ExecutandoMetasComponent', () => {
 
       component['recalcResumo']();
 
-      // The method should set values, even if they are 0
       expect(typeof component.totalValorMetaView).toBe('number');
       expect(typeof component.totalValorAtualView).toBe('number');
       expect(typeof component.totalValorPorMesView).toBe('number');
@@ -658,6 +580,14 @@ describe('ExecutandoMetasComponent', () => {
       expect(setHeaderSpy).not.toHaveBeenCalled();
       expect(normalizeSpy).not.toHaveBeenCalled();
       expect(recalcSpy).not.toHaveBeenCalled();
+    });
+
+    it('ngOnChanges deve ignorar quando não existe changes de metas', () => {
+      const spy = jest.spyOn(component, 'setHeaderMesesFromData');
+
+      component.ngOnChanges({});
+
+      expect(spy).not.toHaveBeenCalled();
     });
   });
 
@@ -781,142 +711,6 @@ describe('ExecutandoMetasComponent', () => {
     });
   });
 
-  describe('parseNumeroBR', () => {
-    it('should parse Brazilian number format with comma', () => {
-      const result = component['parseNumeroBR']('1.234,56');
-      expect(result).toBe(1234.56);
-    });
-
-    it('should parse number with dot as decimal', () => {
-      const result = component['parseNumeroBR']('1234.56');
-      expect(result).toBe(1234.56);
-    });
-
-    it('should handle multiple dots as thousands separators', () => {
-      const result = component['parseNumeroBR']('1.234.567.89');
-      expect(result).toBe(1234567.89);
-    });
-
-    it('should return 0 for null or undefined', () => {
-      expect(component['parseNumeroBR'](null)).toBe(0);
-      expect(component['parseNumeroBR'](undefined)).toBe(0);
-    });
-
-    it('should return 0 for empty string', () => {
-      expect(component['parseNumeroBR']('')).toBe(0);
-      expect(component['parseNumeroBR']('   ')).toBe(0);
-    });
-
-    it('should handle currency symbols', () => {
-      const result = component['parseNumeroBR']('R$ 1.234,56');
-      expect(result).toBe(1234.56);
-    });
-
-    it('should handle negative numbers', () => {
-      const result = component['parseNumeroBR']('-1.234,56');
-      expect(result).toBe(-1234.56);
-    });
-
-    it('should return 0 for invalid numbers', () => {
-      expect(component['parseNumeroBR']('abc')).toBe(0);
-      expect(component['parseNumeroBR']('1,2,3')).toBe(1.2); // This actually parses as 1.2
-    });
-  });
-
-  describe('salvarValorModal', () => {
-    it('should save valor and emit event', () => {
-      const meta = mockMetas[0];
-      const mesId = 1;
-      const valor = 1000;
-
-      component.modalEdicao = {
-        meta,
-        mesId,
-        valor,
-        isOpen: true,
-      };
-
-      const spy = jest.spyOn(component.salvarValor, 'emit');
-      const fecharSpy = jest.spyOn(component, 'fecharModalEdicao');
-
-      component.salvarValorModal();
-
-      expect(meta.meses[0].valor).toBe(valor);
-      expect(meta.meses[0].status).toBe('Programado');
-      expect(spy).toHaveBeenCalledWith({
-        metaId: meta.id,
-        mesId,
-        valor,
-      });
-      expect(fecharSpy).toHaveBeenCalled();
-    });
-
-    it('should set status to Vazio when valor is 0', () => {
-      const meta = mockMetas[0];
-      const mesId = 1;
-      const valor = 0;
-
-      component.modalEdicao = {
-        meta,
-        mesId,
-        valor,
-        isOpen: true,
-      };
-
-      component.salvarValorModal();
-
-      expect(meta.meses[0].valor).toBe(0);
-      expect(meta.meses[0].status).toBe('Vazio');
-    });
-
-    it('should show alert when mes is not found', () => {
-      const meta = mockMetas[0];
-      const mesId = 999;
-      const valor = 1000;
-
-      component.modalEdicao = {
-        meta,
-        mesId,
-        valor,
-        isOpen: true,
-      };
-
-      const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
-      const spy = jest.spyOn(component.salvarValor, 'emit');
-
-      component.salvarValorModal();
-
-      expect(alertSpy).toHaveBeenCalledWith(
-        'Mês não encontrado. Reabra o modal e tente novamente.',
-      );
-      expect(spy).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('onValorBlur', () => {
-    it('should parse valor on blur', () => {
-      (component.modalEdicao as any).valor = '1.234,56';
-      const parseSpy = jest
-        .spyOn(component as any, 'parseNumeroBR')
-        .mockReturnValue(1234.56);
-
-      component.onValorBlur();
-
-      expect(parseSpy).toHaveBeenCalledWith('1.234,56');
-      expect(component.modalEdicao.valor).toBe(1234.56);
-    });
-  });
-
-  describe('cancelarEdicao', () => {
-    it('should close modal', () => {
-      const fecharSpy = jest.spyOn(component, 'fecharModalEdicao');
-
-      component.cancelarEdicao();
-
-      expect(fecharSpy).toHaveBeenCalled();
-    });
-  });
-
   describe('getTotalContribuicoesMetaExtended', () => {
     it('should call getTotalContribuicoesMeta', () => {
       const meta = mockMetas[0];
@@ -955,12 +749,6 @@ describe('ExecutandoMetasComponent', () => {
       const result = component.getMesesRestantes(meta);
       expect(result).toBe(7); // (1000 - 200 - 100) / 100 = 7
     });
-
-    it('should handle meta with no meses', () => {
-      const meta = { ...mockMetas[0], meses: [] };
-      const result = component.getMesesRestantes(meta);
-      expect(result).toBeGreaterThan(0);
-    });
   });
 
   describe('totalContribuicoesPorMes', () => {
@@ -986,19 +774,18 @@ describe('ExecutandoMetasComponent', () => {
 
   describe('marcarMesesComoFinalizado', () => {
     it('should handle meta with no meses', () => {
+      metasServiceMock.updateMeta.mockClear();
+
       const meta = { ...mockMetas[0], meses: [] };
-      const updateSpy = jest
-        .spyOn(component['metasService'], 'updateMeta')
-        .mockReturnValue({
-          subscribe: jest.fn(),
-        } as any);
 
-      component['marcarMesesComoFinalizado'](meta);
+      component['marcarMesesComoFinalizado'](meta as any);
 
-      expect(updateSpy).not.toHaveBeenCalled();
+      expect(metasServiceMock.updateMeta).not.toHaveBeenCalled();
     });
 
     it('should handle meta with all months already paid', () => {
+      metasServiceMock.updateMeta.mockClear();
+
       const meta = {
         ...mockMetas[0],
         meses: [
@@ -1012,15 +799,9 @@ describe('ExecutandoMetasComponent', () => {
         ],
       };
 
-      const updateSpy = jest
-        .spyOn(component['metasService'], 'updateMeta')
-        .mockReturnValue({
-          subscribe: jest.fn(),
-        } as any);
+      component['marcarMesesComoFinalizado'](meta as any);
 
-      component['marcarMesesComoFinalizado'](meta);
-
-      expect(updateSpy).not.toHaveBeenCalled();
+      expect(metasServiceMock.updateMeta).not.toHaveBeenCalled();
     });
 
     it('should call updateMeta service', () => {
@@ -1073,32 +854,709 @@ describe('ExecutandoMetasComponent', () => {
     });
   });
 
-  describe('validarApenasNumeros', () => {
-    it('should allow numpad keys', () => {
-      const event = new KeyboardEvent('keydown', { code: 'Numpad5' });
-      jest.spyOn(event, 'preventDefault');
+  it('trackByMetaId deve retornar id da meta', () => {
+    expect(component.trackByMetaId(0, { id: 10 })).toBe(10);
+  });
 
-      component.validarApenasNumeros(event);
+  it('trackByMesId deve retornar id do mês', () => {
+    expect(component.trackByMesId(0, { id: 5 })).toBe(5);
+  });
 
-      expect(event.preventDefault).not.toHaveBeenCalled();
+  it('ngOnInit deve atualizar valor vindo do editarValorSave$', () => {
+    const spy = jest.spyOn(component.salvarValor, 'emit');
+
+    editarValorSave$.next({
+      metaId: 1,
+      mesId: 3,
+      valor: 900,
     });
 
-    it('should allow arrow keys', () => {
-      const event = new KeyboardEvent('keydown', { key: 'ArrowLeft' });
-      jest.spyOn(event, 'preventDefault');
+    expect(component.metas[0].meses[2].valor).toBe(900);
+    expect(component.metas[0].meses[2].status).toBe('Programado');
 
-      component.validarApenasNumeros(event);
+    expect(spy).toHaveBeenCalledWith({
+      metaId: 1,
+      mesId: 3,
+      valor: 900,
+    });
+  });
 
-      expect(event.preventDefault).not.toHaveBeenCalled();
+  it('ngOnInit deve deixar status Vazio quando valor for zero', () => {
+    editarValorSave$.next({
+      metaId: 1,
+      mesId: 3,
+      valor: 0,
     });
 
-    it('should allow home and end keys', () => {
-      const event = new KeyboardEvent('keydown', { key: 'Home' });
-      jest.spyOn(event, 'preventDefault');
+    expect(component.metas[0].meses[2].valor).toBe(0);
+    expect(component.metas[0].meses[2].status).toBe('Vazio');
+  });
 
-      component.validarApenasNumeros(event);
+  it('ngOnInit deve ignorar quando meta não existe', () => {
+    const spy = jest.spyOn(component.salvarValor, 'emit');
 
-      expect(event.preventDefault).not.toHaveBeenCalled();
+    editarValorSave$.next({
+      metaId: 999,
+      mesId: 1,
+      valor: 100,
+    });
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('ngOnInit deve ignorar quando mês não existe', () => {
+    const spy = jest.spyOn(component.salvarValor, 'emit');
+
+    editarValorSave$.next({
+      metaId: 1,
+      mesId: 999,
+      valor: 100,
+    });
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('isDropdownOpen deve retornar true quando dropdown estiver aberto', () => {
+    component.openDropdownKey = '1_3';
+
+    expect(component.isDropdownOpen(1, 3)).toBe(true);
+  });
+
+  it('getActiveMes deve retornar null quando não houver meta ativa', () => {
+    expect(component.getActiveMes()).toBeNull();
+  });
+
+  it('getActiveMes deve retornar mês ativo', () => {
+    component['activeMeta'] = component.metas[0] as any;
+    component['activeMesId'] = 1;
+
+    const result = component.getActiveMes();
+
+    expect(result?.id).toBe(1);
+  });
+
+  describe('closeDropdown', () => {
+    it('closeDropdown deve não fechar quando clicar dentro do overlay', () => {
+      component.openDropdownKey = '1_1';
+
+      const overlay = document.createElement('div');
+      overlay.classList.add('status-dropdown-overlay');
+
+      const child = document.createElement('span');
+      overlay.appendChild(child);
+
+      component.closeDropdown({
+        target: child,
+      } as unknown as MouseEvent);
+
+      expect(component.openDropdownKey).toBe('1_1');
+    });
+
+    it('closeDropdown deve não fechar quando clicar no material-icons dentro do status-indicator', () => {
+      component.openDropdownKey = '1_1';
+
+      const status = document.createElement('div');
+      status.classList.add('status-indicator');
+
+      const icon = document.createElement('span');
+      icon.classList.add('material-icons');
+      status.appendChild(icon);
+
+      component.closeDropdown({
+        target: icon,
+      } as unknown as MouseEvent);
+
+      expect(component.openDropdownKey).toBe('1_1');
+    });
+
+    it('closeDropdown deve não fechar quando clicar no status-indicator', () => {
+      component.openDropdownKey = '1_1';
+
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('status-indicator');
+
+      const event = {
+        target: wrapper,
+      } as unknown as MouseEvent;
+
+      component.closeDropdown(event);
+
+      expect(component.openDropdownKey).toBe('1_1');
+    });
+
+    it('closeDropdown deve limpar dropdown quando clicar fora', () => {
+      component.openDropdownKey = '1_1';
+      component.dropdownPos = { top: 10, left: 20 };
+
+      component.closeDropdown({
+        target: document.createElement('div'),
+      } as unknown as MouseEvent);
+
+      expect(component.openDropdownKey).toBeNull();
+      expect(component.dropdownPos).toEqual({ top: 0, left: 0 });
+    });
+  });
+
+  it('removeDropdownFromBody deve remover dropdown do body', () => {
+    const dropdown = document.createElement('div');
+    document.body.appendChild(dropdown);
+
+    component['dropdownElement'] = dropdown;
+
+    component['removeDropdownFromBody']();
+
+    expect(document.body.contains(dropdown)).toBe(false);
+    expect(component['dropdownElement']).toBeNull();
+  });
+
+  it('applyStatusDropdownHostStyles deve aplicar estilos no dropdown', () => {
+    const host = document.createElement('div');
+
+    component['applyStatusDropdownHostStyles'](host);
+
+    expect(host.style.position).toBe('fixed');
+    expect(host.style.zIndex).toBe('99999');
+    expect(host.style.minWidth).toBe('120px');
+    expect(host.style.background).toBe('rgb(255, 255, 255)');
+  });
+
+  describe('mountStatusOptionRows', () => {
+    it('mountStatusOptionRows deve criar opções Programado, Pago e Vazio', () => {
+      const dropdown = document.createElement('div');
+
+      component['mountStatusOptionRows'](dropdown);
+
+      const options = dropdown.querySelectorAll('.dropdown-option');
+
+      expect(options.length).toBe(3);
+      expect(options[0].textContent).toBe('Programado');
+      expect(options[1].textContent).toBe('Pago');
+      expect(options[2].textContent).toBe('Vazio');
+    });
+
+    it('mountStatusOptionRows deve marcar opção ativa como selected', () => {
+      const dropdown = document.createElement('div');
+
+      component.metas[0].meses[0].status = 'Pago';
+
+      component['activeMeta'] = component.metas[0] as any;
+      component['activeMesId'] = 1;
+
+      component['mountStatusOptionRows'](dropdown);
+
+      const selected = dropdown.querySelector('.selected');
+
+      expect(selected?.textContent).toBe('Pago');
+    });
+
+    it('mountStatusOptionRows deve chamar selecionarStatusByOverlay ao clicar', () => {
+      const dropdown = document.createElement('div');
+
+      const spy = jest.spyOn(component, 'selecionarStatusByOverlay');
+
+      component['mountStatusOptionRows'](dropdown);
+
+      const option = dropdown.querySelector('.dropdown-option') as HTMLElement;
+
+      option.click();
+
+      expect(spy).toHaveBeenCalled();
+    });
+  });
+
+  describe('createDropdownInBody', () => {
+    it('createDropdownInBody deve parar propagação ao clicar no dropdown', () => {
+      const dropdown = component['createDropdownInBody']();
+
+      const event = new Event('click');
+      const stopSpy = jest.spyOn(event, 'stopPropagation');
+
+      dropdown.dispatchEvent(event);
+
+      expect(stopSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('computeInitialClampedDropdownPosition', () => {
+    it('computeInitialClampedDropdownPosition deve ajustar posição dentro da viewport', () => {
+      const rect = {
+        top: 700,
+        bottom: 740,
+        left: 900,
+        width: 100,
+      } as DOMRect;
+
+      const result = component.computeInitialClampedDropdownPosition(
+        rect,
+        1000,
+        800,
+        120,
+        100,
+        8,
+      );
+
+      expect(result.top).toBeLessThanOrEqual(692);
+      expect(result.left).toBeLessThanOrEqual(872);
+    });
+
+    it('computeInitialClampedDropdownPosition deve ajustar left para minLeft', () => {
+      const rect = {
+        top: 100,
+        bottom: 130,
+        left: -50,
+        width: 20,
+      } as DOMRect;
+
+      const result = component.computeInitialClampedDropdownPosition(
+        rect,
+        1000,
+        800,
+        120,
+        100,
+        8,
+      );
+
+      expect(result.left).toBe(8);
+    });
+
+    it('computeInitialClampedDropdownPosition deve ajustar top para minTop quando top ficar menor que margin', () => {
+      const rect = {
+        top: -20,
+        bottom: -5,
+        left: 100,
+        width: 100,
+      } as DOMRect;
+
+      const result = component.computeInitialClampedDropdownPosition(
+        rect,
+        1000,
+        800,
+        120,
+        100,
+        8,
+      );
+
+      expect(result.top).toBe(8);
+    });
+
+    it('computeInitialClampedDropdownPosition deve reposicionar acima quando não couber embaixo', () => {
+      const rect = {
+        top: 650,
+        bottom: 760,
+        left: 100,
+        width: 100,
+      } as DOMRect;
+
+      const result = component.computeInitialClampedDropdownPosition(
+        rect,
+        1000,
+        800,
+        120,
+        100,
+        8,
+      );
+
+      expect(result.top).toBe(542); // 650 - 100 - 8
+    });
+
+    it('computeInitialClampedDropdownPosition deve ajustar top para minTop quando reposicionar acima fica negativo', () => {
+      const rect = {
+        top: 20,
+        bottom: 790,
+        left: 100,
+        width: 100,
+      } as DOMRect;
+
+      const result = component.computeInitialClampedDropdownPosition(
+        rect,
+        1000,
+        800,
+        120,
+        100,
+        8,
+      );
+
+      expect(result.top).toBe(20);
+    });
+  });
+
+  describe('computeRefinedClampedDropdownPosition', () => {
+    it('computeRefinedClampedDropdownPosition deve ajustar posição refinada', () => {
+      const rect = {
+        top: 700,
+        bottom: 740,
+        left: 900,
+        width: 100,
+      } as DOMRect;
+
+      const result = component.computeRefinedClampedDropdownPosition(
+        rect,
+        { width: 1000, height: 800 },
+        120,
+        100,
+        8,
+      );
+
+      expect(result.top).toBeLessThanOrEqual(692);
+      expect(result.left).toBeLessThanOrEqual(872);
+    });
+
+    it('deve ajustar left para margin quando ficar negativo', () => {
+      const rect = { top: 100, bottom: 120, left: -50, width: 20 } as DOMRect;
+
+      const result = component.computeRefinedClampedDropdownPosition(
+        rect,
+        { width: 1000, height: 800 },
+        120,
+        100,
+        8,
+      );
+
+      expect(result.left).toBe(8);
+    });
+
+    it('deve ajustar top para margin quando não couber em cima', () => {
+      const rect = { top: 20, bottom: 790, left: 100, width: 100 } as DOMRect;
+
+      const result = component.computeRefinedClampedDropdownPosition(
+        rect,
+        { width: 1000, height: 800 },
+        120,
+        100,
+        8,
+      );
+
+      expect(result.top).toBe(8);
+    });
+
+    it('deve ajustar top para baixo da viewport quando ainda passar do limite', () => {
+      const rect = { top: 760, bottom: 790, left: 100, width: 100 } as DOMRect;
+
+      const result = component.computeRefinedClampedDropdownPosition(
+        rect,
+        { width: 1000, height: 800 },
+        120,
+        900,
+        8,
+      );
+
+      expect(result.top).toBe(8);
+    });
+  });
+
+  describe('isRectFullyInViewport', () => {
+    it('isRectFullyInViewport deve retornar true quando rect está dentro da viewport', () => {
+      const rect = {
+        top: 10,
+        left: 10,
+        bottom: 100,
+        right: 100,
+      } as DOMRect;
+
+      expect(component.isRectFullyInViewport(rect, 800, 1000)).toBe(true);
+    });
+
+    it('isRectFullyInViewport deve retornar false quando rect está fora da viewport', () => {
+      const rect = {
+        top: -1,
+        left: 10,
+        bottom: 100,
+        right: 100,
+      } as DOMRect;
+
+      expect(component.isRectFullyInViewport(rect, 800, 1000)).toBe(false);
+    });
+  });
+
+  describe('computeNudgePositionIfClipped', () => {
+    it('computeNudgePositionIfClipped deve retornar null quando estiver dentro da viewport', () => {
+      const rect = {
+        top: 10,
+        left: 10,
+        bottom: 100,
+        right: 100,
+      } as DOMRect;
+
+      const result = component.computeNudgePositionIfClipped(
+        rect,
+        1000,
+        800,
+        10,
+        10,
+        120,
+        100,
+        8,
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('computeNudgePositionIfClipped deve ajustar quando estiver fora da viewport', () => {
+      const rect = {
+        top: -10,
+        left: -10,
+        bottom: 900,
+        right: 1100,
+      } as DOMRect;
+
+      const result = component.computeNudgePositionIfClipped(
+        rect,
+        1000,
+        800,
+        20,
+        20,
+        120,
+        100,
+        8,
+      );
+
+      expect(result).toEqual({
+        top: 692,
+        left: 872,
+      });
+    });
+  });
+
+  describe('toggleDropdown', () => {
+    it('toggleDropdown deve abrir dropdown quando encontrar anchor', () => {
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('status-indicator-wrapper');
+
+      jest.spyOn(wrapper, 'getBoundingClientRect').mockReturnValue({
+        top: 10,
+        bottom: 30,
+        left: 10,
+        width: 100,
+      } as DOMRect);
+
+      document.body.appendChild(wrapper);
+
+      const event = {
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
+        currentTarget: wrapper,
+        target: wrapper,
+      } as unknown as MouseEvent;
+
+      component.toggleDropdown(component.metas[0] as any, 1, event);
+
+      expect(component.openDropdownKey).toBe('1_1');
+      expect(component['activeMeta']).toBe(component.metas[0]);
+      expect(component['activeMesId']).toBe(1);
+    });
+
+    it('toggleDropdown deve fechar quando clicar na mesma célula aberta', () => {
+      component.openDropdownKey = '1_1';
+
+      const closeSpy = jest.spyOn(component, 'closeDropdown');
+
+      const wrapper = document.createElement('div');
+
+      const event = {
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
+        currentTarget: wrapper,
+        target: wrapper,
+      } as unknown as MouseEvent;
+
+      component.toggleDropdown(component.metas[0] as any, 1, event);
+
+      expect(closeSpy).toHaveBeenCalled();
+    });
+
+    it('toggleDropdown deve retornar quando não encontrar anchor', () => {
+      const event = {
+        stopPropagation: jest.fn(),
+        preventDefault: jest.fn(),
+        currentTarget: document.createElement('div'),
+        target: document.createElement('div'),
+      } as unknown as MouseEvent;
+
+      component.toggleDropdown(component.metas[0] as any, 1, event);
+
+      expect(event.stopPropagation).toHaveBeenCalled();
+      expect(event.preventDefault).toHaveBeenCalled();
+      expect(component.openDropdownKey).toBeNull();
+      expect(component['activeMeta']).toBeNull();
+      expect(component['activeMesId']).toBeNull();
+    });
+  });
+
+  describe('selecionarStatusByOverlay', () => {
+    it('selecionarStatusByOverlay deve retornar quando não tiver meta ativa', () => {
+      const spy = jest.spyOn(component, 'selecionarStatus');
+
+      component.selecionarStatusByOverlay('Pago');
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('selecionarStatusByOverlay deve selecionar status quando houver meta ativa', () => {
+      const spy = jest.spyOn(component, 'selecionarStatus');
+
+      (component as any).activeMeta = component.metas[0];
+      (component as any).activeMesId = 1;
+
+      component.selecionarStatusByOverlay('Pago');
+
+      expect(spy).toHaveBeenCalledWith(component.metas[0], 1, 'Pago');
+    });
+  });
+
+  describe('marcarMesesComoFinalizado', () => {
+    it('ngOnDestroy deve remover dropdown e cancelar subscription', () => {
+      const removeSpy = jest.spyOn(component as any, 'removeDropdownFromBody');
+
+      component.ngOnDestroy();
+
+      expect(removeSpy).toHaveBeenCalled();
+    });
+
+    it('ngOnDestroy deve cancelar subscription quando existir', () => {
+      const unsubscribeSpy = jest.fn();
+
+      component['editarValorSubscription'] = {
+        unsubscribe: unsubscribeSpy,
+      } as any;
+
+      component.ngOnDestroy();
+
+      expect(unsubscribeSpy).toHaveBeenCalled();
+    });
+
+    it('ngOnDestroy não deve quebrar quando não existir subscription', () => {
+      component['editarValorSubscription'] = undefined;
+
+      expect(() => component.ngOnDestroy()).not.toThrow();
+    });
+  });
+
+  describe('resolveStatusIndicatorAnchor', () => {
+    it('deve retornar null quando não tiver currentTarget nem target', () => {
+      const result = component['resolveStatusIndicatorAnchor'](
+        {} as MouseEvent,
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('deve buscar anchor pelo currentTarget quando target não encontrar', () => {
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('status-indicator-wrapper');
+
+      const event = {
+        target: document.createElement('span'),
+        currentTarget: wrapper,
+      } as unknown as MouseEvent;
+
+      const result = component['resolveStatusIndicatorAnchor'](event);
+
+      expect(result).toBe(wrapper);
+    });
+
+    it('deve buscar anchor dentro da célula data-meta-id/data-mes-id', () => {
+      const cell = document.createElement('div');
+      cell.setAttribute('data-meta-id', '1');
+      cell.setAttribute('data-mes-id', '1');
+
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('status-indicator-wrapper');
+
+      const target = document.createElement('span');
+
+      cell.appendChild(wrapper);
+      cell.appendChild(target);
+
+      const event = {
+        target,
+        currentTarget: target,
+      } as unknown as MouseEvent;
+
+      const result = component['resolveStatusIndicatorAnchor'](event);
+
+      expect(result).toBe(wrapper);
+    });
+  });
+
+  describe('scheduleDropdownRefinement', () => {
+    it('scheduleDropdownRefinement deve chamar refine após dois requestAnimationFrame', () => {
+      const anchor = document.createElement('div');
+      const dd = document.createElement('div');
+
+      const rafSpy = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation((cb: FrameRequestCallback) => {
+          cb(0);
+          return 1;
+        });
+
+      const refineSpy = jest.spyOn(
+        component as any,
+        'refineDropdownPositionAfterLayout',
+      );
+
+      component['scheduleDropdownRefinement'](anchor, dd, 8, 120, 100);
+
+      expect(rafSpy).toHaveBeenCalledTimes(2);
+      expect(refineSpy).toHaveBeenCalledWith(anchor, dd, 8, 120, 100);
+    });
+
+    it('deve retornar quando anchor não está no document', () => {
+      const anchor = document.createElement('div');
+      const dd = document.createElement('div');
+
+      const spy = jest.spyOn(
+        component as any,
+        'computeRefinedClampedDropdownPosition',
+      );
+
+      component['refineDropdownPositionAfterLayout'](anchor, dd, 8, 120, 100);
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it('deve refinar posição quando anchor e dropdown estão no document', () => {
+      jest.useFakeTimers();
+
+      const anchor = document.createElement('div');
+      const dd = document.createElement('div');
+
+      document.body.appendChild(anchor);
+      document.body.appendChild(dd);
+
+      jest.spyOn(anchor, 'getBoundingClientRect').mockReturnValue({
+        top: 10,
+        bottom: 30,
+        left: 10,
+        width: 100,
+      } as DOMRect);
+
+      Object.defineProperty(dd, 'offsetWidth', {
+        configurable: true,
+        value: 140,
+      });
+
+      Object.defineProperty(dd, 'offsetHeight', {
+        configurable: true,
+        value: 90,
+      });
+
+      const setPosSpy = jest.spyOn(
+        component as any,
+        'setDropdownElementPosition',
+      );
+      const nudgeSpy = jest.spyOn(component as any, 'applyNudgeAfterPaint');
+
+      component['refineDropdownPositionAfterLayout'](anchor, dd, 8, 120, 100);
+
+      expect(component.dropdownPos.top).toBeGreaterThanOrEqual(8);
+      expect(setPosSpy).toHaveBeenCalled();
+
+      jest.advanceTimersByTime(100);
+
+      expect(nudgeSpy).toHaveBeenCalled();
+
+      jest.useRealTimers();
     });
   });
 });
