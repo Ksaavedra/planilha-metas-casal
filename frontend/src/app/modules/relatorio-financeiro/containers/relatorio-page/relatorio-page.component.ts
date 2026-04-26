@@ -7,9 +7,13 @@ import {
 } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { CategoriaReceita, ReceitaMensal } from '../../../../core/interfaces/receitas';
+import {
+  CategoriaReceita,
+  ReceitaMensal,
+} from '../../../../core/interfaces/receitas';
 import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
-declare const echarts: unknown;
+import * as echarts from 'echarts';
+
 type EChartsOption = Record<string, unknown>;
 
 /** Anos exibidos no gráfico comparativo; o ano atual recebe receitas pela API. */
@@ -60,7 +64,8 @@ export class RelatorioPageComponent implements AfterViewInit {
   }[] = [];
 
   /** Uma linha por tipo de receita (Salário, Freela, etc.). */
-  receitasPorTipoLinhas: { tipo: string; valores: number[]; total: number }[] = [];
+  receitasPorTipoLinhas: { tipo: string; valores: number[]; total: number }[] =
+    [];
 
   // Propriedades de dados
   dadosReceitas: number[] = [];
@@ -192,28 +197,30 @@ export class RelatorioPageComponent implements AfterViewInit {
     };
     const el = this.chartSaldo?.nativeElement;
     if (!el) return;
+
     const e = echarts as any;
-    const chart = e.getInstanceByDom
-      ? e.getInstanceByDom(el) || e.init(el)
-      : e.init(el);
+
+    const chart = e.getInstanceByDom(el) || e.init(el);
+
     chart.setOption(this.chartOption, { notMerge: false });
   }
 
   private sincronizarGraficosBarraELinha(): void {
     const el2 = this.chartReceitasDespesas?.nativeElement;
     const el3 = this.chartDividasInvestimentos?.nativeElement;
+
     if (!el2 && !el3) return;
+
     const e = echarts as any;
+
     if (el2) {
-      const c = e.getInstanceByDom
-        ? e.getInstanceByDom(el2) || e.init(el2)
-        : e.init(el2);
+      const c = e.getInstanceByDom(el2) || e.init(el2);
+
       c.setOption(this.chartOptionReceitasDespesas, { notMerge: false });
     }
     if (el3) {
-      const c = e.getInstanceByDom
-        ? e.getInstanceByDom(el3) || e.init(el3)
-        : e.init(el3);
+      const c = e.getInstanceByDom(el3) || e.init(el3);
+
       c.setOption(this.chartOptionDividasInvestimentos, { notMerge: false });
     }
   }
@@ -276,9 +283,7 @@ export class RelatorioPageComponent implements AfterViewInit {
       type: 'value',
       name: 'Valor (R$)',
       axisLabel: {
-        formatter: function (value: number) {
-          return `R$ ${value.toLocaleString('pt-BR')}`;
-        },
+        formatter: (value: number) => this.formatarValorRealSemCentavos(value),
       },
     },
     dataset: {
@@ -324,106 +329,37 @@ export class RelatorioPageComponent implements AfterViewInit {
   };
 
   mergeOptions: EChartsOption = {};
+  chartOptionReceitasDespesas: EChartsOption = {};
 
-  // Configuração do segundo gráfico - Receitas e Despesas
-  chartOptionReceitasDespesas: EChartsOption = {
-    title: {
-      text: 'Receitas e Despesas',
-      left: 'center',
-      textStyle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#6b7280',
-      },
-    },
-    legend: {
-      data: ['Receitas', 'Despesas'],
-      bottom: 10,
-    },
-    tooltip: {
-      trigger: 'item',
-      axisPointer: {
-        type: 'shadow',
-      },
-      formatter: function (params: any) {
-        const valor = params.value;
-        const tipo = params.seriesName;
-        const mes = params.name;
-        const cor = params.color;
+  private formatarTooltipReceitasDespesas(params: any): string {
+    const valor = params.value;
+    const tipo = params.seriesName;
+    const mes = params.name;
+    const cor = params.color;
 
-        let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
-        result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
-        result += `<div style="display: flex; align-items: center; gap: 8px;">`;
-        result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
-        result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
-          'pt-BR',
-          { minimumFractionDigits: 2 },
-        )}</span>`;
-        result += `</div>`;
-        result += `</div>`;
+    let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
+    result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
+    result += `<div style="display: flex; align-items: center; gap: 8px;">`;
+    result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
+    result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
+      'pt-BR',
+      { minimumFractionDigits: 2 },
+    )}</span>`;
+    result += `</div>`;
+    result += `</div>`;
 
-        return result;
-      },
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '15%',
-      top: '15%',
-      containLabel: true,
-    },
-    xAxis: {
-      type: 'category',
-      data: this.meses,
-      axisLabel: {
-        rotate: 45,
-        fontSize: 10,
-      },
-    },
-    yAxis: {
-      type: 'value',
-      name: 'Valor (R$)',
-      max: 20000,
-      interval: 5000,
-      axisLabel: {
-        formatter: function (value: number) {
-          return `R$ ${value.toLocaleString('pt-BR')}`;
-        },
-      },
-    },
-    series: [
-      {
-        name: 'Receitas',
-        type: 'bar',
-        data: [],
-        itemStyle: { color: '#4CAF50' }, // Verde
-        label: {
-          show: true,
-          position: 'top',
-          formatter: function (params: any) {
-            return `R$ ${params.value.toLocaleString('pt-BR', {
-              minimumFractionDigits: 2,
-            })}`;
-          },
-        },
-      },
-      {
-        name: 'Despesas',
-        type: 'bar',
-        data: [],
-        itemStyle: { color: '#F44336' }, // Vermelho
-        label: {
-          show: true,
-          position: 'bottom',
-          formatter: function (params: any) {
-            return `R$ ${params.value.toLocaleString('pt-BR', {
-              minimumFractionDigits: 2,
-            })}`;
-          },
-        },
-      },
-    ],
-  };
+    return result;
+  }
+
+  private formatarValorRealSemCentavos(valor: number): string {
+    return `R$ ${valor.toLocaleString('pt-BR')}`;
+  }
+
+  private formatarValorRealComCentavos(params: any): string {
+    return `R$ ${params.value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+    })}`;
+  }
 
   // Configuração do terceiro gráfico - Dívidas x Investimentos (Projetado)
   chartOptionDividasInvestimentos: EChartsOption = {
@@ -489,9 +425,7 @@ export class RelatorioPageComponent implements AfterViewInit {
       max: 40000,
       interval: 20000,
       axisLabel: {
-        formatter: function (value: number) {
-          return `R$ ${value.toLocaleString('pt-BR')}`;
-        },
+        formatter: (value: number) => this.formatarValorRealSemCentavos(value),
       },
     },
     series: [
@@ -509,11 +443,7 @@ export class RelatorioPageComponent implements AfterViewInit {
         label: {
           show: true,
           position: 'top',
-          formatter: function (params: any) {
-            return `R$ ${params.value.toLocaleString('pt-BR', {
-              minimumFractionDigits: 2,
-            })}`;
-          },
+          formatter: (params: any) => this.formatarValorRealComCentavos(params),
           fontSize: 10,
           color: '#F44336',
         },
@@ -597,10 +527,6 @@ export class RelatorioPageComponent implements AfterViewInit {
     }
   }
 
-  /**
-   * O *ngIf remove os hosts do ECharts em "Categorias". Ao voltar, o DOM é novo
-   * e o ngAfterViewInit não dispara de novo: é preciso init + setOption outra vez.
-   */
   private reinicializarGraficosAposVoltarResumo(): void {
     this.disposeEchartsNosTresConteiners();
     if (
@@ -669,25 +595,8 @@ export class RelatorioPageComponent implements AfterViewInit {
         axisPointer: {
           type: 'shadow',
         },
-        formatter: function (params: any) {
-          const valor = params.value;
-          const tipo = params.seriesName;
-          const mes = params.name;
-          const cor = params.color;
-
-          let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
-          result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
-          result += `<div style="display: flex; align-items: center; gap: 8px;">`;
-          result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
-          result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
-            'pt-BR',
-            { minimumFractionDigits: 2 },
-          )}</span>`;
-          result += `</div>`;
-          result += `</div>`;
-
-          return result;
-        },
+        formatter: (params: any) =>
+          this.formatarTooltipReceitasDespesas(params),
       },
       grid: {
         left: '3%',
@@ -710,9 +619,8 @@ export class RelatorioPageComponent implements AfterViewInit {
         max: 20000,
         interval: 5000,
         axisLabel: {
-          formatter: function (value: number) {
-            return `R$ ${value.toLocaleString('pt-BR')}`;
-          },
+          formatter: (value: number) =>
+            this.formatarValorRealSemCentavos(value),
         },
       },
       series: [
@@ -724,11 +632,8 @@ export class RelatorioPageComponent implements AfterViewInit {
           label: {
             show: true,
             position: 'top',
-            formatter: function (params: any) {
-              return `R$ ${params.value.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-              })}`;
-            },
+            formatter: (params: any) =>
+              this.formatarValorRealComCentavos(params),
           },
         },
         {
@@ -739,11 +644,8 @@ export class RelatorioPageComponent implements AfterViewInit {
           label: {
             show: true,
             position: 'bottom',
-            formatter: function (params: any) {
-              return `R$ ${params.value.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-              })}`;
-            },
+            formatter: (params: any) =>
+              this.formatarValorRealComCentavos(params),
           },
         },
       ],
@@ -855,7 +757,8 @@ export class RelatorioPageComponent implements AfterViewInit {
     c: CategoriaReceita | string | undefined,
   ): 'fixa' | 'variavel' {
     if (c === 'Variável') return 'variavel';
-    if (typeof c === 'string' && /variável|variavel/i.test(c)) return 'variavel';
+    if (typeof c === 'string' && /variável|variavel/i.test(c))
+      return 'variavel';
     return 'fixa';
   }
 
