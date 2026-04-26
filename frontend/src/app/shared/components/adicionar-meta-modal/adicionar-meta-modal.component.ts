@@ -37,9 +37,10 @@ export class MyErrorStateMatcher implements ErrorStateMatcher {
 }
 
 @Component({
-  selector: 'app-adicionar-meta-modal',
-  templateUrl: './adicionar-meta-modal.component.html',
-  styleUrls: ['./adicionar-meta-modal.component.scss'],
+    selector: 'app-adicionar-meta-modal',
+    templateUrl: './adicionar-meta-modal.component.html',
+    styleUrls: ['./adicionar-meta-modal.component.scss'],
+    standalone: false
 })
 export class AdicionarMetaModalComponent
   implements OnChanges, OnInit, OnDestroy

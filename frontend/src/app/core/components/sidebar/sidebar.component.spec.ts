@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { of } from 'rxjs';
 import { SidebarComponent } from './sidebar.component';
 import { CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA } from '@angular/core';
 import { SidebarService } from '../../services/sidebar/sidebar.service';
@@ -7,12 +8,18 @@ import { SidebarService } from '../../services/sidebar/sidebar.service';
 describe('SidebarComponent', () => {
   let component: SidebarComponent;
   let fixture: ComponentFixture<SidebarComponent>;
+  let sidebarService: { getStatus: jest.Mock; isMobile: jest.Mock; changeStatus: jest.Mock };
 
   beforeEach(async () => {
+    sidebarService = {
+      getStatus: jest.fn().mockReturnValue(of(false)),
+      isMobile: jest.fn().mockReturnValue(of(false)),
+      changeStatus: jest.fn(),
+    };
     await TestBed.configureTestingModule({
       declarations: [SidebarComponent],
       imports: [RouterTestingModule],
-      providers: [SidebarService],
+      providers: [{ provide: SidebarService, useValue: sidebarService }],
       schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
     }).compileComponents();
 
@@ -65,5 +72,12 @@ describe('SidebarComponent', () => {
     const closeButton = compiled.querySelector('button');
     expect(closeButton).toBeTruthy();
     expect(closeButton?.textContent?.trim()).toBe('✕');
+  });
+
+  it('onSidebarClick deve chamar sidebar.changeStatus()', () => {
+    component.onSidebarClick();
+    expect(sidebarService.changeStatus).toHaveBeenCalledTimes(1);
+    component.onSidebarClick();
+    expect(sidebarService.changeStatus).toHaveBeenCalledTimes(2);
   });
 });

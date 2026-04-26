@@ -1,8 +1,84 @@
 <div class="receitas-container">
-  <h1>Receitas</h1>
-  <p>Gestão de receitas e entradas</p>
-  <div class="placeholder">
-    <span class="material-icons">add_circle</span>
-    <p>Funcionalidade em desenvolvimento</p>
+  <!-- Header -->
+  <div class="header-receitas">
+    <h1>
+      <span class="material-icons">payments</span>
+      RECEITAS DO CASAL
+    </h1>
+    <p>Cada conquista começa com o que entra. Aqui vocês acompanham tudo que constroem juntos.</p>
+  </div>
+
+  <!-- Botão Adicionar Receita -->
+  <div class="add-receita-container">
+    <button class="btn-add-receita" (click)="abrirModalAdicionarUsuario()">
+      <span class="material-icons">add</span>
+      Adicionar Receita
+    </button>
+  </div>
+
+  <!-- Seletor de Mês -->
+  <div class="mes-selector">
+    <button class="btn-nav" (click)="mesAnterior()">
+      <span class="material-icons">chevron_left</span>
+    </button>
+    <div class="mes-atual">
+      <span class="material-icons">calendar_month</span>
+      <span>{{ nomeMesAtual }}</span>
+    </div>
+    <button class="btn-nav" (click)="proximoMes()">
+      <span class="material-icons">chevron_right</span>
+    </button>
+  </div>
+
+  <!-- Loading / Erro -->
+  <div *ngIf="loading" class="receitas-loading">Carregando receitas...</div>
+  <div *ngIf="erroCarregar && !loading" class="receitas-erro">{{ erroCarregar }}</div>
+
+  <div class="receitas-mes" *ngIf="!loading">
+    <div class="secao-receitas" *ngFor="let card of cardsPorPessoa; let i = index" [ngClass]="'secao-cor-' + (i % 4)">
+      <div class="secao-header">
+        <span class="material-icons">person</span>
+        <h2>{{ card.nome }}</h2>
+      </div>
+      <div class="receitas-list">
+        <div class="receita-grupo-tipo" *ngFor="let grupo of receitasAgrupadasPorTipo(card.receitas)">
+          <h3 class="receita-titulo-tipo">{{ grupo.tipo }}</h3>
+          <ul class="receita-detalhes">
+            <li class="receita-linha" *ngFor="let receita of grupo.itens">
+              <span class="categoria-badge" [class.fixa]="receita.categoria === 'Fixa'"
+                [class.variavel]="receita.categoria === 'Variável'">
+                {{ receita.categoria }}
+              </span>
+              <div class="receita-valor-acoes">
+                <div class="receita-valor">{{ receita.valor | currency:'BRL' }}</div>
+                <div class="receita-actions" role="group" aria-label="Ações da receita">
+                  <button type="button" class="btn-icon" (click)="editarReceita(receita)" title="Editar"
+                    aria-label="Editar">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button type="button" class="btn-icon btn-icon-delete" (click)="excluirReceita(receita)"
+                    title="Excluir" aria-label="Excluir">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="secao-total">
+        <div class="total-label">Total</div>
+        <div class="total-valor">{{ card.total | currency:'BRL' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Geral do Mês -->
+  <div class="total-geral" *ngIf="!loading">
+    <div class="total-geral-header">
+      <span class="material-icons">favorite</span>
+      <span>Total Geral do Mês</span>
+    </div>
+    <div class="total-geral-valor">{{ totalMensal | currency:'BRL' }}</div>
   </div>
 </div>

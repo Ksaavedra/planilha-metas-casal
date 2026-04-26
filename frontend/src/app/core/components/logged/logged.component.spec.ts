@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { of } from 'rxjs';
 import { LoggedComponent } from './logged.component';
+import { SidebarService } from '../../services/sidebar/sidebar.service';
 import { CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA } from '@angular/core';
 
 describe('LoggedComponent', () => {
@@ -8,10 +10,15 @@ describe('LoggedComponent', () => {
   let fixture: ComponentFixture<LoggedComponent>;
 
   beforeEach(async () => {
+    const sidebarService = {
+      getStatus: jest.fn().mockReturnValue(of(false)),
+      isMobile: jest.fn().mockReturnValue(of(false)),
+    };
     await TestBed.configureTestingModule({
       declarations: [LoggedComponent],
       imports: [RouterTestingModule],
       schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
+      providers: [{ provide: SidebarService, useValue: sidebarService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(LoggedComponent);
@@ -39,5 +46,13 @@ describe('LoggedComponent', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const routerOutlet = compiled.querySelector('router-outlet');
     expect(routerOutlet).toBeTruthy();
+  });
+
+  it('onShowOverlay(show) deve setar showOverlay com o valor passado', () => {
+    expect(component.showOverlay).toBe(false);
+    component.onShowOverlay(true);
+    expect(component.showOverlay).toBe(true);
+    component.onShowOverlay(false);
+    expect(component.showOverlay).toBe(false);
   });
 });

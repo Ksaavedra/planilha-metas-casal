@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ModalAdicionarMetaService } from './core/services/modal-adicionar-meta.service';
-import { ModalEditarValorService } from './core/services/modal-editar-valor.service';
+import { MetasService } from './core/services/metas/metas.service';
+import { ReceitasService } from './core/services/receitas/receitas.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
+  standalone: false,
 })
 export class AppComponent implements OnInit, OnDestroy {
   modalState = {
@@ -43,41 +44,64 @@ export class AppComponent implements OnInit, OnDestroy {
     meses: [] as string[],
   };
 
+  confirmarExcluirReceitaState = {
+    isOpen: false,
+    message: '',
+  };
+
+  sucessoExcluirReceitaState = {
+    isOpen: false,
+  };
+
   private subscription?: Subscription;
   private sucessoSubscription?: Subscription;
   private confirmarDeleteSubscription?: Subscription;
   private sucessoDeleteSubscription?: Subscription;
   private editarValorSubscription?: Subscription;
+  private confirmarExcluirReceitaSubscription?: Subscription;
+  private sucessoExcluirReceitaSubscription?: Subscription;
 
   constructor(
-    private modalService: ModalAdicionarMetaService,
-    private modalEditarValorService: ModalEditarValorService
+    private metasService: MetasService,
+    private receitasService: ReceitasService,
   ) {}
 
   ngOnInit(): void {
-    this.subscription = this.modalService.state$.subscribe((state) => {
+    this.subscription = this.metasService.state$.subscribe((state) => {
       this.modalState = { ...state };
     });
 
-    this.sucessoSubscription = this.modalService.sucessoState$.subscribe(
-      (state) => {
+    this.sucessoSubscription =
+      this.metasService.sucessoState$.subscribe((state) => {
         this.sucessoState = { ...state };
-      }
-    );
+      });
 
     this.confirmarDeleteSubscription =
-      this.modalService.confirmarDeleteState$.subscribe((state) => {
+      this.metasService.confirmarDeleteState$.subscribe((state) => {
         this.confirmarDeleteState = { ...state };
       });
 
     this.sucessoDeleteSubscription =
-      this.modalService.sucessoDeleteState$.subscribe((state) => {
+      this.metasService.sucessoDeleteState$.subscribe((state) => {
         this.sucessoDeleteState = { ...state };
       });
 
     this.editarValorSubscription =
-      this.modalEditarValorService.state$.subscribe((state) => {
+      this.metasService.editarValorState$.subscribe((state) => {
         this.editarValorState = { ...state };
+      });
+
+    this.confirmarExcluirReceitaSubscription =
+      this.receitasService.confirmState$.subscribe((state) => {
+        this.confirmarExcluirReceitaState = {
+          isOpen: state.isOpen,
+          message: state.message,
+        };
+      });
+
+    this.sucessoExcluirReceitaSubscription =
+      this.receitasService.successState$.subscribe((state) => {
+        this.sucessoExcluirReceitaState = { isOpen: state.isOpen };
       });
 
     // O elaborando-metas já está escutando confirmDelete$ diretamente
@@ -89,30 +113,32 @@ export class AppComponent implements OnInit, OnDestroy {
     this.confirmarDeleteSubscription?.unsubscribe();
     this.sucessoDeleteSubscription?.unsubscribe();
     this.editarValorSubscription?.unsubscribe();
+    this.confirmarExcluirReceitaSubscription?.unsubscribe();
+    this.sucessoExcluirReceitaSubscription?.unsubscribe();
   }
 
   onNomeChange(value: string): void {
-    this.modalService.updateNome(value);
+    this.metasService.updateNome(value);
   }
 
   onValorMetaChange(value: string): void {
-    this.modalService.updateValorMetaRaw(value);
+    this.metasService.updateValorMetaRaw(value);
   }
 
   onValorPorMesChange(value: string): void {
-    this.modalService.updateValorPorMesRaw(value);
+    this.metasService.updateValorPorMesRaw(value);
   }
 
   onValorAtualChange(value: string): void {
-    this.modalService.updateValorAtualRaw(value);
+    this.metasService.updateValorAtualRaw(value);
   }
 
   onTemValorAtualChange(value: boolean): void {
-    this.modalService.updateTemValorAtual(value);
+    this.metasService.updateTemValorAtual(value);
   }
 
   onIconChange(value: string): void {
-    this.modalService.updateIcon(value);
+    this.metasService.updateIcon(value);
   }
 
   onValorMetaChangeEvent(_event: Event): void {
@@ -128,43 +154,52 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onSave(): void {
-    // Emite evento de save - o elaborando-metas vai escutar e processar
-    this.modalService.triggerSave();
+    this.metasService.triggerSave();
   }
 
   onCancel(): void {
-    this.modalService.close();
-    this.modalService.reset();
+    this.metasService.close();
+    this.metasService.reset();
   }
 
   onCloseSucesso(): void {
-    // O serviço já fecha e reseta o modal de adicionar automaticamente
-    this.modalService.closeSucesso();
+    this.metasService.closeSucesso();
   }
 
   onConfirmDelete(): void {
-    console.log('🟢 AppComponent.onConfirmDelete() chamado!');
-    this.modalService.confirmDelete();
+    this.metasService.confirmDelete();
   }
 
   onCancelDelete(): void {
-    this.modalService.closeConfirmarDelete();
+    this.metasService.closeConfirmarDelete();
   }
 
   onCloseSucessoDelete(): void {
-    this.modalService.closeSucessoDelete();
+    this.metasService.closeSucessoDelete();
   }
 
   onValorChange(value: number): void {
-    this.modalEditarValorService.updateValor(value);
+    this.metasService.updateValorEditarValor(value);
   }
 
   onSaveEditarValor(): void {
-    this.modalEditarValorService.triggerSave();
+    this.metasService.triggerSaveEditarValor();
   }
 
   onCancelEditarValor(): void {
-    this.modalEditarValorService.close();
-    this.modalEditarValorService.reset();
+    this.metasService.closeEditarValor();
+    this.metasService.resetEditarValor();
+  }
+
+  onConfirmExcluirReceita(): void {
+    this.receitasService.onConfirm();
+  }
+
+  onCancelExcluirReceita(): void {
+    this.receitasService.onCancel();
+  }
+
+  onCloseSucessoExcluirReceita(): void {
+    this.receitasService.closeSuccess();
   }
 }

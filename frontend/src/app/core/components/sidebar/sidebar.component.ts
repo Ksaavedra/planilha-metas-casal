@@ -2,9 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { SidebarService } from '../../services/sidebar/sidebar.service';
 
 @Component({
-  selector: 'app-sidebar',
-  templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.scss'],
+    selector: 'app-sidebar',
+    templateUrl: './sidebar.component.html',
+    styleUrls: ['./sidebar.component.scss'],
+    standalone: false
 })
 export class SidebarComponent implements OnInit {
   sidebarStatus: boolean = false;

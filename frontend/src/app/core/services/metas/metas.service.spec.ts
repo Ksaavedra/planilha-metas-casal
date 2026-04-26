@@ -1,12 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import {
-  MetasService,
   CreateMetaRequest,
+  Meta,
+  MetaExtended,
   UpdateMetaRequest,
-} from './metas.service';
+} from '../../interfaces/metas';
 import { ApiService } from '../api/api.service';
-import { Meta } from '../../interfaces/mes-meta';
+import { MetasService } from './metas.service';
 
 describe('MetasService', () => {
   let service: MetasService;
@@ -167,7 +168,7 @@ describe('MetasService', () => {
 
       expect(apiService.patch).toHaveBeenCalledWith(
         '/metas/1',
-        mockUpdateRequest
+        mockUpdateRequest,
       );
     });
 
@@ -182,7 +183,7 @@ describe('MetasService', () => {
 
       expect(apiService.patch).toHaveBeenCalledWith(
         '/metas/1',
-        mockUpdateRequest
+        mockUpdateRequest,
       );
     });
 
@@ -225,172 +226,248 @@ describe('MetasService', () => {
     });
   });
 
-  describe('calcularProgresso', () => {
-    it('should calculate progress correctly', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 1000,
-        valorAtual: 500,
-        valorPorMes: 100,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const progress = service.calcularProgresso(meta);
-      expect(progress).toBe(50);
+  // ========== Modal Adicionar Meta ==========
+  describe('getState / open / close / reset', () => {
+    it('getState retorna estado inicial com isOpen false', () => {
+      expect(service.getState().isOpen).toBe(false);
+      expect(service.getState().nome).toBe('');
     });
 
-    it('should return 0 when valorMeta is 0 or negative', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 0,
-        valorAtual: 500,
-        valorPorMes: 100,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const progress = service.calcularProgresso(meta);
-      expect(progress).toBe(0);
+    it('open seta isOpen true no state$', () => {
+      service.open();
+      expect(service.getState().isOpen).toBe(true);
     });
 
-    it('should return 0 when valorMeta is negative', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: -100,
-        valorAtual: 500,
-        valorPorMes: 100,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const progress = service.calcularProgresso(meta);
-      expect(progress).toBe(0);
+    it('close seta isOpen false', () => {
+      service.open();
+      service.close();
+      expect(service.getState().isOpen).toBe(false);
     });
 
-    it('should cap progress at 100%', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 1000,
-        valorAtual: 1500, // More than target
-        valorPorMes: 100,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const progress = service.calcularProgresso(meta);
-      expect(progress).toBe(100);
-    });
-
-    it('should handle exact completion', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 1000,
-        valorAtual: 1000,
-        valorPorMes: 100,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const progress = service.calcularProgresso(meta);
-      expect(progress).toBe(100);
+    it('reset volta ao estado inicial', () => {
+      service.open();
+      service.updateNome('X');
+      service.reset();
+      expect(service.getState()).toEqual({
+        isOpen: false,
+        nome: '',
+        valorMetaRaw: '',
+        valorPorMesRaw: '',
+        valorAtualRaw: '',
+        temValorAtual: false,
+        icon: 'bi-bullseye',
+      });
     });
   });
 
-  describe('calcularMesesRestantes', () => {
-    it('should calculate remaining months correctly', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 1000,
-        valorAtual: 300,
-        valorPorMes: 100,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const remaining = service.calcularMesesRestantes(meta);
-      expect(remaining).toBe(7); // (1000 - 300) / 100 = 7
+  describe('updateNome / updateValorMetaRaw / updateValorPorMesRaw / updateValorAtualRaw / updateTemValorAtual / updateIcon', () => {
+    it('updateNome atualiza nome no state', () => {
+      service.updateNome('Minha Meta');
+      expect(service.getState().nome).toBe('Minha Meta');
     });
 
-    it('should return 0 when valorPorMes is 0 or negative', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 1000,
-        valorAtual: 300,
-        valorPorMes: 0,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const remaining = service.calcularMesesRestantes(meta);
-      expect(remaining).toBe(0);
+    it('updateValorMetaRaw atualiza valorMetaRaw', () => {
+      service.updateValorMetaRaw('5000');
+      expect(service.getState().valorMetaRaw).toBe('5000');
     });
 
-    it('should return 0 when valorPorMes is negative', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 1000,
-        valorAtual: 300,
-        valorPorMes: -50,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const remaining = service.calcularMesesRestantes(meta);
-      expect(remaining).toBe(0);
+    it('updateValorPorMesRaw atualiza valorPorMesRaw', () => {
+      service.updateValorPorMesRaw('500');
+      expect(service.getState().valorPorMesRaw).toBe('500');
     });
 
-    it('should return 0 when meta is already completed', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 1000,
-        valorAtual: 1000,
-        valorPorMes: 100,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const remaining = service.calcularMesesRestantes(meta);
-      expect(remaining).toBe(0);
+    it('updateValorAtualRaw atualiza valorAtualRaw', () => {
+      service.updateValorAtualRaw('1000');
+      expect(service.getState().valorAtualRaw).toBe('1000');
     });
 
-    it('should handle meta with more value than target', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 1000,
-        valorAtual: 1500,
-        valorPorMes: 100,
-        mesesNecessarios: 10,
-        meses: [],
-      };
-
-      const remaining = service.calcularMesesRestantes(meta);
-      expect(remaining).toBe(-5); // (1000 - 1500) / 100 = -5
+    it('updateTemValorAtual(true) mantém valorAtualRaw, updateTemValorAtual(false) limpa valorAtualRaw', () => {
+      service.updateValorAtualRaw('2000');
+      service.updateTemValorAtual(true);
+      expect(service.getState().temValorAtual).toBe(true);
+      expect(service.getState().valorAtualRaw).toBe('2000');
+      service.updateTemValorAtual(false);
+      expect(service.getState().temValorAtual).toBe(false);
+      expect(service.getState().valorAtualRaw).toBe('');
     });
 
-    it('should round up fractional months', () => {
-      const meta: Meta = {
-        id: 1,
-        nome: 'Test Meta',
-        valorMeta: 1000,
-        valorAtual: 250,
-        valorPorMes: 100,
-        mesesNecessarios: 10,
-        meses: [],
-      };
+    it('updateIcon atualiza icon', () => {
+      service.updateIcon('bi-star');
+      expect(service.getState().icon).toBe('bi-star');
+    });
+  });
 
-      const remaining = service.calcularMesesRestantes(meta);
-      expect(remaining).toBe(8); // (1000 - 250) / 100 = 7.5, rounded up to 8
+  describe('triggerSave', () => {
+    it('emite no save$', (done) => {
+      service.save$.subscribe(() => {
+        expect(true).toBe(true);
+        done();
+      });
+      service.triggerSave();
+    });
+  });
+
+  // ========== Sucesso ==========
+  describe('getSucessoState / showSucesso / closeSucesso', () => {
+    it('getSucessoState retorna estado inicial', () => {
+      expect(service.getSucessoState().isOpen).toBe(false);
+    });
+
+    it('showSucesso seta isOpen, title e message', () => {
+      service.showSucesso('Título', 'Mensagem');
+      expect(service.getSucessoState()).toEqual({
+        isOpen: true,
+        title: 'Título',
+        message: 'Mensagem',
+      });
+    });
+
+    it('closeSucesso fecha sucesso, close e reset do modal adicionar', () => {
+      service.open();
+      service.showSucesso('A', 'B');
+      service.closeSucesso();
+      expect(service.getSucessoState().isOpen).toBe(false);
+      expect(service.getState().isOpen).toBe(false);
+      expect(service.getState().nome).toBe('');
+    });
+  });
+
+  // ========== Confirmar Delete ==========
+  describe('getConfirmarDeleteState / openConfirmarDelete / closeConfirmarDelete / confirmDelete', () => {
+    it('getConfirmarDeleteState retorna estado inicial', () => {
+      expect(service.getConfirmarDeleteState().isOpen).toBe(false);
+      expect(service.getConfirmarDeleteState().metaId).toBeNull();
+    });
+
+    it('openConfirmarDelete seta isOpen, message, metaId e metaNome', () => {
+      service.openConfirmarDelete(10, 'Viagem');
+      const state = service.getConfirmarDeleteState();
+      expect(state.isOpen).toBe(true);
+      expect(state.metaId).toBe(10);
+      expect(state.metaNome).toBe('Viagem');
+      expect(state.message).toContain('Viagem');
+    });
+
+    it('closeConfirmarDelete fecha e limpa metaId/metaNome', () => {
+      service.openConfirmarDelete(5, 'Carro');
+      service.closeConfirmarDelete();
+      expect(service.getConfirmarDeleteState().isOpen).toBe(false);
+      expect(service.getConfirmarDeleteState().metaId).toBeNull();
+      expect(service.getConfirmarDeleteState().metaNome).toBe('');
+    });
+
+    it('confirmDelete emite metaId no confirmDelete$ e chama closeConfirmarDelete', (done) => {
+      service.openConfirmarDelete(7, 'Casa');
+      service.confirmDelete$.subscribe((id) => {
+        expect(id).toBe(7);
+        done();
+      });
+      service.confirmDelete();
+      expect(service.getConfirmarDeleteState().isOpen).toBe(false);
+    });
+
+    it('confirmDelete com metaId null não emite e chama closeConfirmarDelete', () => {
+      const spy = jest.fn();
+      service.confirmDelete$.subscribe(spy);
+      service.closeConfirmarDelete();
+      service.confirmDelete();
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
+
+  // ========== Sucesso Delete ==========
+  describe('getSucessoDeleteState / showSucessoDelete / closeSucessoDelete', () => {
+    it('getSucessoDeleteState retorna isOpen false inicial', () => {
+      expect(service.getSucessoDeleteState().isOpen).toBe(false);
+    });
+
+    it('showSucessoDelete fecha confirmar e abre sucesso delete', () => {
+      service.openConfirmarDelete(1, 'X');
+      service.showSucessoDelete();
+      expect(service.getConfirmarDeleteState().isOpen).toBe(false);
+      expect(service.getSucessoDeleteState().isOpen).toBe(true);
+    });
+
+    it('closeSucessoDelete seta isOpen false', () => {
+      service.showSucessoDelete();
+      service.closeSucessoDelete();
+      expect(service.getSucessoDeleteState().isOpen).toBe(false);
+    });
+  });
+
+  // ========== Modal Editar Valor ==========
+  describe('getEditarValorState / openEditarValor / closeEditarValor / updateValorEditarValor / triggerSaveEditarValor / resetEditarValor', () => {
+    const metaExtended: MetaExtended = {
+      id: 1,
+      nome: 'Meta',
+      valorMeta: 1000,
+      valorPorMes: 100,
+      mesesNecessarios: 10,
+      valorAtual: 0,
+      meses: [
+        { id: 1, nome: 'Jan', valor: 100, status: 'Vazio' },
+        { id: 2, nome: 'Fev', valor: 100, status: 'Vazio' },
+      ],
+    } as MetaExtended;
+
+    it('getEditarValorState retorna estado inicial', () => {
+      expect(service.getEditarValorState().isOpen).toBe(false);
+      expect(service.getEditarValorState().mesId).toBe(-1);
+    });
+
+    it('openEditarValor com mesId existente abre modal com valor do mês', () => {
+      service.openEditarValor(metaExtended, 1, ['Jan', 'Fev']);
+      const state = service.getEditarValorState();
+      expect(state.isOpen).toBe(true);
+      expect(state.meta).toBe(metaExtended);
+      expect(state.mesId).toBe(1);
+      expect(state.valor).toBe(100);
+      expect(state.meses).toEqual(['Jan', 'Fev']);
+    });
+
+    it('openEditarValor com mesId inexistente não altera state', () => {
+      const antes = service.getEditarValorState();
+      service.openEditarValor(metaExtended, 99, []);
+      expect(service.getEditarValorState()).toEqual(antes);
+    });
+
+    it('closeEditarValor seta isOpen false', () => {
+      service.openEditarValor(metaExtended, 1, []);
+      service.closeEditarValor();
+      expect(service.getEditarValorState().isOpen).toBe(false);
+    });
+
+    it('updateValorEditarValor atualiza valor no state', () => {
+      service.openEditarValor(metaExtended, 1, []);
+      service.updateValorEditarValor(250);
+      expect(service.getEditarValorState().valor).toBe(250);
+    });
+
+    it('triggerSaveEditarValor emite no editarValorSave$ e fecha modal', (done) => {
+      service.openEditarValor(metaExtended, 1, []);
+      service.updateValorEditarValor(300);
+      service.editarValorSave$.subscribe((payload) => {
+        expect(payload).toEqual({ metaId: 1, mesId: 1, valor: 300 });
+        done();
+      });
+      service.triggerSaveEditarValor();
+      expect(service.getEditarValorState().isOpen).toBe(false);
+    });
+
+    it('triggerSaveEditarValor sem meta ou mesId -1 não emite mas fecha', () => {
+      const spy = jest.fn();
+      service.editarValorSave$.subscribe(spy);
+      service.triggerSaveEditarValor();
+      expect(spy).not.toHaveBeenCalled();
+      expect(service.getEditarValorState().isOpen).toBe(false);
+    });
+
+    it('resetEditarValor volta ao estado inicial', () => {
+      service.openEditarValor(metaExtended, 1, []);
+      service.resetEditarValor();
+      expect(service.getEditarValorState().isOpen).toBe(false);
+      expect(service.getEditarValorState().meta).toBeNull();
+      expect(service.getEditarValorState().mesId).toBe(-1);
     });
   });
 });

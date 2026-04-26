@@ -1,12 +1,38 @@
-import { Component } from '@angular/core';
-import { EChartsOption } from 'echarts';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  ViewChild,
+} from '@angular/core';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
+import {
+  CategoriaReceita,
+  ReceitaMensal,
+} from '../../../../core/interfaces/receitas';
+import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
+import * as echarts from 'echarts';
+
+type EChartsOption = Record<string, unknown>;
+
+/** Anos exibidos no gráfico comparativo; o ano atual recebe receitas pela API. */
+const ANOS_COMPARACAO: readonly number[] = [
+  2020, 2021, 2022, 2023, 2024, 2025, 2026,
+];
 
 @Component({
   selector: 'app-relatorio-page',
   templateUrl: './relatorio-page.component.html',
   styleUrls: ['./relatorio-page.component.scss'],
+  standalone: false,
 })
-export class RelatorioPageComponent {
+export class RelatorioPageComponent implements AfterViewInit {
+  @ViewChild('chartSaldo') chartSaldo!: ElementRef;
+  @ViewChild('chartReceitasDespesas') chartReceitasDespesas!: ElementRef;
+  @ViewChild('chartDividasInvestimentos')
+  chartDividasInvestimentos!: ElementRef;
+
   meses = [
     'Janeiro',
     'Fevereiro',
@@ -22,8 +48,24 @@ export class RelatorioPageComponent {
     'Dezembro',
   ];
 
-  anosDisponiveis = [2020, 2021, 2022, 2023, 2024, 2025];
-  anoSelecionado = 2024;
+  readonly anosComparacao = ANOS_COMPARACAO;
+  /** Ano exibido na tela e tabelas: ano civil de hoje (em 2026 = 2026). */
+  anoSelecionado = new Date().getFullYear();
+
+  /** Aba: resumo geral vs receitas agregadas por categoria. */
+  visaoRelatorio: 'resumo' | 'categorias' = 'resumo';
+
+  /** Fixa e variável, valores por mês (12 posições). */
+  naturezaReceitaLinhas: {
+    id: 'fixa' | 'variavel';
+    label: string;
+    valores: number[];
+    total: number;
+  }[] = [];
+
+  /** Uma linha por tipo de receita (Salário, Freela, etc.). */
+  receitasPorTipoLinhas: { tipo: string; valores: number[]; total: number }[] =
+    [];
 
   // Propriedades de dados
   dadosReceitas: number[] = [];
@@ -120,7 +162,68 @@ export class RelatorioPageComponent {
         1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200,
       ],
     },
+    /** Receitas por mês: preenchido pela API; demais séries fixas em 0 (mock). */
+    2026: {
+      receitas: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      despesas: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      dividas: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      investimentos: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    },
   };
+
+  ngAfterViewInit(): void {
+    this.initCharts();
+    this.sincronizarGraficoSaldoECharts();
+    this.sincronizarGraficosBarraELinha();
+  }
+
+  private initCharts() {
+    const e = echarts as any;
+
+    const saldoChart = e.init(this.chartSaldo.nativeElement);
+    saldoChart.setOption(this.chartOption);
+
+    const receitasChart = e.init(this.chartReceitasDespesas.nativeElement);
+    receitasChart.setOption(this.chartOptionReceitasDespesas);
+
+    const dividasChart = e.init(this.chartDividasInvestimentos.nativeElement);
+    dividasChart.setOption(this.chartOptionDividasInvestimentos);
+  }
+
+  private sincronizarGraficoSaldoECharts(): void {
+    this.chartOption = {
+      ...this.chartOption,
+      dataset: { source: this.getDatasetSource() },
+    };
+    const el = this.chartSaldo?.nativeElement;
+    if (!el) return;
+
+    const e = echarts as any;
+
+    const chart = e.getInstanceByDom(el) || e.init(el);
+
+    chart.setOption(this.chartOption, { notMerge: false });
+  }
+
+  private sincronizarGraficosBarraELinha(): void {
+    const el2 = this.chartReceitasDespesas?.nativeElement;
+    const el3 = this.chartDividasInvestimentos?.nativeElement;
+
+    if (!el2 && !el3) return;
+
+    const e = echarts as any;
+
+    if (el2) {
+      const c = e.getInstanceByDom(el2) || e.init(el2);
+
+      c.setOption(this.chartOptionReceitasDespesas, { notMerge: false });
+    }
+    if (el3) {
+      const c = e.getInstanceByDom(el3) || e.init(el3);
+
+      c.setOption(this.chartOptionDividasInvestimentos, { notMerge: false });
+    }
+  }
 
   // Configuração do gráfico ECharts com dataset
   chartOption: EChartsOption = {
@@ -134,7 +237,7 @@ export class RelatorioPageComponent {
       },
     },
     legend: {
-      data: ['2020', '2021', '2022', '2023', '2024', '2025'],
+      data: ANOS_COMPARACAO.map(String),
       bottom: 10,
     },
     tooltip: {
@@ -154,7 +257,7 @@ export class RelatorioPageComponent {
         result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
         result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">Total: R$ ${valor.toLocaleString(
           'pt-BR',
-          { minimumFractionDigits: 2 }
+          { minimumFractionDigits: 2 },
         )}</span>`;
         result += `</div>`;
         result += `</div>`;
@@ -180,9 +283,7 @@ export class RelatorioPageComponent {
       type: 'value',
       name: 'Valor (R$)',
       axisLabel: {
-        formatter: function (value: number) {
-          return `R$ ${value.toLocaleString('pt-BR')}`;
-        },
+        formatter: (value: number) => this.formatarValorRealSemCentavos(value),
       },
     },
     dataset: {
@@ -219,110 +320,46 @@ export class RelatorioPageComponent {
         name: '2025',
         itemStyle: { color: '#3ba272' },
       },
+      {
+        type: 'bar',
+        name: '2026',
+        itemStyle: { color: '#9a60b4' },
+      },
     ],
   };
 
   mergeOptions: EChartsOption = {};
+  chartOptionReceitasDespesas: EChartsOption = {};
 
-  // Configuração do segundo gráfico - Receitas e Despesas
-  chartOptionReceitasDespesas: EChartsOption = {
-    title: {
-      text: 'Receitas e Despesas',
-      left: 'center',
-      textStyle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#6b7280',
-      },
-    },
-    legend: {
-      data: ['Receitas', 'Despesas'],
-      bottom: 10,
-    },
-    tooltip: {
-      trigger: 'item',
-      axisPointer: {
-        type: 'shadow',
-      },
-      formatter: function (params: any) {
-        const valor = params.value;
-        const tipo = params.seriesName;
-        const mes = params.name;
-        const cor = params.color;
+  private formatarTooltipReceitasDespesas(params: any): string {
+    const valor = params.value;
+    const tipo = params.seriesName;
+    const mes = params.name;
+    const cor = params.color;
 
-        let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
-        result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
-        result += `<div style="display: flex; align-items: center; gap: 8px;">`;
-        result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
-        result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
-          'pt-BR',
-          { minimumFractionDigits: 2 }
-        )}</span>`;
-        result += `</div>`;
-        result += `</div>`;
+    let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
+    result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
+    result += `<div style="display: flex; align-items: center; gap: 8px;">`;
+    result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
+    result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
+      'pt-BR',
+      { minimumFractionDigits: 2 },
+    )}</span>`;
+    result += `</div>`;
+    result += `</div>`;
 
-        return result;
-      },
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '15%',
-      top: '15%',
-      containLabel: true,
-    },
-    xAxis: {
-      type: 'category',
-      data: this.meses,
-      axisLabel: {
-        rotate: 45,
-        fontSize: 10,
-      },
-    },
-    yAxis: {
-      type: 'value',
-      name: 'Valor (R$)',
-      max: 20000,
-      interval: 5000,
-      axisLabel: {
-        formatter: function (value: number) {
-          return `R$ ${value.toLocaleString('pt-BR')}`;
-        },
-      },
-    },
-    series: [
-      {
-        name: 'Receitas',
-        type: 'bar',
-        data: [],
-        itemStyle: { color: '#4CAF50' }, // Verde
-        label: {
-          show: true,
-          position: 'top',
-          formatter: function (params: any) {
-            return `R$ ${params.value.toLocaleString('pt-BR', {
-              minimumFractionDigits: 2,
-            })}`;
-          },
-        },
-      },
-      {
-        name: 'Despesas',
-        type: 'bar',
-        data: [],
-        itemStyle: { color: '#F44336' }, // Vermelho
-        label: {
-          show: true,
-          position: 'bottom',
-          formatter: function (params: any) {
-            return `R$ ${params.value.toLocaleString('pt-BR', {
-              minimumFractionDigits: 2,
-            })}`;
-          },
-        },
-      },
-    ],
-  };
+    return result;
+  }
+
+  private formatarValorRealSemCentavos(valor: number): string {
+    return `R$ ${valor.toLocaleString('pt-BR')}`;
+  }
+
+  private formatarValorRealComCentavos(params: any): string {
+    return `R$ ${params.value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+    })}`;
+  }
 
   // Configuração do terceiro gráfico - Dívidas x Investimentos (Projetado)
   chartOptionDividasInvestimentos: EChartsOption = {
@@ -357,7 +394,7 @@ export class RelatorioPageComponent {
           result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 50%;"></div>`;
           result += `<span style="color: #6b7280; font-weight: bold;">${nome}: R$ ${valor.toLocaleString(
             'pt-BR',
-            { minimumFractionDigits: 2 }
+            { minimumFractionDigits: 2 },
           )}</span>`;
           result += `</div>`;
         });
@@ -388,9 +425,7 @@ export class RelatorioPageComponent {
       max: 40000,
       interval: 20000,
       axisLabel: {
-        formatter: function (value: number) {
-          return `R$ ${value.toLocaleString('pt-BR')}`;
-        },
+        formatter: (value: number) => this.formatarValorRealSemCentavos(value),
       },
     },
     series: [
@@ -408,11 +443,7 @@ export class RelatorioPageComponent {
         label: {
           show: true,
           position: 'top',
-          formatter: function (params: any) {
-            return `R$ ${params.value.toLocaleString('pt-BR', {
-              minimumFractionDigits: 2,
-            })}`;
-          },
+          formatter: (params: any) => this.formatarValorRealComCentavos(params),
           fontSize: 10,
           color: '#F44336',
         },
@@ -454,19 +485,19 @@ export class RelatorioPageComponent {
 
       this.totalReceitas = this.dadosReceitas.reduce(
         (sum, valor) => sum + valor,
-        0
+        0,
       );
       this.totalDespesas = this.dadosDespesas.reduce(
         (sum, valor) => sum + valor,
-        0
+        0,
       );
       this.totalDividas = this.dadosDividas.reduce(
         (sum, valor) => sum + valor,
-        0
+        0,
       );
       this.totalInvestimentos = this.dadosInvestimentos.reduce(
         (sum, valor) => sum + valor,
-        0
+        0,
       );
 
       this.dadosTotal = this.dadosReceitas.map(
@@ -474,15 +505,74 @@ export class RelatorioPageComponent {
           receita -
           this.dadosDespesas[index] -
           this.dadosDividas[index] -
-          this.dadosInvestimentos[index]
+          this.dadosInvestimentos[index],
       );
     }
   }
 
   onAnoChange() {
+    this.carregarReceitasAno(this.anoSelecionado);
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
+    this.sincronizarGraficosBarraELinha();
+  }
+
+  selecionarVisao(visao: 'resumo' | 'categorias'): void {
+    const anterior = this.visaoRelatorio;
+    this.visaoRelatorio = visao;
+    if (visao === 'resumo' && anterior === 'categorias') {
+      this.cdr.detectChanges();
+      setTimeout(() => this.reinicializarGraficosAposVoltarResumo(), 0);
+    }
+  }
+
+  private reinicializarGraficosAposVoltarResumo(): void {
+    this.disposeEchartsNosTresConteiners();
+    if (
+      !this.chartSaldo?.nativeElement ||
+      !this.chartReceitasDespesas?.nativeElement ||
+      !this.chartDividasInvestimentos?.nativeElement
+    ) {
+      return;
+    }
+    this.initCharts();
+    this.sincronizarGraficoSaldoECharts();
+    this.sincronizarGraficosBarraELinha();
+    this.resizeTodosGraficosResumo();
+  }
+
+  private disposeEchartsNosTresConteiners(): void {
+    const e = echarts as {
+      getInstanceByDom?: (d: HTMLElement) => { dispose: () => void } | null;
+    };
+    if (!e.getInstanceByDom) return;
+    for (const ref of [
+      this.chartSaldo,
+      this.chartReceitasDespesas,
+      this.chartDividasInvestimentos,
+    ]) {
+      const el = ref?.nativeElement;
+      if (!el) continue;
+      const inst = e.getInstanceByDom(el);
+      inst?.dispose();
+    }
+  }
+
+  private resizeTodosGraficosResumo(): void {
+    const e = echarts as {
+      getInstanceByDom?: (d: HTMLElement) => { resize: () => void } | null;
+    };
+    if (!e.getInstanceByDom) return;
+    for (const ref of [
+      this.chartSaldo,
+      this.chartReceitasDespesas,
+      this.chartDividasInvestimentos,
+    ]) {
+      const el = ref?.nativeElement;
+      if (!el) continue;
+      e.getInstanceByDom(el)?.resize();
+    }
   }
 
   private atualizarGraficoReceitasDespesas() {
@@ -505,25 +595,8 @@ export class RelatorioPageComponent {
         axisPointer: {
           type: 'shadow',
         },
-        formatter: function (params: any) {
-          const valor = params.value;
-          const tipo = params.seriesName;
-          const mes = params.name;
-          const cor = params.color;
-
-          let result = `<div style="background: #fff; padding: 12px; border-radius: 6px; border: 1px solid #ddd; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">`;
-          result += `<div style="font-size: 14px; color: #6b7280; margin-bottom: 4px;">${mes} - ${tipo}</div>`;
-          result += `<div style="display: flex; align-items: center; gap: 8px;">`;
-          result += `<div style="width: 12px; height: 12px; background-color: ${cor}; border-radius: 2px;"></div>`;
-          result += `<span style="color: #6b7280; font-weight: bold; font-size: 16px;">R$ ${valor.toLocaleString(
-            'pt-BR',
-            { minimumFractionDigits: 2 }
-          )}</span>`;
-          result += `</div>`;
-          result += `</div>`;
-
-          return result;
-        },
+        formatter: (params: any) =>
+          this.formatarTooltipReceitasDespesas(params),
       },
       grid: {
         left: '3%',
@@ -546,9 +619,8 @@ export class RelatorioPageComponent {
         max: 20000,
         interval: 5000,
         axisLabel: {
-          formatter: function (value: number) {
-            return `R$ ${value.toLocaleString('pt-BR')}`;
-          },
+          formatter: (value: number) =>
+            this.formatarValorRealSemCentavos(value),
         },
       },
       series: [
@@ -560,11 +632,8 @@ export class RelatorioPageComponent {
           label: {
             show: true,
             position: 'top',
-            formatter: function (params: any) {
-              return `R$ ${params.value.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-              })}`;
-            },
+            formatter: (params: any) =>
+              this.formatarValorRealComCentavos(params),
           },
         },
         {
@@ -575,11 +644,8 @@ export class RelatorioPageComponent {
           label: {
             show: true,
             position: 'bottom',
-            formatter: function (params: any) {
-              return `R$ ${params.value.toLocaleString('pt-BR', {
-                minimumFractionDigits: 2,
-              })}`;
-            },
+            formatter: (params: any) =>
+              this.formatarValorRealComCentavos(params),
           },
         },
       ],
@@ -594,7 +660,7 @@ export class RelatorioPageComponent {
     this.mergeOptions = {
       dataset: {
         source: [
-          ['Mês', '2020', '2021', '2022', '2023', '2024', '2025'],
+          ['Mês', ...ANOS_COMPARACAO.map((a) => String(a))],
           ['Janeiro', ...this.getRandomValues()],
           ['Fevereiro', ...this.getRandomValues()],
           ['Março', ...this.getRandomValues()],
@@ -614,20 +680,21 @@ export class RelatorioPageComponent {
 
   private getRandomValues() {
     const res: number[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < ANOS_COMPARACAO.length; i++) {
       res.push(Math.random() * 20000 - 10000); // Valores entre -10.000 e +10.000
     }
     return res;
   }
 
   private getDatasetSource() {
-    const source = [['Mês', '2020', '2021', '2022', '2023', '2024', '2025']];
+    const source: (string | number)[][] = [
+      ['Mês', ...ANOS_COMPARACAO.map((a) => String(a))],
+    ];
 
     this.meses.forEach((mes, index) => {
-      const row: any[] = [mes];
+      const row: (string | number)[] = [mes];
 
-      // Adicionar dados de cada ano
-      [2020, 2021, 2022, 2023, 2024, 2025].forEach((ano) => {
+      ANOS_COMPARACAO.forEach((ano) => {
         const dadosAno = this.dadosPorAno[ano];
         if (dadosAno) {
           const saldo =
@@ -654,10 +721,96 @@ export class RelatorioPageComponent {
   chartOptionInvestimentos: EChartsOption = {};
   chartOptionSaldo: EChartsOption = {};
 
-  constructor() {
+  constructor(
+    private receitasService: ReceitasService,
+    private cdr: ChangeDetectorRef,
+  ) {
+    this.carregarReceitasAno(this.anoSelecionado);
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
+  }
+
+  /**
+   * Soma as receitas do banco mês a mês, preenche o resumo e a aba Categorias.
+   */
+  private carregarReceitasAno(ano: number): void {
+    if (!this.dadosPorAno[ano]) return;
+    const porMes$ = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((mes) =>
+      this.receitasService.getPorMesAno(ano, mes).pipe(
+        catchError(() => of([] as ReceitaMensal[])),
+        map((lista) => lista || []),
+      ),
+    );
+    forkJoin(porMes$).subscribe({
+      next: (listasPorMes) => {
+        this.dadosPorAno[ano].receitas = listasPorMes.map((lista) =>
+          lista.reduce((s, r) => s + (Number(r.valor) || 0), 0),
+        );
+        this.agregarReceitasPorCategorias(listasPorMes);
+        this.aoAtualizarReceitasDaApi();
+      },
+    });
+  }
+
+  private normalizarCategoriaReceita(
+    c: CategoriaReceita | string | undefined,
+  ): 'fixa' | 'variavel' {
+    if (c === 'Variável') return 'variavel';
+    if (typeof c === 'string' && /variável|variavel/i.test(c))
+      return 'variavel';
+    return 'fixa';
+  }
+
+  private agregarReceitasPorCategorias(listasPorMes: ReceitaMensal[][]): void {
+    const fixa = new Array(12).fill(0) as number[];
+    const variavel = new Array(12).fill(0) as number[];
+    const porTipo = new Map<string, number[]>();
+
+    for (let m = 0; m < 12; m++) {
+      for (const r of listasPorMes[m] || []) {
+        const v = Number(r.valor) || 0;
+        if (v === 0) continue;
+        const nat = this.normalizarCategoriaReceita(r.categoria);
+        if (nat === 'variavel') variavel[m] += v;
+        else fixa[m] += v;
+        const tipo = String(r.tipo || 'Outras').trim() || 'Outras';
+        if (!porTipo.has(tipo)) porTipo.set(tipo, new Array(12).fill(0));
+        porTipo.get(tipo)![m] += v;
+      }
+    }
+
+    const sum = (a: number[]) => a.reduce((s, n) => s + n, 0);
+    this.naturezaReceitaLinhas = [
+      {
+        id: 'fixa',
+        label: 'Receitas fixas',
+        valores: fixa,
+        total: sum(fixa),
+      },
+      {
+        id: 'variavel',
+        label: 'Receitas variáveis',
+        valores: variavel,
+        total: sum(variavel),
+      },
+    ];
+    this.receitasPorTipoLinhas = Array.from(porTipo.entries())
+      .map(([tipo, valores]) => ({
+        tipo,
+        valores,
+        total: sum(valores),
+      }))
+      .filter((l) => l.total > 0)
+      .sort((a, b) => a.tipo.localeCompare(b.tipo, 'pt-BR'));
+  }
+
+  private aoAtualizarReceitasDaApi(): void {
+    this.calcularTotais();
+    this.configurarGraficosCards();
+    this.atualizarGraficoReceitasDespesas();
+    this.sincronizarGraficoSaldoECharts();
+    this.sincronizarGraficosBarraELinha();
   }
 
   configurarGraficosCards() {

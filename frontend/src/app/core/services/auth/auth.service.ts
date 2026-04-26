@@ -2,29 +2,12 @@ import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { ApiService } from '../api/api.service';
-
-export interface Usuario {
-  id: string;
-  nome: string;
-  email: string;
-}
-
-export interface LoginRequest {
-  email: string;
-  senha: string;
-}
-
-export interface RegisterRequest {
-  nome: string;
-  email: string;
-  senha: string;
-}
-
-export interface AuthResponse {
-  message: string;
-  token: string;
-  usuario: Usuario;
-}
+import {
+  Usuario,
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+} from 'auths/auth';
 
 @Injectable({
   providedIn: 'root',
@@ -64,7 +47,7 @@ export class AuthService {
       catchError((error) => {
         console.error('Erro no login:', error);
         throw error;
-      })
+      }),
     );
   }
 
@@ -77,7 +60,7 @@ export class AuthService {
       catchError((error) => {
         console.error('Erro no registro:', error);
         throw error;
-      })
+      }),
     );
   }
 
