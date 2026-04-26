@@ -2,12 +2,13 @@ import { CUSTOM_ELEMENTS_SCHEMA, NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { DespesasPageComponent } from './containers/despesas-page/despesas-page.component';
+import { AdicionarDespesaDialogComponent } from './components/adicionar-despesa-dialog/adicionar-despesa-dialog.component';
 import { DespesasRoutingModule } from './despesas.routing';
 import { DSModule } from 'app/@ds';
 import { ReactiveFormsModule } from '@angular/forms';
 
 @NgModule({
-  declarations: [DespesasPageComponent],
+  declarations: [DespesasPageComponent, AdicionarDespesaDialogComponent],
   imports: [
     CommonModule,
     RouterModule,

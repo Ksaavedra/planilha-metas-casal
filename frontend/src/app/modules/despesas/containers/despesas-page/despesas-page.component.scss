@@ -1,16 +1,640 @@
 .despesas-container {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
-  text-align: center;
-  padding: 2rem;
+  padding: 2rem 1.5rem 3rem;
+  background: #f8fafc;
+  min-height: 100vh;
 }
 
-.placeholder {
-  margin-top: 3rem;
-  color: var(--text-secondary);
+/* Cabeçalho alinhado ao Relatório financeiro (violeta + slate) */
+.despesas-hero {
+  margin-bottom: 1.5rem;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow:
+    0 4px 6px -1px rgba(15, 23, 42, 0.06),
+    0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
 
-  .material-icons {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+.despesas-hero__accent {
+  height: 4px;
+  background: linear-gradient(90deg, #5b21b6 0%, #7c3aed 35%, #a855f7 70%, #c4b5fd 100%);
+}
+
+.despesas-hero__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem 1.5rem;
+  padding: 1.35rem 1.5rem 1.15rem;
+}
+
+.despesas-hero__brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.despesas-hero__icon-wrap {
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+  border: 1px solid #e9d5ff;
+  color: #6d28d9;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.despesas-hero__icon {
+  font-size: 1.75rem;
+}
+
+.despesas-hero__text {
+  min-width: 0;
+}
+
+.despesas-hero__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  line-height: 1.25;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+}
+
+.despesas-hero__year-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem 0.22rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #5b21b6;
+  background: #f3e8ff;
+  border: 1px solid #d8b4fe;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
+.despesas-hero__subtitle {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.despesas-hero__field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.despesas-hero__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin: 0;
+  align-self: flex-end;
+}
+
+.despesas-hero__mes-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.25rem 0.35rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.despesas-hero__nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  border: none;
+  border-radius: 8px;
+  background: #fff;
+  color: #7c3aed;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.despesas-hero__nav-btn:hover {
+  background: #f5f3ff;
+  color: #5b21b6;
+}
+
+.despesas-hero__nav-btn .material-icons {
+  font-size: 1.25rem;
+}
+
+.despesas-hero__mes-atual {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 9.5rem;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+  padding: 0 0.5rem;
+}
+
+.despesas-hero__mes-atual .material-icons {
+  font-size: 1.1rem;
+  color: #7c3aed;
+  opacity: 0.9;
+}
+
+.despesas-hero__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  padding: 0.65rem 1.5rem 1.1rem;
+  background: #f8fafc;
+  border-top: 1px solid #f1f5f9;
+}
+
+.despesas-hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.despesas-hero__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  line-height: 1.2;
+  user-select: none;
+  cursor: pointer;
+  color: #64748b;
+  background: #fff;
+  transition:
+    color 0.2s,
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.despesas-hero__chip:hover {
+  color: #5b21b6;
+  border-color: #e9d5ff;
+}
+
+.despesas-hero__chip.is-active {
+  color: #5b21b6;
+  background: #fff;
+  border-color: #e9d5ff;
+  box-shadow: 0 1px 2px rgba(91, 33, 182, 0.06);
+  cursor: default;
+}
+
+.despesas-hero__actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.btn-add-despesa {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #fff;
+  border: 1px solid #a78bfa;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
+}
+
+.btn-add-despesa:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.45);
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+.btn-add-despesa .material-icons {
+  font-size: 1.2rem;
+}
+
+.despesas-exemplos {
+  margin-bottom: 2.5rem;
+  animation: despesas-exemplos-fade 0.25s ease;
+}
+
+@keyframes despesas-exemplos-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.despesas-exemplos__h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.despesas-exemplos__intro {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.despesas-exemplos__bloco {
+  margin: 0 0 1.25rem;
+  padding: 1.1rem 1.2rem 1.15rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  p {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #334155;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.despesas-exemplos__h3 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #5b21b6;
+  letter-spacing: -0.02em;
+}
+
+.despesas-exemplos__ideia {
+  margin-top: 0.5rem !important;
+  padding: 0.75rem 0.9rem;
+  background: linear-gradient(135deg, #f5f3ff 0%, #faf5ff 100%);
+  border: 1px solid #e9d5ff;
+  border-radius: 10px;
+  font-size: 0.9rem !important;
+  color: #475569 !important;
+}
+
+.despesas-exemplos__categorias-wrap {
+  margin-top: 0.5rem;
+  padding: 1.15rem 1.2rem 1.2rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+}
+
+.despesas-exemplos__h3--sec {
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.despesas-exemplos__lista-intro {
+  margin: 0 0 1.1rem;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+.despesas-exemplos__categorias-grid {
+  display: grid;
+  gap: 1.25rem 1.5rem;
+  align-items: start;
+
+  @media (min-width: 640px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.despesas-exemplos__categorias-col {
+  min-width: 0;
+  padding: 0.9rem 1rem 1rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.despesas-exemplos__h4 {
+  margin: 0 0 0.65rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.despesas-exemplos__categorias-col:first-child .despesas-exemplos__h4 {
+  color: #5b21b6;
+}
+
+.despesas-exemplos__categorias-col:last-child .despesas-exemplos__h4 {
+  color: #0d9488;
+}
+
+.despesas-exemplos__lista {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #334155;
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.despesas-exemplos__lista li {
+  margin-bottom: 0.35rem;
+}
+
+.estado {
+  text-align: center;
+  padding: 1.25rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.estado-loading {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.estado-erro {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.tabelas-mes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.bloco-tabela {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.bloco-titulo {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.bloco-titulo .material-icons {
+  font-size: 1.25rem;
+}
+
+.bloco-titulo--fixa {
+  color: #5b21b6;
+}
+
+.bloco-titulo--var {
+  color: #6d28d9;
+}
+
+.bloco-sub {
+  margin: 0 0 0.9rem;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.despesas-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.despesas-table th,
+.despesas-table td {
+  text-align: left;
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.despesas-table thead th {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  color: #ffffff;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(91, 33, 182, 0.25);
+  border-bottom: none;
+}
+
+.despesas-table tbody td {
+  color: #334155;
+  font-size: 0.88rem;
+}
+
+.despesas-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.despesas-table .num {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: #0f172a;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+}
+
+.badge-fixa {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+
+.badge-var {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #e9d5ff;
+}
+
+.acoes {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.btn-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  margin-left: 0.15rem;
+  vertical-align: middle;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-icone .material-icons {
+  font-size: 1.1rem;
+}
+
+.btn-icone:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.btn-icone-excluir:hover {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.vazio {
+  color: #94a3b8;
+  font-size: 0.95rem;
+  margin: 0.5rem 0 0;
+}
+
+.subtotal {
+  margin: 0.9rem 0 0;
+  text-align: right;
+  font-size: 0.95rem;
+  color: #475569;
+}
+
+.subtotal strong {
+  color: #0f172a;
+  font-size: 1.05rem;
+}
+
+.total-geral {
+  margin-top: 0.5rem;
+  background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #8b5cf6 100%);
+  color: #f5f3ff;
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 6px 24px rgba(91, 33, 182, 0.3);
+  border: 1px solid #a78bfa;
+}
+
+.total-geral-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.02em;
+}
+
+.total-geral-header .material-icons {
+  color: #fbbf24;
+  font-size: 1.2rem;
+}
+
+.total-geral-valor {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 768px) {
+  .despesas-hero__inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .despesas-hero__field {
+    align-items: stretch;
+  }
+
+  .despesas-hero__label {
+    align-self: flex-start;
+  }
+
+  .despesas-hero__mes-nav {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .despesas-hero__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .despesas-hero__chips {
+    justify-content: center;
+  }
+
+  .despesas-hero__actions {
+    justify-content: center;
+  }
+
+  .btn-add-despesa {
+    width: 100%;
+    justify-content: center;
   }
 }

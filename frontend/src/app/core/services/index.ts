@@ -5,7 +5,7 @@ export {
   CreateDespesaRequest,
   Despesa,
   DespesasService,
-  Mes as MesDespesa,
+  NaturezaDespesa,
   UpdateDespesaRequest,
 } from './despesas/despesas.service';
 export * from './loader/loader.service';

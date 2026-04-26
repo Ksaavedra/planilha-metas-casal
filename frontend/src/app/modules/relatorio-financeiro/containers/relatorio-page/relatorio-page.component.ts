@@ -52,7 +52,7 @@ export class RelatorioPageComponent implements AfterViewInit {
   /** Ano exibido na tela e tabelas: ano civil de hoje (em 2026 = 2026). */
   anoSelecionado = new Date().getFullYear();
 
-  /** Aba: resumo geral vs receitas agregadas por categoria. */
+  /** Aba: resumo geral ou receitas por categoria. */
   visaoRelatorio: 'resumo' | 'categorias' = 'resumo';
 
   /** Fixa e variável, valores por mês (12 posições). */

@@ -1,8 +1,238 @@
 <div class="despesas-container">
-  <h1>Despesas</h1>
-  <p>Gestão de despesas e gastos</p>
-  <div class="placeholder">
-    <span class="material-icons">remove_circle</span>
-    <p>Funcionalidade em desenvolvimento</p>
+  <header class="despesas-hero" role="banner" aria-label="Cabeçalho de despesas">
+    <div class="despesas-hero__accent" aria-hidden="true"></div>
+    <div class="despesas-hero__inner">
+      <div class="despesas-hero__brand">
+        <div class="despesas-hero__icon-wrap" aria-hidden="true">
+          <span class="material-icons despesas-hero__icon">insights</span>
+        </div>
+        <div class="despesas-hero__text">
+          <h1 class="despesas-hero__title">
+            Despesas do casal
+            <span class="despesas-hero__year-pill">{{ anoRef }}</span>
+          </h1>
+          <p class="despesas-hero__subtitle">{{ tituloSecundario }}</p>
+        </div>
+      </div>
+      <div class="despesas-hero__field" aria-label="Mês de referência">
+        <p class="despesas-hero__label">Mês de referência</p>
+        <div class="despesas-hero__mes-nav">
+          <button type="button" class="despesas-hero__nav-btn" (click)="mesAnterior()" title="Mês anterior"
+            aria-label="Mês anterior">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <div class="despesas-hero__mes-atual">
+            <span class="material-icons" aria-hidden="true">calendar_month</span>
+            <span>{{ nomeMesAtual }}</span>
+          </div>
+          <button type="button" class="despesas-hero__nav-btn" (click)="proximoMes()" title="Próximo mês"
+            aria-label="Próximo mês">
+            <span class="material-icons">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="despesas-hero__toolbar" aria-label="Visão e ações de despesas">
+      <div class="despesas-hero__chips" role="tablist"
+        aria-label="Alternar entre lista do mês e exemplos de categorias">
+        <button type="button" class="despesas-hero__chip" [class.is-active]="visaoDespesas === 'lista'"
+          (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoDespesas === 'lista'">
+          Minhas despesas
+        </button>
+        <button type="button" class="despesas-hero__chip" [class.is-active]="visaoDespesas === 'exemplos'"
+          (click)="selecionarVisao('exemplos')" role="tab" [attr.aria-selected]="visaoDespesas === 'exemplos'">
+          Exemplos
+        </button>
+      </div>
+      <div class="despesas-hero__actions">
+        <button type="button" class="btn-add-despesa" (click)="abrirModalAdicionarDespesa()">
+          <span class="material-icons" aria-hidden="true">add</span>
+          Adicionar despesa
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div *ngIf="visaoDespesas === 'lista' && loading" class="estado estado-loading">
+    Carregando despesas…
   </div>
+  <div *ngIf="visaoDespesas === 'lista' && erroCarregar && !loading" class="estado estado-erro">
+    {{ erroCarregar }}
+  </div>
+
+  <ng-container *ngIf="visaoDespesas === 'lista' && !loading">
+    <div class="tabelas-mes">
+      <section class="bloco-tabela" aria-labelledby="h-fixas">
+        <h2 id="h-fixas" class="bloco-titulo bloco-titulo--fixa">
+          <span class="material-icons">lock</span>
+          Despesas fixas
+        </h2>
+        <p class="bloco-sub">Mais estáveis, costumam repetir mês a mês.</p>
+        <div class="table-wrap" *ngIf="despesasFixas.length; else vazioFixas">
+          <table class="despesas-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Categoria</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Data</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of despesasFixas">
+                <td>
+                  <span class="badge badge-fixa">{{ labelNatureza(d.natureza) }}</span>
+                </td>
+                <td>{{ d.categoria }}</td>
+                <td>{{ d.descricao }}</td>
+                <td class="num">{{ d.valor | currency : 'BRL' }}</td>
+                <td>{{ d.data ? (d.data | date : 'dd/MM/yyyy') : '—' }}</td>
+                <td class="acoes">
+                  <button type="button" class="btn-icone" (click)="editar(d)" title="Editar">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button type="button" class="btn-icone btn-icone-excluir" (click)="excluir(d)" title="Excluir">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="subtotal">Subtotal fixas: <strong>{{ totalFixas | currency : 'BRL' }}</strong></p>
+        <ng-template #vazioFixas>
+          <p class="vazio">Nenhuma despesa fixa neste mês.</p>
+        </ng-template>
+      </section>
+
+      <section class="bloco-tabela" aria-labelledby="h-var">
+        <h2 id="h-var" class="bloco-titulo bloco-titulo--var">
+          <span class="material-icons">trending_up</span>
+          Despesas variáveis
+        </h2>
+        <p class="bloco-sub">Cambiam de valor ou frequência (mercado, lazer, etc.).</p>
+        <div class="table-wrap" *ngIf="despesasVariaveis.length; else vazioVar">
+          <table class="despesas-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Categoria</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Data</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of despesasVariaveis">
+                <td>
+                  <span class="badge badge-var">{{ labelNatureza(d.natureza) }}</span>
+                </td>
+                <td>{{ d.categoria }}</td>
+                <td>{{ d.descricao }}</td>
+                <td class="num">{{ d.valor | currency : 'BRL' }}</td>
+                <td>{{ d.data ? (d.data | date : 'dd/MM/yyyy') : '—' }}</td>
+                <td class="acoes">
+                  <button type="button" class="btn-icone" (click)="editar(d)" title="Editar">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button type="button" class="btn-icone btn-icone-excluir" (click)="excluir(d)" title="Excluir">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="subtotal">
+          Subtotal variáveis: <strong>{{ totalVariaveis | currency : 'BRL' }}</strong>
+        </p>
+        <ng-template #vazioVar>
+          <p class="vazio">Nenhuma despesa variável neste mês.</p>
+        </ng-template>
+      </section>
+    </div>
+
+    <div class="total-geral" *ngIf="despesas.length">
+      <div class="total-geral-header">
+        <span class="material-icons">account_balance_wallet</span>
+        <span>Total geral ({{ nomeMesAtual }})</span>
+      </div>
+      <div class="total-geral-valor">{{ totalGeral | currency : 'BRL' }}</div>
+    </div>
+  </ng-container>
+
+  <section
+    *ngIf="visaoDespesas === 'exemplos'"
+    class="despesas-exemplos"
+    aria-label="O que são despesas fixas e variáveis"
+  >
+    <h2 class="despesas-exemplos__h2">Despesa fixa e variável</h2>
+    <p class="despesas-exemplos__intro">
+      Ao lançar, escolha o tipo certo na aba <strong>Minhas despesas</strong> (botão
+      <strong>Adicionar despesa</strong>).
+    </p>
+
+    <article class="despesas-exemplos__bloco">
+      <h3 class="despesas-exemplos__h3">Despesa fixa</h3>
+      <p>
+        É um gasto que se repete de mês a mês e costuma ser previsível (valor ou
+        vencimento parecidos).
+      </p>
+      <p>
+        <strong>Exemplos:</strong> aluguel ou parcela de financiamento, plano de
+        internet/celular, condomínio, seguro, mensalidade de academia, assinaturas
+        (streaming, etc.).
+      </p>
+      <p class="despesas-exemplos__ideia">
+        <strong>A ideia:</strong> “isso cai todo mês ou quase, com pouca surpresa”.
+      </p>
+    </article>
+
+    <article class="despesas-exemplos__bloco">
+      <h3 class="despesas-exemplos__h3">Despesa variável</h3>
+      <p>
+        É um gasto que muda de valor, de mês a mês, ou não acontece todos os meses
+        da mesma forma.
+      </p>
+      <p>
+        <strong>Exemplos:</strong> mercado, restaurante, lazer, compras de roupa,
+        manutenção do carro, remédios fora de plano, presentes, viagens.
+      </p>
+      <p class="despesas-exemplos__ideia">
+        <strong>A ideia:</strong> “depende de como foi o mês — pode subir, descer ou
+        nem existir”.
+      </p>
+    </article>
+
+    <div
+      class="despesas-exemplos__categorias-wrap"
+      aria-label="Mais ideias de categorias, separadas por fixa e variável"
+    >
+      <h3 class="despesas-exemplos__h3 despesas-exemplos__h3--sec">Mais ideias de categorias</h3>
+      <p class="despesas-exemplos__lista-intro">
+        Você pode usar qualquer um destes (ou outro nome) no campo
+        <strong>Categoria</strong> ao adicionar uma despesa — o importante é
+        <strong>marcar o tipo certo: fixa ou variável</strong>, alinhado à lista
+        abaixo e ao que você leu acima.
+      </p>
+      <div class="despesas-exemplos__categorias-grid">
+        <div class="despesas-exemplos__categorias-col">
+          <h4 class="despesas-exemplos__h4" id="h-ex-cat-fixa">Categorias típicas (despesa fixa)</h4>
+          <ul class="despesas-exemplos__lista" aria-labelledby="h-ex-cat-fixa">
+            <li *ngFor="let c of exemplosCategoriasFixas">{{ c }}</li>
+          </ul>
+        </div>
+        <div class="despesas-exemplos__categorias-col">
+          <h4 class="despesas-exemplos__h4" id="h-ex-cat-var">Categorias típicas (despesa variável)</h4>
+          <ul class="despesas-exemplos__lista" aria-labelledby="h-ex-cat-var">
+            <li *ngFor="let c of exemplosCategoriasVariaveis">{{ c }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>

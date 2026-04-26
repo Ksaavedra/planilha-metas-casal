@@ -1,0 +1,135 @@
+.dialog-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.25rem;
+  padding: 0 0.25rem 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dialog-titulo-icone {
+  color: #7c3aed;
+  font-size: 1.35rem;
+}
+
+.dialog-body {
+  padding-top: 0.5rem !important;
+  max-height: 70vh;
+  min-width: min(100%, 420px);
+}
+
+.dicas-bloco {
+  margin-bottom: 1.15rem;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.dicas-titulo {
+  margin: 0 0 0.4rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.dicas-lista {
+  margin: 0 0 0.75rem;
+  padding-left: 1.15rem;
+  color: #334155;
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+.dica-separar {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #475569;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.3rem;
+  line-height: 1.45;
+}
+
+.dica-icone {
+  font-size: 1rem;
+  color: #7c3aed;
+  flex-shrink: 0;
+  margin-top: 0.08rem;
+}
+
+.despesas-form .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem 0.9rem;
+  align-items: end;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.field-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.input-text,
+.input-select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fff;
+  color: #0f172a;
+}
+
+.input-text:focus,
+.input-select:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.erro-form {
+  color: #b91c1c;
+  font-size: 0.88rem;
+  margin: 0.6rem 0 0;
+}
+
+.dialog-acoes {
+  padding: 0.5rem 0 0.25rem !important;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 0.5rem;
+  gap: 0.5rem;
+}
+
+::ng-deep .mat-mdc-dialog-content {
+  max-height: none;
+}
+
+@media (max-width: 500px) {
+  .despesas-form .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .field-wide {
+    grid-column: 1;
+  }
+}

@@ -2,44 +2,31 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../api/api.service';
 
+/** Despesa recorrente (ex.: aluguel) vs que muda mês a mês (mercado). */
+export type NaturezaDespesa = 'fixa' | 'variavel';
+
 export interface Despesa {
   id: number;
-  mes_id: number;
-  categoriaId: number;
+  natureza: NaturezaDespesa;
+  categoria: string;
   descricao: string;
   valor: number;
-  status: 'Vazio' | 'Programado' | 'Pago';
-  data?: string;
-  observacao?: string;
-  categoria: Categoria;
-  mes: Mes;
-}
-
-export interface Categoria {
-  id: number;
-  nome: string;
-  tipo: string;
-  descricao?: string;
-  ativo: boolean;
-}
-
-export interface Mes {
-  id: number;
-  nome: string;
-  numero: number;
+  data: string | null;
+  ano: number;
+  mes: number;
 }
 
 export interface CreateDespesaRequest {
-  mes_id: number;
-  categoriaId: number;
+  natureza: NaturezaDespesa;
+  categoria: string;
   descricao: string;
   valor: number;
-  status?: 'Vazio' | 'Programado' | 'Pago';
-  data?: string;
-  observacao?: string;
+  data?: string | null;
+  ano: number;
+  mes: number;
 }
 
-export interface UpdateDespesaRequest extends Partial<CreateDespesaRequest> {}
+export type UpdateDespesaRequest = Partial<CreateDespesaRequest>;
 
 @Injectable({
   providedIn: 'root',
@@ -47,58 +34,31 @@ export interface UpdateDespesaRequest extends Partial<CreateDespesaRequest> {}
 export class DespesasService {
   constructor(private apiService: ApiService) {}
 
-  // Listar todas as despesas
-  getDespesas(params?: {
-    mes_id?: number;
-    categoriaId?: number;
-  }): Observable<Despesa[]> {
+  getDespesas(params: { ano: number; mes: number }): Observable<Despesa[]> {
     return this.apiService.get<Despesa[]>('/despesas', params);
   }
 
-  // Buscar despesa por ID
   getDespesa(id: number): Observable<Despesa> {
     return this.apiService.get<Despesa>(`/despesas/${id}`);
   }
 
-  // Criar nova despesa
   createDespesa(despesa: CreateDespesaRequest): Observable<Despesa> {
     return this.apiService.post<Despesa>('/despesas', despesa);
   }
 
-  // Atualizar despesa
   updateDespesa(
     id: number,
-    despesa: UpdateDespesaRequest
+    despesa: UpdateDespesaRequest,
   ): Observable<Despesa> {
     return this.apiService.patch<Despesa>(`/despesas/${id}`, despesa);
   }
 
-  // Deletar despesa
   deleteDespesa(id: number): Observable<void> {
-    return this.apiService.delete(`/despesas/${id}`);
+    return this.apiService.delete<void>(`/despesas/${id}`);
   }
 
-  // Filtrar despesas por mês
-  getDespesasPorMes(mesId: number): Observable<Despesa[]> {
-    return this.getDespesas({ mes_id: mesId });
-  }
-
-  // Filtrar despesas por categoria
-  getDespesasPorCategoria(categoriaId: number): Observable<Despesa[]> {
-    return this.getDespesas({ categoriaId });
-  }
-
-  // Calcular total de despesas
+  /** Total do array (útil para subtotais). */
   calcularTotalDespesas(despesas: Despesa[]): number {
-    return despesas.reduce((total, despesa) => total + despesa.valor, 0);
-  }
-
-  // Agrupar despesas por categoria
-  agruparPorCategoria(despesas: Despesa[]): { [key: string]: number } {
-    return despesas.reduce((acc, despesa) => {
-      const categoria = despesa.categoria.nome;
-      acc[categoria] = (acc[categoria] || 0) + despesa.valor;
-      return acc;
-    }, {} as { [key: string]: number });
+    return despesas.reduce((total, d) => total + (Number(d.valor) || 0), 0);
   }
 }
