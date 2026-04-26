@@ -5,7 +5,6 @@ import { DSModule } from '../../@ds/ds.module';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RelatorioFinanceiroRoutingModule } from './relatorio-financeiro.routing';
 import { RelatorioPageComponent } from './containers/relatorio-page/relatorio-page.component';
-import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts';
 
 @NgModule({
   declarations: [RelatorioPageComponent],
@@ -14,17 +13,8 @@ import { NGX_ECHARTS_CONFIG, NgxEchartsModule } from 'ngx-echarts';
     RouterModule,
     DSModule,
     ReactiveFormsModule,
-    RelatorioFinanceiroRoutingModule,
     FormsModule,
-    NgxEchartsModule,
-  ],
-  providers: [
-    {
-      provide: NGX_ECHARTS_CONFIG,
-      useValue: {
-        echarts: () => import('echarts'),
-      },
-    },
+    RelatorioFinanceiroRoutingModule,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })

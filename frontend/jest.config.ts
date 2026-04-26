@@ -29,6 +29,7 @@ module.exports = {
     'environments',
     'app/store',
     'app/store/models',
+    'app/core/constants',
   ],
   coverageThreshold: {
     global: {

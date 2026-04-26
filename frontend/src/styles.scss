@@ -1,5 +1,19 @@
 /* You can add global styles to this file, and also import other style files */
 
+/* Angular Material - tema obrigatório para mat-form-field, mat-autocomplete, etc. */
+@import '@angular/material/prebuilt-themes/deeppurple-amber.css';
+
+/* CDK Overlay - painel do autocomplete/select deve aparecer acima dos modais (z-index 99999) */
+.cdk-overlay-container {
+  z-index: 100000 !important;
+}
+
+/* Autocomplete do modal: altura limitada para não cobrir os campos Valor/Ano */
+.mat-mdc-autocomplete-panel.modal-autocomplete-panel {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
 /* Bootstrap Icons */
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 

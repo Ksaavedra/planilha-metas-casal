@@ -8,25 +8,11 @@ import { RouterModule } from '@angular/router';
 import { HeaderComponent } from './header/header.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 import { LoggedComponent } from './logged/logged.component';
-import { ApiTestComponent } from '../../components/api-test/api-test.component';
-import { TesteMetasComponent } from '../../components/teste-metas/teste-metas.component';
 
 @NgModule({
-  declarations: [
-    HeaderComponent,
-    SidebarComponent,
-    LoggedComponent,
-    ApiTestComponent,
-    TesteMetasComponent,
-  ],
+  declarations: [HeaderComponent, SidebarComponent, LoggedComponent],
   imports: [CommonModule, RouterModule],
-  exports: [
-    HeaderComponent,
-    SidebarComponent,
-    LoggedComponent,
-    ApiTestComponent,
-    TesteMetasComponent,
-  ],
+  exports: [HeaderComponent, SidebarComponent, LoggedComponent],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
 })
 export class ComponentsModule {}

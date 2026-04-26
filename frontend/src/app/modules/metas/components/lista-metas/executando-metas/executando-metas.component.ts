@@ -12,19 +12,23 @@ import {
   Inject,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
+
 import {
   Meta,
   MetaExtended,
   StatusMeta,
-} from '../../../../../core/interfaces/mes-meta';
+} from '../../../../../core/interfaces/metas/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
-import { ModalEditarValorService } from '../../../../../core/services/modal-editar-valor.service';
 import { Subscription } from 'rxjs';
+
+export type ViewportSize = { width: number; height: number };
+export type DropdownPos = { top: number; left: number };
 
 @Component({
   selector: 'app-executando-metas',
   templateUrl: './executando-metas.component.html',
   styleUrls: ['./executando-metas.component.scss'],
+  standalone: false,
 })
 export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   @Input() meses: string[] = [];
@@ -59,11 +63,17 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   private editarValorSubscription?: Subscription;
   private dropdownElement: HTMLElement | null = null;
 
+  /** Medidas aproximadas usadas no primeiro cálculo de posição (antes do layout real do DOM). */
+  private readonly dropdownLayout = {
+    margin: 8,
+    estWidth: 120,
+    estHeight: 100,
+  } as const;
+
   constructor(
     private metasService: MetasService,
-    private modalEditarValorService: ModalEditarValorService,
     private renderer: Renderer2,
-    @Inject(DOCUMENT) private document: Document
+    @Inject(DOCUMENT) private document: Document,
   ) {}
 
   private readonly MESES_PADRAO = [
@@ -89,9 +99,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnInit() {
-    // Componente de apresentação - dados vêm via @Input()
-    // Escutar eventos de save da modal de editar valor
-    this.editarValorSubscription = this.modalEditarValorService.save$.subscribe(
+    this.editarValorSubscription = this.metasService.editarValorSave$.subscribe(
       (data: { metaId: number | string; mesId: number; valor: number }) => {
         const { metaId, mesId, valor } = data;
         const meta = this.metas.find((m) => String(m.id) === String(metaId));
@@ -109,7 +117,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
           mesId,
           valor,
         });
-      }
+      },
     );
   }
 
@@ -118,7 +126,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
       if (changes['metas'].currentValue) {
         this.setHeaderMesesFromData();
         this.metas.forEach((m) => this.normalizeMeses(m));
-        this.recalcResumo();
       }
     }
   }
@@ -134,16 +141,10 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     const byName = new Map((meta.meses ?? []).map((m) => [m.nome, m]));
     meta.meses = header.map(
       (nome, i) =>
-        byName.get(nome) ?? { id: i + 1, nome, valor: 0, status: 'Vazio' }
+        byName.get(nome) ?? { id: i + 1, nome, valor: 0, status: 'Vazio' },
     );
   }
 
-  // Métodos para edição de valores
-  abrirModalEdicao(meta: MetaExtended, mesId: number): void {
-    this.modalEditarValorService.open(meta, mesId, this.meses);
-  }
-
-  // Métodos para formatação de moeda
   formatBR(n: number): string {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -164,40 +165,23 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     return this.activeMeta.meses?.find((m) => m.id === this.activeMesId);
   }
 
-  @HostListener('window:scroll')
-  onWindowScroll(): void {
-    this.closeDropdown();
-  }
-
-  @HostListener('window:resize')
-  onWindowResize(): void {
-    this.closeDropdown();
-  }
-
   @HostListener('document:click', ['$event'])
   closeDropdown(event?: MouseEvent): void {
-    // Não fechar se clicar no próprio dropdown ou no botão de status
     if (event?.target) {
       const target = event.target as HTMLElement;
-      // Verificar se clicou no dropdown ou em qualquer elemento dentro dele
+
       if (target.closest('.status-dropdown-overlay')) {
         return;
       }
-      // Verificar se clicou no botão de status (status-indicator) ou na seta
+
       if (
         target.closest('.status-indicator') ||
         target.closest('.status-indicator-wrapper')
       ) {
         return;
       }
-      // Verificar se clicou no ícone material-icons dentro do status-indicator
-      if (
-        target.classList.contains('material-icons') &&
-        target.closest('.status-indicator')
-      ) {
-        return;
-      }
     }
+
     this.removeDropdownFromBody();
     this.openDropdownKey = null;
     this.activeMeta = null;
@@ -220,34 +204,45 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private createDropdownInBody(): HTMLElement {
-    // Remove dropdown anterior se existir
     this.removeDropdownFromBody();
 
-    // Criar elemento dropdown
     const dropdown = this.renderer.createElement('div');
     this.renderer.addClass(dropdown, 'status-dropdown-overlay');
+    this.applyStatusDropdownHostStyles(dropdown);
+    this.mountStatusOptionRows(dropdown);
 
-    // Aplicar estilos diretamente via Renderer2
-    this.renderer.setStyle(dropdown, 'position', 'fixed');
-    this.renderer.setStyle(dropdown, 'z-index', '99999');
-    this.renderer.setStyle(dropdown, 'min-width', '120px');
-    this.renderer.setStyle(dropdown, 'background', '#ffffff');
-    this.renderer.setStyle(dropdown, 'border', '2px solid #8b5cf6');
-    this.renderer.setStyle(dropdown, 'border-radius', '8px');
+    this.renderer.appendChild(this.document.body, dropdown);
+    this.dropdownElement = dropdown;
+
+    this.renderer.listen(dropdown, 'click', (e: Event) => {
+      e.stopPropagation();
+    });
+
+    return dropdown;
+  }
+
+  private applyStatusDropdownHostStyles(host: HTMLElement): void {
+    this.renderer.setStyle(host, 'position', 'fixed');
+    this.renderer.setStyle(host, 'z-index', '99999');
+    this.renderer.setStyle(host, 'min-width', '120px');
+    this.renderer.setStyle(host, 'background', '#ffffff');
+    this.renderer.setStyle(host, 'border', '2px solid #8b5cf6');
+    this.renderer.setStyle(host, 'border-radius', '8px');
     this.renderer.setStyle(
-      dropdown,
+      host,
       'box-shadow',
-      '0 10px 22px rgba(0, 0, 0, 0.18)'
+      '0 10px 22px rgba(0, 0, 0, 0.18)',
     );
-    this.renderer.setStyle(dropdown, 'display', 'block');
-    this.renderer.setStyle(dropdown, 'visibility', 'visible');
-    this.renderer.setStyle(dropdown, 'opacity', '1');
-    this.renderer.setStyle(dropdown, 'pointer-events', 'auto');
-    this.renderer.setStyle(dropdown, 'transform', 'none');
-    this.renderer.setStyle(dropdown, 'margin', '0');
-    this.renderer.setStyle(dropdown, 'padding', '0');
+    this.renderer.setStyle(host, 'display', 'block');
+    this.renderer.setStyle(host, 'visibility', 'visible');
+    this.renderer.setStyle(host, 'opacity', '1');
+    this.renderer.setStyle(host, 'pointer-events', 'auto');
+    this.renderer.setStyle(host, 'transform', 'none');
+    this.renderer.setStyle(host, 'margin', '0');
+    this.renderer.setStyle(host, 'padding', '0');
+  }
 
-    // Criar opções
+  private mountStatusOptionRows(dropdown: HTMLElement): void {
     const options = ['Programado', 'Pago', 'Vazio'];
     options.forEach((option) => {
       const optionDiv = this.renderer.createElement('div');
@@ -257,12 +252,10 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
       const text = this.renderer.createText(option);
       this.renderer.appendChild(optionDiv, text);
 
-      // Adicionar classe selected se for o status atual
       if (this.activeMeta && this.getActiveMes()?.status === option) {
         this.renderer.addClass(optionDiv, 'selected');
       }
 
-      // Adicionar evento de click
       this.renderer.listen(optionDiv, 'click', (e: Event) => {
         e.stopPropagation();
         this.selecionarStatusByOverlay(option as StatusMeta);
@@ -270,17 +263,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
 
       this.renderer.appendChild(dropdown, optionDiv);
     });
-
-    // Adicionar ao body
-    this.renderer.appendChild(this.document.body, dropdown);
-    this.dropdownElement = dropdown;
-
-    // Adicionar evento para não fechar ao clicar dentro
-    this.renderer.listen(dropdown, 'click', (e: Event) => {
-      e.stopPropagation();
-    });
-
-    return dropdown;
   }
 
   selecionarStatusByOverlay(status: StatusMeta): void {
@@ -290,83 +272,67 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   toggleDropdown(meta: MetaExtended, mesId: number, event: MouseEvent): void {
-    // Prevenir que o evento de click do document feche o dropdown imediatamente
     event?.stopPropagation();
     event?.preventDefault();
 
     const key = this.getCellKey(meta.id, mesId);
-
-    // Se o dropdown já está aberto para esta célula, fechar
     if (this.openDropdownKey === key) {
       this.closeDropdown();
       return;
     }
 
-    // Usar currentTarget (o elemento com o evento) ou target (onde foi clicado)
-    const targetElement =
-      (event?.currentTarget as HTMLElement) || (event?.target as HTMLElement);
-    if (!targetElement) {
-      return;
-    }
-
-    // Buscar o wrapper que contém o status-indicator
-    // Pode estar no próprio elemento ou em algum parent
-    let anchor = targetElement.closest(
-      '.status-indicator-wrapper'
-    ) as HTMLElement;
-
-    // Se não encontrou no target, tentar no currentTarget
-    if (!anchor && event?.currentTarget) {
-      anchor = (event.currentTarget as HTMLElement).closest(
-        '.status-indicator-wrapper'
-      ) as HTMLElement;
-    }
-
-    // Se ainda não encontrou, buscar pela célula da tabela
-    if (!anchor) {
-      const cell = targetElement.closest(
-        '[data-meta-id][data-mes-id]'
-      ) as HTMLElement;
-      if (cell) {
-        anchor = cell.querySelector('.status-indicator-wrapper') as HTMLElement;
-      }
-    }
-
+    const anchor = this.resolveStatusIndicatorAnchor(event);
     if (!anchor) {
       return;
     }
 
-    // Calcular posição inicial ANTES de abrir o dropdown
+    const { margin, estWidth, estHeight } = this.dropdownLayout;
     const anchorRect = anchor.getBoundingClientRect();
-    const margin = 8;
-    const estimatedDropdownWidth = 120;
-    const estimatedDropdownHeight = 100;
+    const { width: vw, height: vh } = this.getWindowViewport();
 
-    // Calcular posição estimada
-    let top = anchorRect.bottom + margin;
-    let left =
-      anchorRect.left + anchorRect.width / 2 - estimatedDropdownWidth / 2;
+    const { top, left } = this.computeInitialClampedDropdownPosition(
+      anchorRect,
+      vw,
+      vh,
+      estWidth,
+      estHeight,
+      margin,
+    );
 
-    // Limites da viewport - usar document.documentElement para valores mais precisos
-    const viewportWidth =
-      document.documentElement.clientWidth || window.innerWidth;
-    const viewportHeight =
-      document.documentElement.clientHeight || window.innerHeight;
+    this.dropdownPos = { top, left };
+    this.openDropdownKey = key;
+    this.activeMeta = meta;
+    this.activeMesId = mesId;
+
+    const dd = this.createDropdownInBody();
+    this.setDropdownElementPosition(dd, top, left);
+    this.scheduleDropdownRefinement(anchor, dd, margin, estWidth, estHeight);
+  }
+
+  computeInitialClampedDropdownPosition(
+    anchorRect: DOMRect,
+    viewportWidth: number,
+    viewportHeight: number,
+    estW: number,
+    estH: number,
+    margin: number,
+  ): DropdownPos {
     const minLeft = margin;
-    const maxLeft = viewportWidth - estimatedDropdownWidth - margin;
+    const maxLeft = viewportWidth - estW - margin;
     const minTop = margin;
-    const maxTop = viewportHeight - estimatedDropdownHeight - margin;
+    const maxTop = viewportHeight - estH - margin;
 
-    // Ajustar horizontalmente
+    let top = anchorRect.bottom + margin;
+    let left = anchorRect.left + anchorRect.width / 2 - estW / 2;
+
     if (left < minLeft) {
       left = minLeft;
     } else if (left > maxLeft) {
       left = maxLeft;
     }
 
-    // Ajustar verticalmente
-    if (top + estimatedDropdownHeight > viewportHeight) {
-      top = anchorRect.top - estimatedDropdownHeight - margin;
+    if (top + estH > viewportHeight) {
+      top = anchorRect.top - estH - margin;
       if (top < minTop) {
         top = Math.max(minTop, Math.min(maxTop, anchorRect.top));
       }
@@ -374,172 +340,247 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
       top = minTop;
     }
 
-    // Garantir que top e left sejam valores válidos e dentro da viewport
     const finalTop = Math.max(
       margin,
-      Math.min(top, viewportHeight - estimatedDropdownHeight - margin)
+      Math.min(top, viewportHeight - estH - margin),
     );
     const finalLeft = Math.max(
       margin,
-      Math.min(left, viewportWidth - estimatedDropdownWidth - margin)
+      Math.min(left, viewportWidth - estW - margin),
     );
+    return { top: finalTop, left: finalLeft };
+  }
 
-    // Definir posição inicial ANTES de abrir
-    this.dropdownPos = { top: finalTop, left: finalLeft };
+  private resolveStatusIndicatorAnchor(event: MouseEvent): HTMLElement | null {
+    const targetElement =
+      (event.currentTarget as HTMLElement) || (event.target as HTMLElement);
+    if (!targetElement) {
+      return null;
+    }
 
-    // Agora abrir o dropdown
-    this.openDropdownKey = key;
-    this.activeMeta = meta;
-    this.activeMesId = mesId;
+    let anchor = targetElement.closest(
+      '.status-indicator-wrapper',
+    ) as HTMLElement;
 
-    // Criar dropdown diretamente no body para evitar problemas de posicionamento
-    const dd = this.createDropdownInBody();
+    if (!anchor && event.currentTarget) {
+      anchor = (event.currentTarget as HTMLElement).closest(
+        '.status-indicator-wrapper',
+      ) as HTMLElement;
+    }
 
-    // Aplicar posição inicial
-    this.renderer.setStyle(dd, 'top', `${finalTop}px`);
-    this.renderer.setStyle(dd, 'left', `${finalLeft}px`);
+    if (!anchor) {
+      const cell = targetElement.closest(
+        '[data-meta-id][data-mes-id]',
+      ) as HTMLElement;
+      if (cell) {
+        anchor = cell.querySelector('.status-indicator-wrapper') as HTMLElement;
+      }
+    }
 
-    // Ajustar posição após renderização com dimensões reais
+    return anchor;
+  }
+
+  private getWindowViewport(): { width: number; height: number } {
+    return {
+      width: this.document.documentElement.clientWidth || window.innerWidth,
+      height: this.document.documentElement.clientHeight || window.innerHeight,
+    };
+  }
+
+  private setDropdownElementPosition(
+    dd: HTMLElement,
+    top: number,
+    left: number,
+  ): void {
+    this.renderer.setStyle(dd, 'top', `${top}px`);
+    this.renderer.setStyle(dd, 'left', `${left}px`);
+  }
+
+  private scheduleDropdownRefinement(
+    anchor: HTMLElement,
+    dd: HTMLElement,
+    margin: number,
+    estW: number,
+    estH: number,
+  ): void {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        if (!anchor || !this.document.contains(anchor)) {
-          return;
-        }
-
-        if (!dd || !this.document.body.contains(dd)) {
-          return;
-        }
-
-        // Recalcular com dimensões reais
-        const realAnchorRect = anchor.getBoundingClientRect();
-        const realDropdownWidth = dd.offsetWidth || estimatedDropdownWidth;
-        const realDropdownHeight = dd.offsetHeight || estimatedDropdownHeight;
-
-        // Usar getBoundingClientRect que já retorna coordenadas relativas à viewport
-        let adjustedTop = realAnchorRect.bottom + margin;
-        let adjustedLeft =
-          realAnchorRect.left +
-          realAnchorRect.width / 2 -
-          realDropdownWidth / 2;
-
-        // Obter dimensões reais da viewport
-        const realViewportWidth =
-          document.documentElement.clientWidth || window.innerWidth;
-        const realViewportHeight =
-          document.documentElement.clientHeight || window.innerHeight;
-
-        // Ajustar horizontalmente - garantir que não saia da tela
-        if (adjustedLeft < margin) {
-          adjustedLeft = margin;
-        } else if (
-          adjustedLeft + realDropdownWidth >
-          realViewportWidth - margin
-        ) {
-          adjustedLeft = realViewportWidth - realDropdownWidth - margin;
-        }
-
-        // Ajustar verticalmente - tentar embaixo primeiro
-        if (adjustedTop + realDropdownHeight > realViewportHeight - margin) {
-          // Não coube embaixo, colocar em cima
-          adjustedTop = realAnchorRect.top - realDropdownHeight - margin;
-          // Se ainda não couber em cima, ajustar para dentro da viewport
-          if (adjustedTop < margin) {
-            adjustedTop = margin;
-          }
-        }
-        // Garantir que não fique muito alto
-        if (adjustedTop < margin) {
-          adjustedTop = margin;
-        }
-
-        if (adjustedTop + realDropdownHeight > realViewportHeight - margin) {
-          adjustedTop = realViewportHeight - realDropdownHeight - margin;
-        }
-        // Garantir valores finais válidos
-        adjustedTop = Math.max(
-          margin,
-          Math.min(
-            adjustedTop,
-            realViewportHeight - realDropdownHeight - margin
-          )
-        );
-        adjustedLeft = Math.max(
-          margin,
-          Math.min(adjustedLeft, realViewportWidth - realDropdownWidth - margin)
-        );
-
-        // Atualizar posição com valores reais
-        this.dropdownPos = {
-          top: adjustedTop,
-          left: adjustedLeft,
-        };
-
-        // Aplicar via Renderer2 para garantir que os estilos sejam aplicados
-        this.renderer.setStyle(dd, 'top', `${adjustedTop}px`);
-        this.renderer.setStyle(dd, 'left', `${adjustedLeft}px`);
-
-        // Ajustar se estiver fora da viewport
-        setTimeout(() => {
-          const finalRect = dd.getBoundingClientRect();
-          const viewportHeight =
-            document.documentElement.clientHeight || window.innerHeight;
-          const viewportWidth =
-            document.documentElement.clientWidth || window.innerWidth;
-
-          const isInViewport =
-            finalRect.top >= 0 &&
-            finalRect.left >= 0 &&
-            finalRect.bottom <= viewportHeight &&
-            finalRect.right <= viewportWidth;
-
-          if (!isInViewport) {
-            let fixedTop = adjustedTop;
-            let fixedLeft = adjustedLeft;
-
-            if (finalRect.top < 0) {
-              fixedTop = margin;
-            }
-            if (finalRect.left < 0) {
-              fixedLeft = margin;
-            }
-            if (finalRect.bottom > viewportHeight) {
-              fixedTop = viewportHeight - realDropdownHeight - margin;
-            }
-            if (finalRect.right > viewportWidth) {
-              fixedLeft = viewportWidth - realDropdownWidth - margin;
-            }
-
-            this.dropdownPos = {
-              top: Math.max(margin, fixedTop),
-              left: Math.max(margin, fixedLeft),
-            };
-
-            this.renderer.setStyle(dd, 'top', `${this.dropdownPos.top}px`);
-            this.renderer.setStyle(dd, 'left', `${this.dropdownPos.left}px`);
-          }
-        }, 100);
+        this.refineDropdownPositionAfterLayout(anchor, dd, margin, estW, estH);
       });
     });
+  }
+
+  private refineDropdownPositionAfterLayout(
+    anchor: HTMLElement,
+    dd: HTMLElement,
+    margin: number,
+    estW: number,
+    estH: number,
+  ): void {
+    if (!this.document.contains(anchor) || !this.document.body.contains(dd)) {
+      return;
+    }
+
+    const realAnchorRect = anchor.getBoundingClientRect();
+    const realW = dd.offsetWidth || estW;
+    const realH = dd.offsetHeight || estH;
+    const viewport = this.getWindowViewport();
+
+    const pos = this.computeRefinedClampedDropdownPosition(
+      realAnchorRect,
+      viewport,
+      realW,
+      realH,
+      margin,
+    );
+
+    this.dropdownPos = pos;
+    this.setDropdownElementPosition(dd, pos.top, pos.left);
+
+    setTimeout(() => {
+      this.applyNudgeAfterPaint(dd, margin, pos.top, pos.left, realW, realH);
+    }, 100);
+  }
+
+  computeRefinedClampedDropdownPosition(
+    anchorRect: DOMRect,
+    viewport: ViewportSize,
+    realW: number,
+    realH: number,
+    margin: number,
+  ): DropdownPos {
+    const { width: vw, height: vh } = viewport;
+
+    let adjustedTop = anchorRect.bottom + margin;
+    let adjustedLeft = anchorRect.left + anchorRect.width / 2 - realW / 2;
+
+    if (adjustedLeft < margin) {
+      adjustedLeft = margin;
+    } else if (adjustedLeft + realW > vw - margin) {
+      adjustedLeft = vw - realW - margin;
+    }
+
+    if (adjustedTop + realH > vh - margin) {
+      adjustedTop = anchorRect.top - realH - margin;
+      if (adjustedTop < margin) {
+        adjustedTop = margin;
+      }
+    }
+    if (adjustedTop < margin) {
+      adjustedTop = margin;
+    }
+
+    if (adjustedTop + realH > vh - margin) {
+      adjustedTop = vh - realH - margin;
+    }
+    adjustedTop = Math.max(margin, Math.min(adjustedTop, vh - realH - margin));
+    adjustedLeft = Math.max(
+      margin,
+      Math.min(adjustedLeft, vw - realW - margin),
+    );
+
+    return { top: adjustedTop, left: adjustedLeft };
+  }
+
+  private applyNudgeAfterPaint(
+    dd: HTMLElement,
+    margin: number,
+    adjustedTop: number,
+    adjustedLeft: number,
+    realW: number,
+    realH: number,
+  ): void {
+    const painted = dd.getBoundingClientRect();
+    const viewportWidth =
+      this.document.documentElement.clientWidth || window.innerWidth;
+    const viewportHeight =
+      this.document.documentElement.clientHeight || window.innerHeight;
+
+    const nudged = this.computeNudgePositionIfClipped(
+      painted,
+      viewportWidth,
+      viewportHeight,
+      adjustedTop,
+      adjustedLeft,
+      realW,
+      realH,
+      margin,
+    );
+    if (!nudged) {
+      return;
+    }
+
+    this.dropdownPos = nudged;
+    this.setDropdownElementPosition(dd, nudged.top, nudged.left);
+  }
+
+  isRectFullyInViewport(
+    rect: DOMRect,
+    viewportHeight: number,
+    viewportWidth: number,
+  ): boolean {
+    return (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= viewportHeight &&
+      rect.right <= viewportWidth
+    );
+  }
+
+  computeNudgePositionIfClipped(
+    paintedRect: DOMRect,
+    viewportWidth: number,
+    viewportHeight: number,
+    adjustedTop: number,
+    adjustedLeft: number,
+    realW: number,
+    realH: number,
+    margin: number,
+  ): DropdownPos | null {
+    if (
+      this.isRectFullyInViewport(paintedRect, viewportHeight, viewportWidth)
+    ) {
+      return null;
+    }
+
+    let fixedTop = adjustedTop;
+    let fixedLeft = adjustedLeft;
+
+    if (paintedRect.top < 0) {
+      fixedTop = margin;
+    }
+    if (paintedRect.left < 0) {
+      fixedLeft = margin;
+    }
+    if (paintedRect.bottom > viewportHeight) {
+      fixedTop = viewportHeight - realH - margin;
+    }
+    if (paintedRect.right > viewportWidth) {
+      fixedLeft = viewportWidth - realW - margin;
+    }
+
+    return {
+      top: Math.max(margin, fixedTop),
+      left: Math.max(margin, fixedLeft),
+    };
   }
 
   selecionarStatus(
     meta: MetaExtended,
     mesId: number,
-    status: StatusMeta
+    status: StatusMeta,
   ): void {
     const mes = meta.meses.find((m) => m.id === mesId);
     if (!mes) return;
 
     mes.status = status;
 
-    // Emitir evento para o pai
     this.alternarStatus.emit({
       metaId: meta.id,
       mesId: mesId,
       status: status as any,
     });
 
-    // Verificar se a meta foi completada após alterar o status
     if (status === 'Pago') {
       this.verificarMetaCompleta(meta);
     }
@@ -547,20 +588,18 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     meta.dropdownOpen = undefined;
   }
 
-  // Verificar se uma meta foi completada (atingiu 100%)
   private verificarMetaCompleta(meta: MetaExtended): void {
     const valorMeta = Number(meta.valorMeta) || 0;
     if (valorMeta <= 0) return;
 
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
+    const valorAtual = Number(meta.valorAtual) || 0;
     const valorPago = (meta.meses ?? [])
       .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
+      .reduce((s, x) => s + (Number(x.valor) || 0), 0);
 
     const totalRealizado = valorAtual + valorPago;
     const progresso = Number(((totalRealizado * 100) / valorMeta).toFixed(2));
 
-    // Se atingiu 100% E tem pelo menos um mês pago E ainda não foi marcada como completa
     const temMesesPagos = (meta.meses ?? []).some((x) => x.status === 'Pago');
     if (progresso >= 100 && temMesesPagos && !this.jaMostrouParabens(meta.id)) {
       this.metaCompleta.emit({
@@ -569,29 +608,23 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
         valorMeta: meta.valorMeta,
       });
 
-      // Marcar que já mostrou parabéns para esta meta (persistir no localStorage)
       this.marcarParabensMostrado(meta.id);
 
-      // Marcar meses restantes como "Finalizado" quando meta atinge 100%
       this.marcarMesesComoFinalizado(meta);
     }
   }
 
-  // Marcar que já mostrou parabéns para uma meta (persistir no localStorage)
   private marcarParabensMostrado(metaId: string | number): void {
     try {
       const parabensMostrados = this.getParabensMostrados();
       parabensMostrados.push(String(metaId));
       localStorage.setItem(
         'metas_parabens_mostrados',
-        JSON.stringify(parabensMostrados)
+        JSON.stringify(parabensMostrados),
       );
-    } catch (error) {
-      // Erro ao salvar parabéns no localStorage
-    }
+    } catch (error) {}
   }
 
-  // Verificar se já mostrou parabéns para uma meta
   private jaMostrouParabens(metaId: string | number): boolean {
     try {
       const parabensMostrados = this.getParabensMostrados();
@@ -601,7 +634,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  // Obter lista de metas que já mostraram parabéns
   private getParabensMostrados(): string[] {
     try {
       const stored = localStorage.getItem('metas_parabens_mostrados');
@@ -611,34 +643,24 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private recalcResumo(): void {
-    // Componente de apresentação - os totais são calculados via getters
-    // Este método é chamado apenas para forçar a detecção de mudanças
-  }
-
-  // Marcar meses restantes como "Finalizado" quando meta atinge 100%
   private marcarMesesComoFinalizado(meta: MetaExtended): void {
     if (!meta.meses || meta.meses.length === 0) return;
 
-    // Encontrar meses que ainda não foram pagos (status diferente de 'Pago')
     const mesesParaFinalizar = meta.meses.filter(
-      (mes) => mes.status !== 'Pago'
+      (mes) => mes.status !== 'Pago',
     );
 
     if (mesesParaFinalizar.length === 0) {
       return;
     }
 
-    // Marcar todos os meses restantes como "Finalizado"
     mesesParaFinalizar.forEach((mes) => {
       (mes as any).status = 'Finalizado';
-      mes.valor = 0; // Zerar o valor já que a meta foi completada
+      mes.valor = 0;
     });
 
-    // Atualizar mesesNecessarios para 0 (meta finalizada)
     meta.mesesNecessarios = 0;
 
-    // Salvar no servidor (meses + mesesNecessarios)
     this.metasService
       .updateMeta(meta.id, {
         meses: meta.meses.map((m) => ({ ...m })),
@@ -648,13 +670,11 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
         next: () => {
           this.alternarStatus.emit({
             metaId: meta.id,
-            mesId: 0, // Não é um mês específico, mas sim a meta toda
+            mesId: 0,
             status: 'Finalizado' as any,
           });
         },
-        error: (_error) => {
-          // Erro ao finalizar meta
-        },
+        error: (_error) => {},
       });
   }
 
@@ -667,14 +687,12 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     return this.getTotalContribuicoesMeta(meta as any);
   }
 
-  // Calcular meses restantes baseado nos meses pagos
   getMesesRestantes(meta: MetaExtended): number {
     const valorMeta = Number(meta.valorMeta) || 0;
     const valorPorMes = Number(meta.valorPorMes) || 0;
 
     if (valorMeta <= 0 || valorPorMes <= 0) return 0;
 
-    // Calcular total realizado (quanto já temos + quanto já pagamos)
     const valorAtual = Number(meta.valorAtual) || 0;
     const valorPago = (meta.meses ?? [])
       .filter((x) => x.status === 'Pago')
@@ -683,7 +701,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
     const totalRealizado = valorAtual + valorPago;
     const valorRestante = Math.max(0, valorMeta - totalRealizado);
 
-    // Calcular quantos meses ainda faltam pagar
     const mesesRestantes = Math.ceil(valorRestante / valorPorMes);
 
     return mesesRestantes;

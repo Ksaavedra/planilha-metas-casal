@@ -5,6 +5,7 @@ import { DSModule } from 'app/@ds';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ReceitasRoutingModule } from './receitas.routing';
 import { ReceitasPageComponent } from './containers/receitas-page/receitas-page.component';
+import { SharedModule } from '../../shared/shared.module';
 
 @NgModule({
   declarations: [ReceitasPageComponent],
@@ -14,6 +15,7 @@ import { ReceitasPageComponent } from './containers/receitas-page/receitas-page.
     DSModule,
     ReactiveFormsModule,
     ReceitasRoutingModule,
+    SharedModule,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })

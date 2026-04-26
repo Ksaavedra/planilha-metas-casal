@@ -1,9 +1,10 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 @Component({
-  selector: 'app-parabens-modal',
-  templateUrl: './parabens-modal.component.html',
-  styleUrls: ['./parabens-modal.component.scss'],
+    selector: 'app-parabens-modal',
+    templateUrl: './parabens-modal.component.html',
+    styleUrls: ['./parabens-modal.component.scss'],
+    standalone: false
 })
 export class ParabensModalComponent {
   @Input() isOpen = false;

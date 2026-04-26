@@ -1,36 +1,28 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ProgressTableComponent } from './progress-table.component';
-import { MetaExtended } from '../../../../core/interfaces/mes-meta';
-import { LOCALE_ID } from '@angular/core';
 import { registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt';
+import { ProgressTableComponent } from './progress-table.component';
+import { MetaExtended } from '../../../../core/interfaces/metas/mes-meta';
 
 describe('ProgressTableComponent', () => {
   let component: ProgressTableComponent;
   let fixture: ComponentFixture<ProgressTableComponent>;
 
   const norm = (s: string | null | undefined) =>
-    (s ?? '')?.replace(/\u00A0/g, ' ');
-  const mockMetas: MetaExtended[] = [
-    {
-      id: 1,
-      nome: 'Meta 1',
+    (s ?? '').replace(/\u00A0/g, ' ');
+
+  const criarMeta = (id: number, nome = `Meta ${id}`): MetaExtended =>
+    ({
+      id,
+      nome,
       valorMeta: 10000,
       valorAtual: 5000,
       valorPorMes: 1000,
       mesesNecessarios: 10,
       meses: [],
-    },
-    {
-      id: 2,
-      nome: 'Meta 2',
-      valorMeta: 5000,
-      valorAtual: 5000,
-      valorPorMes: 500,
-      mesesNecessarios: 10,
-      meses: [],
-    },
-  ];
+    }) as MetaExtended;
+
+  const mockMetas: MetaExtended[] = [criarMeta(1), criarMeta(2)];
 
   beforeAll(() => {
     registerLocaleData(localePt);
@@ -38,9 +30,9 @@ describe('ProgressTableComponent', () => {
 
   beforeEach(async () => {
     jest.useFakeTimers();
+
     await TestBed.configureTestingModule({
       declarations: [ProgressTableComponent],
-      providers: [{ provide: LOCALE_ID, useValue: 'pt-BR' }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ProgressTableComponent);
@@ -53,269 +45,794 @@ describe('ProgressTableComponent', () => {
     fixture.destroy();
     jest.clearAllTimers();
     jest.useRealTimers();
+    jest.restoreAllMocks();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should have default values', () => {
+  it('deve ter valores iniciais', () => {
     expect(component.metas).toEqual(mockMetas);
     expect(component.currentIndex).toBe(0);
   });
 
-  it('should calculate progress correctly', () => {
-    const progress = component.getProgressoRealMeta(mockMetas[0]);
-    expect(progress).toBe(50); // 5000/10000 * 100
+  describe('metasValidas', () => {
+    it('metasValidas deve filtrar nome vazio, valor inválido e draft', () => {
+      component.metas = [
+        criarMeta(1, 'Meta válida'),
+        { ...criarMeta(2), nome: '' },
+        { ...criarMeta(3), valorMeta: 0 },
+        { ...criarMeta(4), _draft: true },
+      ] as MetaExtended[];
+
+      expect(component.metasValidas.length).toBe(1);
+      expect(component.metasValidas[0].id).toBe(1);
+    });
   });
 
-  it('should calculate realized value correctly', () => {
-    const valorRealizado = component.getValorRealizadoMeta(mockMetas[0]);
-    expect(valorRealizado).toBe(5000); // valorAtual + valorPago(0)
+  describe('getProgressoRealMeta', () => {
+    it('getProgressoRealMeta deve calcular progresso corretamente', () => {
+      const meta = {
+        ...criarMeta(1),
+        valorMeta: 10000,
+        valorAtual: 5000,
+        meses: [],
+      } as MetaExtended;
+
+      expect(component.getProgressoRealMeta(meta)).toBe(50);
+    });
+
+    it('getProgressoRealMeta deve limitar em 100%', () => {
+      const meta = {
+        ...criarMeta(1),
+        valorMeta: 10000,
+        valorAtual: 6000,
+        meses: [{ status: 'Pago', valor: 6000 }] as any,
+      } as MetaExtended;
+
+      expect(component.getProgressoRealMeta(meta)).toBe(100);
+    });
+
+    it('deve tratar valorAtual undefined como 0', () => {
+      const meta = {
+        ...criarMeta(1),
+        valorMeta: 1000,
+        valorAtual: undefined,
+        meses: [],
+      } as any;
+
+      const result = component.getProgressoRealMeta(meta);
+
+      expect(result).toBe(0);
+    });
+
+    it('deve ignorar meses com status diferente de Pago', () => {
+      const meta = {
+        ...criarMeta(1),
+        valorMeta: 1000,
+        valorAtual: 100,
+        meses: [
+          { status: 'Programado', valor: 500 },
+          { status: 'Vazio', valor: 500 },
+        ],
+      } as any;
+
+      const result = component.getProgressoRealMeta(meta);
+
+      expect(result).toBe(10); // 100 / 1000 * 100
+    });
+
+    it('deve tratar valor do mês Pago undefined como 0', () => {
+      const meta = {
+        ...criarMeta(1),
+        valorMeta: 1000,
+        valorAtual: 100,
+        meses: [
+          { status: 'Pago', valor: undefined },
+          { status: 'Pago', valor: 200 },
+        ],
+      } as any;
+
+      const result = component.getProgressoRealMeta(meta);
+
+      expect(result).toBe(30); // (100 + 0 + 200) / 1000 * 100
+    });
   });
 
-  it('should calculate remaining value correctly', () => {
-    const valorFaltante = component.getValorFaltanteMeta(mockMetas[0]);
-    expect(valorFaltante).toBe(5000); // 10000 - 5000
+  describe('getValorRealizadoMeta', () => {
+    it('getValorRealizadoMeta deve somar valorAtual com meses pagos', () => {
+      const meta = {
+        ...criarMeta(1),
+        valorAtual: 100,
+        meses: [
+          { status: 'Pago', valor: 200 },
+          { status: 'Programado', valor: 300 },
+          { status: 'Pago', valor: undefined },
+        ] as any,
+      } as MetaExtended;
+
+      expect(component.getValorRealizadoMeta(meta)).toBe(300);
+    });
+
+    it('getValorRealizadoMeta deve tratar valorAtual undefined como 0', () => {
+      const meta = {
+        ...criarMeta(1),
+        valorAtual: undefined as any,
+        meses: [{ status: 'Pago', valor: 150 }] as any,
+      } as MetaExtended;
+
+      expect(component.getValorRealizadoMeta(meta)).toBe(150);
+    });
   });
 
-  it('should format currency correctly (pt-BR)', () => {
-    const formatted = component.formatarMoeda(1000);
-    expect(norm(formatted)).toContain('R$ 1.000');
+  describe('getValorFaltanteMeta', () => {
+    it('getValorFaltanteMeta deve calcular valor faltante', () => {
+      const meta = {
+        ...criarMeta(1),
+        valorMeta: 10000,
+        valorAtual: 5000,
+        meses: [],
+      } as MetaExtended;
+
+      expect(component.getValorFaltanteMeta(meta)).toBe(5000);
+    });
+
+    it('getValorFaltanteMeta não deve retornar valor negativo', () => {
+      const meta = {
+        ...criarMeta(1),
+        valorMeta: 1000,
+        valorAtual: 2000,
+        meses: [],
+      } as MetaExtended;
+
+      expect(component.getValorFaltanteMeta(meta)).toBe(0);
+    });
   });
 
-  it('should get visible metas correctly', () => {
-    const visibleMetas = component.getVisibleMetas();
-    expect(visibleMetas.length).toBe(2);
-    expect(visibleMetas[0]).toEqual(mockMetas[0]);
-    expect(visibleMetas[1]).toEqual(mockMetas[1]);
+  describe('formatarMoeda', () => {
+    it('formatarMoeda deve formatar em pt-BR', () => {
+      expect(norm(component.formatarMoeda(1000))).toContain('R$ 1.000');
+    });
   });
 
-  it('should calculate total slides correctly', () => {
-    const totalSlides = component.getTotalSlides();
-    expect(totalSlides).toBe(1); // 2 metas / 2 por slide
+  describe('getMetaIcon', () => {
+    it('getMetaIcon deve retornar ícone salvo quando existir', () => {
+      const meta = { ...criarMeta(1), icon: 'bi-car-front' } as MetaExtended;
+
+      expect(component.getMetaIcon(meta)).toBe('bi-car-front');
+    });
+
+    it('getMetaIcon deve retornar ícone padrão quando não encontrar pelo nome', () => {
+      const meta = {
+        ...criarMeta(1),
+        nome: 'Nome aleatório xyz',
+      } as MetaExtended;
+
+      expect(component.getMetaIcon(meta)).toBeTruthy();
+    });
+
+    it('getMetaIcon deve retornar ícone quando encontrar pelo nome', () => {
+      const meta = {
+        ...criarMeta(1),
+        nome: 'carro', // precisa bater com algum label da constante
+        icon: '',
+      } as MetaExtended;
+
+      const result = component.getMetaIcon(meta);
+
+      expect(result).toBeTruthy();
+    });
   });
 
-  it('should get current slide number correctly', () => {
-    const currentSlide = component.getCurrentSlideNumber();
-    expect(currentSlide).toBe(1);
+  describe('getGradientColor', () => {
+    it('getGradientColor deve retornar gradiente conforme índice', () => {
+      expect(component.getGradientColor(0)).toContain('linear-gradient');
+      expect(component.getGradientColor(8)).toBe(component.getGradientColor(0));
+    });
   });
 
-  it('should navigate to next slide (when there are more than 2 metas)', () => {
-    component.metas = [
-      ...mockMetas,
-      { ...mockMetas[0], id: 3 },
-      { ...mockMetas[1], id: 4 },
-    ];
-    fixture.detectChanges();
+  describe('ngOnInit', () => {
+    it('deve iniciar carrossel quando tiver entre 7 e 15 metas válidas', () => {
+      const startSpy = jest.spyOn(component, 'startCarousel');
 
-    component.nextSlide();
-    expect(component.currentIndex).toBe(2);
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
+
+      component.ngOnInit();
+
+      expect(component.currentIndex).toBe(0);
+      expect(startSpy).toHaveBeenCalled();
+    });
+
+    it('não deve iniciar carrossel quando metas válidas < 7', () => {
+      const startSpy = jest.spyOn(component, 'startCarousel');
+
+      component.metas = Array.from({ length: 6 }, (_, i) => criarMeta(i + 1));
+
+      component.ngOnInit();
+
+      expect(startSpy).not.toHaveBeenCalled();
+    });
+
+    it('não deve iniciar carrossel quando metas válidas > 15', () => {
+      const startSpy = jest.spyOn(component, 'startCarousel');
+
+      component.metas = Array.from({ length: 16 }, (_, i) => criarMeta(i + 1));
+
+      component.ngOnInit();
+
+      expect(startSpy).not.toHaveBeenCalled();
+    });
+
+    it('deve resetar currentIndex quando hasCarousel for true', () => {
+      component.metas = Array.from({ length: 8 }, (_, i) => criarMeta(i + 1));
+      component.currentIndex = 5;
+
+      component.ngOnInit();
+
+      expect(component.currentIndex).toBe(0);
+    });
   });
 
-  it('should navigate to previous slide (when there are more than 2 metas)', () => {
-    component.metas = [
-      ...mockMetas,
-      { ...mockMetas[0], id: 3 },
-      { ...mockMetas[1], id: 4 },
-    ];
-    component.currentIndex = 2;
-    fixture.detectChanges();
+  describe('ngAfterViewInit', () => {
+    it('deve chamar recalcLayout no setTimeout', () => {
+      const recalcSpy = jest.spyOn(component as any, 'recalcLayout');
 
-    component.prevSlide();
-    expect(component.currentIndex).toBe(0);
+      component.ngAfterViewInit();
+      jest.runOnlyPendingTimers();
+
+      expect(recalcSpy).toHaveBeenCalled();
+    });
   });
 
-  it('should go to specific slide', () => {
-    component.goToSlide(1);
-    expect(component.currentIndex).toBe(1);
+  describe('ngOnChanges', () => {
+    it('ngOnChanges deve parar carrossel quando metas válidas <= 6', () => {
+      const stopSpy = jest.spyOn(component, 'stopCarousel');
+
+      component.metas = [criarMeta(1), criarMeta(2)];
+
+      component.ngOnChanges({
+        metas: {
+          currentValue: component.metas,
+          previousValue: [],
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+
+      expect(component.currentIndex).toBe(0);
+      expect(stopSpy).toHaveBeenCalled();
+    });
+
+    it('ngOnChanges deve parar carrossel quando metas válidas > 15', () => {
+      const stopSpy = jest.spyOn(component, 'stopCarousel');
+
+      component.metas = Array.from({ length: 16 }, (_, i) => criarMeta(i + 1));
+
+      component.ngOnChanges({
+        metas: {
+          currentValue: component.metas,
+          previousValue: [],
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+
+      expect(component.currentIndex).toBe(0);
+      expect(stopSpy).toHaveBeenCalled();
+    });
+
+    it('ngOnChanges deve recalcular e iniciar carrossel quando tiver carrossel', () => {
+      const recalcSpy = jest.spyOn(component as any, 'recalcLayout');
+      const startSpy = jest.spyOn(component, 'startCarousel');
+
+      component.metas = Array.from({ length: 8 }, (_, i) => criarMeta(i + 1));
+
+      component.ngOnChanges({
+        metas: {
+          currentValue: component.metas,
+          previousValue: [],
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+
+      jest.runOnlyPendingTimers();
+
+      expect(recalcSpy).toHaveBeenCalled();
+      expect(component.currentIndex).toBe(0);
+      expect(startSpy).toHaveBeenCalled();
+    });
+
+    it('ngOnChanges deve ajustar currentIndex pelo maxIndex quando não tiver carrossel após recalcLayout', () => {
+      const recalcSpy = jest.spyOn(component as any, 'recalcLayout');
+      const getMaxIndexSpy = jest
+        .spyOn(component as any, 'getMaxIndex')
+        .mockReturnValue(2);
+
+      jest
+        .spyOn(component as any, 'hasCarousel')
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false);
+
+      const stopSpy = jest.spyOn(component, 'stopCarousel');
+      const startSpy = jest.spyOn(component, 'startCarousel');
+
+      component.metas = Array.from({ length: 8 }, (_, i) => criarMeta(i + 1));
+      component.currentIndex = 10;
+
+      component.ngOnChanges({
+        metas: {
+          currentValue: component.metas,
+          previousValue: [],
+          firstChange: false,
+          isFirstChange: () => false,
+        },
+      });
+
+      jest.runOnlyPendingTimers();
+
+      expect(recalcSpy).toHaveBeenCalled();
+      expect(getMaxIndexSpy).toHaveBeenCalled();
+      expect(component.currentIndex).toBe(0);
+      expect(stopSpy).toHaveBeenCalled();
+      expect(startSpy).toHaveBeenCalled();
+    });
+
+    it('ngOnChanges não deve fazer nada quando for firstChange', () => {
+      const stopSpy = jest.spyOn(component, 'stopCarousel');
+
+      component.ngOnChanges({
+        metas: {
+          currentValue: component.metas,
+          previousValue: [],
+          firstChange: true,
+          isFirstChange: () => true,
+        },
+      });
+
+      expect(stopSpy).not.toHaveBeenCalled();
+    });
   });
 
-  it('should not change index when there are only 2 metas', () => {
-    component.metas = mockMetas;
-    fixture.detectChanges();
+  describe('startCarousel', () => {
+    it('deve limpar intervalo anterior antes de iniciar novo', () => {
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
 
-    component.nextSlide();
-    expect(component.currentIndex).toBe(0);
+      (component as any).interval = setInterval(() => {}, 3000);
+      const clearSpy = jest.spyOn(global, 'clearInterval');
 
-    component.prevSlide();
-    expect(component.currentIndex).toBe(0);
+      component.startCarousel();
+
+      expect(clearSpy).toHaveBeenCalled();
+    });
+
+    it('não deve iniciar quando estiver pausado', () => {
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
+      (component as any).isPaused = true;
+      (component as any).interval = null;
+
+      component.startCarousel();
+
+      expect((component as any).interval).toBeNull();
+    });
+
+    it('deve voltar para índice 0 quando estiver no último slide', () => {
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
+
+      jest.spyOn(component as any, 'hasCarousel').mockReturnValue(true);
+      jest.spyOn(component, 'isLastSlide').mockReturnValue(true);
+
+      component.currentIndex = 3;
+
+      component.startCarousel();
+      jest.advanceTimersByTime(3000);
+
+      expect(component.currentIndex).toBe(0);
+    });
+
+    it('deve chamar nextSlide quando não estiver no último slide', () => {
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
+
+      jest.spyOn(component as any, 'hasCarousel').mockReturnValue(true);
+      jest.spyOn(component, 'isLastSlide').mockReturnValue(false);
+
+      const nextSpy = jest.spyOn(component, 'nextSlide');
+
+      component.startCarousel();
+      jest.advanceTimersByTime(3000);
+
+      expect(nextSpy).toHaveBeenCalled();
+    });
+
+    it('startCarousel não deve iniciar quando não tem carrossel', () => {
+      component.metas = [criarMeta(1), criarMeta(2)];
+      (component as any).interval = null;
+
+      component.startCarousel();
+
+      expect((component as any).interval).toBeNull();
+    });
+
+    it('startCarousel deve retornar dentro do interval quando estiver pausado', () => {
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
+
+      jest.spyOn(component as any, 'hasCarousel').mockReturnValue(true);
+
+      const nextSpy = jest.spyOn(component, 'nextSlide');
+      const lastSpy = jest.spyOn(component, 'isLastSlide');
+
+      (component as any).isPaused = false;
+
+      component.startCarousel();
+
+      (component as any).isPaused = true;
+
+      jest.advanceTimersByTime(3000);
+
+      expect(nextSpy).not.toHaveBeenCalled();
+      expect(lastSpy).not.toHaveBeenCalled();
+    });
   });
 
-  it('nextSlide deve resetar para 0 quando alcançar o último índice (lista ímpar: 3 metas)', () => {
-    component.metas = [
-      { ...mockMetas[0], id: 1 },
-      { ...mockMetas[1], id: 2 },
-      { ...mockMetas[0], id: 3 },
-    ];
-    component.currentIndex = 0;
-    fixture.detectChanges();
+  describe('ngOnDestroy', () => {
+    it('ngOnDestroy deve parar carrossel', () => {
+      const spy = jest.spyOn(component, 'stopCarousel');
 
-    component.nextSlide(); // (0+2)%3 = 2  -> >= 2  => zera
-    expect(component.currentIndex).toBe(0);
+      component.ngOnDestroy();
+
+      expect(spy).toHaveBeenCalled();
+    });
   });
 
-  it('nextSlide também reseta para 0 em lista ímpar maior (5 metas)', () => {
-    component.metas = [
-      { ...mockMetas[0], id: 1 },
-      { ...mockMetas[1], id: 2 },
-      { ...mockMetas[0], id: 3 },
-      { ...mockMetas[1], id: 4 },
-      { ...mockMetas[0], id: 5 },
-    ];
-    component.currentIndex = 0;
-    fixture.detectChanges();
+  describe('stopCarousel', () => {
+    it('stopCarousel deve limpar intervalo', () => {
+      const spy = jest.spyOn(global, 'clearInterval');
+      (component as any).interval = setInterval(() => {}, 3000);
 
-    // 1ª chamada: (0+2)%5 = 2 (não zera ainda)
-    component.nextSlide();
-    expect(component.currentIndex).toBe(2);
+      component.stopCarousel();
 
-    // 2ª chamada: (2+2)%5 = 4  -> >= 4  => zera
-    component.nextSlide();
-    expect(component.currentIndex).toBe(0);
+      expect(spy).toHaveBeenCalled();
+      expect((component as any).interval).toBeNull();
+    });
   });
 
-  it('auto-advance (setInterval) deve cair no ramo de reset com 3 metas', () => {
-    jest.useFakeTimers(); // se já estiver em beforeEach, ok
-    component.metas = [
-      { ...mockMetas[0], id: 1 },
-      { ...mockMetas[1], id: 2 },
-      { ...mockMetas[0], id: 3 },
-    ];
-    component.currentIndex = 0;
-    fixture.detectChanges();
+  describe('pauseCarousel', () => {
+    it('pauseCarousel deve pausar e parar intervalo', () => {
+      const stopSpy = jest.spyOn(component, 'stopCarousel');
 
-    // dispara o nextSlide do setInterval (5000 ms) -> cai no reset
-    jest.advanceTimersByTime(5000);
-    expect(component.currentIndex).toBe(0);
+      component.pauseCarousel();
 
-    jest.useRealTimers();
+      expect((component as any).isPaused).toBe(true);
+      expect(stopSpy).toHaveBeenCalled();
+    });
   });
 
-  it('should auto-advance every 5s when metas > 2', () => {
-    component.metas = [
-      ...mockMetas,
-      { ...mockMetas[0], id: 3 },
-      { ...mockMetas[1], id: 4 },
-    ];
-    fixture.detectChanges();
+  describe('resumeCarousel', () => {
+    it('resumeCarousel deve despausar', () => {
+      component.pauseCarousel();
+      component.resumeCarousel();
 
-    const initial = component.currentIndex; // 0
-    jest.advanceTimersByTime(5000); // dispara setInterval
-    expect(component.currentIndex).toBe((initial + 2) % component.metas.length);
+      expect((component as any).isPaused).toBe(false);
+    });
+
+    it('resumeCarousel deve chamar startCarousel quando tiver carrossel', () => {
+      const startSpy = jest.spyOn(component, 'startCarousel');
+
+      jest.spyOn(component as any, 'hasCarousel').mockReturnValue(true);
+
+      component.resumeCarousel();
+
+      expect(startSpy).toHaveBeenCalled();
+    });
+
+    it('resumeCarousel não deve chamar startCarousel quando não tiver carrossel', () => {
+      const startSpy = jest.spyOn(component, 'startCarousel');
+
+      jest.spyOn(component as any, 'hasCarousel').mockReturnValue(false);
+
+      component.resumeCarousel();
+
+      expect(startSpy).not.toHaveBeenCalled();
+    });
   });
 
-  it('should render carousel container', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.carousel-container')).toBeTruthy();
+  describe('nextSlide / prevSlide', () => {
+    it('nextSlide deve retornar quando já está no maxIndex', () => {
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(2);
+
+      component.currentIndex = 2;
+      component.nextSlide();
+
+      expect(component.currentIndex).toBe(2);
+    });
+
+    it('nextSlide deve avançar quando não está no último índice', () => {
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(2);
+
+      component.currentIndex = 0;
+      component.nextSlide();
+
+      expect(component.currentIndex).toBe(1);
+    });
+
+    it('prevSlide deve voltar para maxIndex quando currentIndex for 0', () => {
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(3);
+
+      component.currentIndex = 0;
+      component.prevSlide();
+
+      expect(component.currentIndex).toBe(3);
+    });
+
+    it('nextSlide não deve fazer nada quando não tem carrossel', () => {
+      jest.spyOn(component as any, 'hasCarousel').mockReturnValue(false);
+
+      const recalcSpy = jest.spyOn(component as any, 'recalcLayout');
+
+      component.nextSlide();
+
+      expect(recalcSpy).not.toHaveBeenCalled();
+    });
+
+    it('prevSlide não deve fazer nada quando não tem carrossel', () => {
+      jest.spyOn(component as any, 'hasCarousel').mockReturnValue(false);
+
+      const recalcSpy = jest.spyOn(component as any, 'recalcLayout');
+
+      component.prevSlide();
+
+      expect(recalcSpy).not.toHaveBeenCalled();
+    });
+
+    it('prevSlide deve decrementar índice quando currentIndex > 0', () => {
+      jest.spyOn(component as any, 'hasCarousel').mockReturnValue(true);
+      jest.spyOn(component as any, 'recalcLayout').mockImplementation(() => {});
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(5);
+
+      component.currentIndex = 3;
+
+      component.prevSlide();
+
+      expect(component.currentIndex).toBe(2);
+    });
+
+    it('prevSlide deve ir para maxIndex quando currentIndex = 0', () => {
+      jest.spyOn(component as any, 'hasCarousel').mockReturnValue(true);
+      jest.spyOn(component as any, 'recalcLayout').mockImplementation(() => {});
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(5);
+
+      component.currentIndex = 0;
+
+      component.prevSlide();
+
+      expect(component.currentIndex).toBe(5);
+    });
   });
 
-  it('should render component root', () => {
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled).toBeTruthy();
+  describe('goToSlide', () => {
+    it('goToSlide deve limitar índice maior que maxIndex', () => {
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(5);
+      jest.spyOn(component as any, 'recalcLayout').mockImplementation(() => {});
+
+      component.goToSlide(10);
+
+      expect(component.currentIndex).toBe(5);
+    });
+
+    it('goToSlide deve usar o índice informado quando estiver dentro do limite', () => {
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(5);
+      jest.spyOn(component as any, 'recalcLayout').mockImplementation(() => {});
+
+      component.goToSlide(3);
+
+      expect(component.currentIndex).toBe(3);
+    });
+
+    it('goToSlide deve reiniciar carrossel quando tiver entre 7 e 15 metas válidas', () => {
+      component.metas = Array.from({ length: 8 }, (_, i) => criarMeta(i + 1));
+
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(5);
+      jest.spyOn(component as any, 'recalcLayout').mockImplementation(() => {});
+
+      const stopSpy = jest.spyOn(component, 'stopCarousel');
+      const startSpy = jest.spyOn(component, 'startCarousel');
+
+      component.goToSlide(2);
+
+      expect(stopSpy).toHaveBeenCalled();
+      expect(startSpy).toHaveBeenCalled();
+    });
+
+    it('goToSlide deve limitar índice menor que zero', () => {
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(5);
+      jest.spyOn(component as any, 'recalcLayout').mockImplementation(() => {});
+
+      component.goToSlide(-1);
+
+      expect(component.currentIndex).toBe(0);
+    });
   });
 
-  it('should sum only months with status "Pago" and treat undefined as 0', () => {
-    const meses = [
-      { status: 'Pago', valor: 200 },
-      { status: 'Pendente', valor: 300 },
-      { status: 'Pago', valor: undefined },
-    ] as unknown as MetaExtended['meses'];
+  describe('getMaxIndex', () => {
+    it('getMaxIndex deve retornar 0 quando cardStep <= 0', () => {
+      (component as any).cardStep = 0;
 
-    const meta: MetaExtended = {
-      ...mockMetas[0],
-      valorMeta: 1000,
-      valorAtual: 100,
-      meses,
-    };
+      const result = (component as any).getMaxIndex();
 
-    const realizado = component.getValorRealizadoMeta(meta);
-    expect(realizado).toBe(100 + 200 + 0); // só pagos contam
+      expect(result).toBe(0);
+    });
 
-    const progresso = component.getProgressoRealMeta(meta);
-    expect(progresso).toBeCloseTo(((100 + 200) / 1000) * 100);
+    it('getMaxIndex deve calcular corretamente com floor', () => {
+      (component as any).cardStep = 100;
+      (component as any).maxTranslate = 450;
+      (component as any).endOffset = 50;
+
+      // maxWithPadding = 500 → 500 / 100 = 5
+      const result = (component as any).getMaxIndex();
+
+      expect(result).toBe(5);
+    });
+
+    it('getMaxIndex deve nunca retornar negativo', () => {
+      (component as any).cardStep = 100;
+      (component as any).maxTranslate = -200;
+      (component as any).endOffset = 0;
+
+      const result = (component as any).getMaxIndex();
+
+      expect(result).toBe(0);
+    });
   });
 
-  it('should cap progress at 100%', () => {
-    const meses = [
-      { status: 'Pago', valor: 6000 },
-    ] as unknown as MetaExtended['meses'];
-    const meta: MetaExtended = {
-      ...mockMetas[0],
-      valorMeta: 10000,
-      valorAtual: 6000,
-      meses,
-    };
+  describe('isLastSlide', () => {
+    it('isLastSlide deve retornar true quando currentIndex >= maxIndex', () => {
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(5);
 
-    const p = component.getProgressoRealMeta(meta);
-    expect(p).toBe(100);
+      component.currentIndex = 5;
+
+      expect(component.isLastSlide()).toBe(true);
+    });
+
+    it('isLastSlide deve retornar false quando currentIndex < maxIndex', () => {
+      jest.spyOn(component as any, 'getMaxIndex').mockReturnValue(5);
+
+      component.currentIndex = 3;
+
+      expect(component.isLastSlide()).toBe(false);
+    });
   });
 
-  it('prevSlide should wrap to last pair when currentIndex goes negative', () => {
-    component.metas = [
-      ...mockMetas,
-      { ...mockMetas[0], id: 3 },
-      { ...mockMetas[1], id: 4 },
-    ];
-    component.currentIndex = 0;
-    fixture.detectChanges();
-
-    component.prevSlide();
-    expect(component.currentIndex).toBe(component.metas.length - 2);
+  describe('onResize', () => {
+    it('onResize deve recalcular layout sem erro', () => {
+      expect(() => component.onResize()).not.toThrow();
+    });
   });
 
-  it('getVisibleMetas should reflect currentIndex window (index = 2)', () => {
-    component.metas = [
-      ...mockMetas,
-      { ...mockMetas[0], id: 3 },
-      { ...mockMetas[1], id: 4 },
-    ];
-    component.currentIndex = 2;
-    fixture.detectChanges();
+  describe('recalcLayout', () => {
+    it('recalcLayout deve retornar quando não existir wrapper ou content', () => {
+      (component as any).wrapperRef = null;
+      (component as any).contentRef = null;
 
-    const vis = component.getVisibleMetas();
-    expect(vis.map((m) => m.id)).toEqual([3, 4]);
+      expect(() => (component as any).recalcLayout()).not.toThrow();
+    });
+
+    it('recalcLayout deve calcular cardStep quando existir firstCard', () => {
+      const wrapper = document.createElement('div');
+      const content = document.createElement('div');
+      const card = document.createElement('div');
+
+      card.classList.add('meta-card');
+      content.appendChild(card);
+
+      // mock offsetWidth
+      Object.defineProperty(card, 'offsetWidth', {
+        configurable: true,
+        value: 200,
+      });
+
+      // mock styles (gap)
+      jest.spyOn(window, 'getComputedStyle').mockImplementation((el: any) => {
+        if (el === content) {
+          return {
+            gap: '16px',
+            columnGap: '16px',
+          } as any;
+        }
+        return {
+          paddingLeft: '0px',
+          paddingRight: '0px',
+        } as any;
+      });
+
+      (component as any).wrapperRef = { nativeElement: wrapper };
+      (component as any).contentRef = { nativeElement: content };
+
+      (component as any).recalcLayout();
+
+      expect((component as any).cardStep).toBe(216); // 200 + 16
+    });
+
+    it('recalcLayout não deve alterar cardStep quando não houver firstCard', () => {
+      const wrapper = document.createElement('div');
+      const content = document.createElement('div');
+
+      (component as any).wrapperRef = { nativeElement: wrapper };
+      (component as any).contentRef = { nativeElement: content };
+
+      const initial = (component as any).cardStep;
+
+      (component as any).recalcLayout();
+
+      expect((component as any).cardStep).toBe(initial);
+    });
   });
 
-  it('getTotalSlides should ceil with odd metas (5 => 3 slides)', () => {
-    component.metas = [
-      ...mockMetas,
-      { ...mockMetas[0], id: 3 },
-      { ...mockMetas[1], id: 4 },
-      { ...mockMetas[0], id: 5 },
-    ];
-    expect(component.getTotalSlides()).toBe(3);
+  describe('getTranslateX', () => {
+    it('getTranslateX deve retornar 0px quando não tem carrossel', () => {
+      component.metas = [criarMeta(1), criarMeta(2)];
+
+      expect(component.getTranslateX()).toBe('translateX(0px)');
+    });
+
+    it('getTranslateX deve calcular translate quando tem carrossel', () => {
+      component.metas = Array.from({ length: 8 }, (_, i) => criarMeta(i + 1));
+
+      (component as any).cardStep = 100;
+      (component as any).maxTranslate = 500;
+      (component as any).endOffset = 0;
+      component.currentIndex = 2;
+
+      expect(component.getTranslateX()).toBe('translateX(-200px)');
+    });
+
+    it('getTranslateX deve limitar pelo maxWithPadding', () => {
+      component.metas = Array.from({ length: 8 }, (_, i) => criarMeta(i + 1));
+
+      (component as any).cardStep = 100;
+      (component as any).maxTranslate = 250;
+      (component as any).endOffset = 50;
+      component.currentIndex = 10;
+
+      expect(component.getTranslateX()).toBe('translateX(-300px)');
+    });
   });
 
-  it('should clear interval on ngOnDestroy', () => {
-    const spy = jest.spyOn(global, 'clearInterval');
-    (component as unknown as { interval: any }).interval = setInterval(() => {},
-    5000);
-    component.ngOnDestroy();
-    expect(spy).toHaveBeenCalled();
-  });
+  describe('getPlaceholderCards', () => {
+    it('getPlaceholderCards deve sempre retornar array vazio', () => {
+      component.metas = Array.from({ length: 8 }, (_, i) => criarMeta(i + 1));
+      expect(component.getPlaceholderCards()).toEqual([]);
+    });
 
-  it('getValorRealizadoMeta deve tratar valorAtual undefined como 0', () => {
-    const meta = {
-      ...mockMetas[0],
-      valorAtual: undefined as unknown as number,
-      meses: [{ status: 'Pago', valor: 150 }] as any,
-      valorMeta: 1000,
-    } as MetaExtended;
+    it('deve retornar vazio quando não há metas válidas', () => {
+      component.metas = [];
 
-    const realizado = component.getValorRealizadoMeta(meta);
-    expect(realizado).toBe(150); // 0 (valorAtual) + 150 (Pago)
-  });
+      expect(component.getPlaceholderCards()).toEqual([]);
+    });
 
-  it('getProgressoRealMeta deve tratar valorAtual undefined como 0', () => {
-    const meta = {
-      ...mockMetas[0],
-      valorAtual: undefined as unknown as number,
-      meses: [{ status: 'Pago', valor: undefined }] as any, // cobre (mes.valor || 0)
-      valorMeta: 1000,
-    } as MetaExtended;
+    it('deve retornar vazio quando tiver 7 ou menos metas', () => {
+      component.metas = Array.from({ length: 7 }, (_, i) => criarMeta(i + 1));
 
-    const progresso = component.getProgressoRealMeta(meta);
-    expect(progresso).toBe(0); // (0 + 0) / 1000 * 100
+      expect(component.getPlaceholderCards()).toEqual([]);
+    });
+
+    it('deve retornar vazio quando tiver mais de 15 metas', () => {
+      component.metas = Array.from({ length: 16 }, (_, i) => criarMeta(i + 1));
+
+      expect(component.getPlaceholderCards()).toEqual([]);
+    });
+
+    it('deve cair no return final (fallback)', () => {
+      jest.spyOn(component, 'metasValidas', 'get').mockReturnValue({
+        length: Number.NaN,
+      } as any);
+
+      const result = component.getPlaceholderCards();
+
+      expect(result).toEqual([]);
+    });
   });
 });

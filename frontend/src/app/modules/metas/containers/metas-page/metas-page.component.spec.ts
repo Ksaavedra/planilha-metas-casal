@@ -3,7 +3,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 import { MetasPageComponent } from './metas-page.component';
 import { MetasService } from '../../../../core/services/metas/metas.service';
-import { Meta, StatusMeta } from '../../../../core/interfaces/mes-meta';
+import { Meta, StatusMeta } from '../../../../core/interfaces/metas/mes-meta';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 
 describe('MetasPageComponent', () => {
@@ -347,7 +347,7 @@ describe('MetasPageComponent', () => {
       component.confirmarCampo(meta, 'nome');
 
       expect(alertSpy).toHaveBeenCalledWith(
-        'Erro: Meta sem ID válido. Recarregue a página e tente novamente.'
+        'Erro: Meta sem ID válido. Recarregue a página e tente novamente.',
       );
       alertSpy.mockRestore();
     });
@@ -681,6 +681,228 @@ describe('MetasPageComponent', () => {
       component.confirmarCampo(meta, 'nome');
 
       expect(updateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onAlterarStatus', () => {
+    it('atualiza o status do mês e chama updateMeta com cópia dos meses', () => {
+      component.metas = JSON.parse(JSON.stringify(mockMetas)) as any;
+      const meta = component.metas[0];
+      const updateSpy = jest
+        .spyOn(metasService, 'updateMeta')
+        .mockReturnValue(of(mockMetas[0]));
+
+      component.onAlterarStatus({ metaId: meta.id, mesId: 1, status: 'Programado' });
+
+      expect(meta.meses.find((m) => m.id === 1)!.status).toBe('Programado');
+      expect(updateSpy).toHaveBeenCalledWith(meta.id, {
+        meses: meta.meses.map((m) => ({ ...m })),
+      });
+    });
+
+    it('não altera nada se a meta não existir', () => {
+      const updateSpy = jest
+        .spyOn(metasService, 'updateMeta')
+        .mockReturnValue(of(mockMetas[0]));
+      component.metas = JSON.parse(JSON.stringify(mockMetas)) as any;
+
+      component.onAlterarStatus({ metaId: 999, mesId: 1, status: 'Pago' });
+
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+
+    it('não altera nada se o mês não existir', () => {
+      const updateSpy = jest
+        .spyOn(metasService, 'updateMeta')
+        .mockReturnValue(of(mockMetas[0]));
+      component.metas = JSON.parse(JSON.stringify(mockMetas)) as any;
+
+      component.onAlterarStatus({ metaId: component.metas[0].id, mesId: 999, status: 'Pago' });
+
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onSalvarValorMes', () => {
+    it('atualiza valor e status Programado quando valor > 0', () => {
+      component.metas = JSON.parse(JSON.stringify(mockMetas)) as any;
+      const meta = component.metas[0];
+      const updateSpy = jest
+        .spyOn(metasService, 'updateMeta')
+        .mockReturnValue(of(mockMetas[0]));
+
+      component.onSalvarValorMes({ metaId: meta.id, mesId: 1, valor: 200 });
+
+      const mes = meta.meses.find((m) => m.id === 1)!;
+      expect(mes.valor).toBe(200);
+      expect(mes.status).toBe('Programado');
+      expect(updateSpy).toHaveBeenCalled();
+    });
+
+    it('define status Vazio quando valor é 0', () => {
+      component.metas = JSON.parse(JSON.stringify(mockMetas)) as any;
+      const meta = component.metas[0];
+      jest.spyOn(metasService, 'updateMeta').mockReturnValue(of(mockMetas[0]));
+
+      component.onSalvarValorMes({ metaId: meta.id, mesId: 1, valor: 0 });
+
+      expect(meta.meses.find((m) => m.id === 1)!.status).toBe('Vazio');
+    });
+
+    it('não chama a API se meta ou mês forem inválidos', () => {
+      const updateSpy = jest
+        .spyOn(metasService, 'updateMeta')
+        .mockReturnValue(of(mockMetas[0]));
+      component.metas = JSON.parse(JSON.stringify(mockMetas)) as any;
+
+      component.onSalvarValorMes({ metaId: 999, mesId: 1, valor: 10 });
+      component.onSalvarValorMes({ metaId: component.metas[0].id, mesId: 999, valor: 10 });
+
+      expect(updateSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onMetaCompleta', () => {
+    it('não lança e aceita o evento', () => {
+      expect(() =>
+        component.onMetaCompleta({
+          metaId: 1,
+          metaNome: 'X',
+          valorMeta: 100,
+        }),
+      ).not.toThrow();
+    });
+  });
+
+  describe('ngOnInit filtragem de metas', () => {
+    it('exclui metas com id inválido, nome vazio ou nome "undefined"', () => {
+      const payload: Meta[] = [
+        { ...mockMetas[0], id: 0, nome: 'A' },
+        { ...mockMetas[0], id: 2, nome: '   ' },
+        { ...mockMetas[0], id: 3, nome: 'undefined' },
+        {
+          id: 4,
+          nome: 'Válida',
+          valorMeta: 100,
+          valorAtual: 0,
+          valorPorMes: 0,
+          mesesNecessarios: 0,
+          meses: [{ id: 1, nome: 'Janeiro', valor: 0, status: 'Vazio' }],
+        },
+      ];
+      jest.spyOn(metasService, 'getMetas').mockReturnValue(of(payload));
+
+      component.ngOnInit();
+
+      expect(component.metas.length).toBe(1);
+      expect(component.metas[0].nome).toBe('Válida');
+      expect(component.metas[0].id).toBe(4);
+    });
+  });
+
+  describe('recalcResumo com totalValorMetaView zero', () => {
+    it('deixa percentualPagoView em 0', () => {
+      component.metas = [
+        {
+          ...mockMetas[0],
+          id: 10,
+          valorMeta: 0,
+          valorAtual: 0,
+          meses: [],
+        } as any,
+      ];
+      component['recalcResumo']();
+      expect(component.percentualPagoView).toBe(0);
+    });
+  });
+
+  describe('confirmarCampo valorPorMes', () => {
+    it('inclui mesesNecessarios no patch quando altera valorPorMes', () => {
+      const meta: any = {
+        ...mockMetas[0],
+        id: 7,
+        valorMeta: 10000,
+        valorPorMes: 1000,
+        editandoValorPorMes: true,
+        valorPorMesTemp: '500,00',
+      };
+      const updateSpy = jest
+        .spyOn(metasService, 'updateMeta')
+        .mockReturnValue(of(mockMetas[0]));
+
+      component.confirmarCampo(meta, 'valorPorMes');
+
+      expect(updateSpy).toHaveBeenCalledWith(7, {
+        valorPorMes: 500,
+        mesesNecessarios: 20,
+      });
+    });
+  });
+
+  describe('reloadMetas e savedTickCampo', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('preserva savedTickCampo e limpa após 5s', () => {
+      const apiRow: Meta = {
+        id: 5,
+        nome: 'M',
+        valorMeta: 100,
+        valorAtual: 0,
+        valorPorMes: 0,
+        mesesNecessarios: 0,
+        meses: [{ id: 1, nome: 'Janeiro', valor: 0, status: 'Vazio' as StatusMeta }],
+      };
+      component.metas = [
+        {
+          ...apiRow,
+          editandoNome: false,
+          nomeTemp: '',
+          savingNome: false,
+          savedTick: false,
+          editandoValorMeta: false,
+          editandoValorPorMes: false,
+          editandoValorAtual: false,
+          savedTickCampo: true,
+        } as any,
+      ];
+      const getSpy = jest.spyOn(metasService, 'getMetas').mockReturnValue(of([apiRow]));
+
+      component.reloadMetas();
+      const reloaded = component.metas.find((m) => m.id === 5);
+      expect(reloaded?.savedTickCampo).toBe(true);
+      expect(getSpy).toHaveBeenCalled();
+
+      jest.advanceTimersByTime(5000);
+      expect(
+        component.metas.find((m) => m.id === 5)?.savedTickCampo,
+      ).toBe(false);
+    });
+  });
+
+  describe('adicionarMeta no limite', () => {
+    it('não chama createMeta com 15 metas', () => {
+      component.metas = Array(15)
+        .fill(null)
+        .map((_, i) => ({
+          id: i + 1,
+          nome: `Meta ${i + 1}`,
+          valorMeta: 1000,
+          valorAtual: 0,
+          valorPorMes: 100,
+          mesesNecessarios: 10,
+          meses: [],
+        })) as any;
+      const createSpy = jest.spyOn(metasService, 'createMeta');
+
+      component.adicionarMeta();
+
+      expect(createSpy).not.toHaveBeenCalled();
     });
   });
 });
