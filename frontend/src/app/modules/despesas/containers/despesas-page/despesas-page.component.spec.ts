@@ -13,6 +13,7 @@ describe('DespesasPageComponent', () => {
   let fixture: ComponentFixture<DespesasPageComponent>;
   const mock: Despesa = {
     id: 1,
+    pessoa: 'Kelly',
     natureza: 'fixa',
     categoria: 'Casa',
     descricao: 'Teste',
@@ -79,9 +80,15 @@ describe('DespesasPageComponent', () => {
     expect(component.erroCarregar).toBe('X');
   });
 
-  it('labelNatureza', () => {
+  it('labelNatureza e labelPessoa', () => {
     expect(component.labelNatureza('fixa')).toBe('Fixa');
     expect(component.labelNatureza('variavel')).toBe('Variável');
+    expect(
+      component.labelPessoa({ ...mock, pessoa: 'David' } as Despesa),
+    ).toBe('David');
+    expect(
+      component.labelPessoa({ ...mock, pessoa: '  ' } as Despesa),
+    ).toBe('—');
   });
 
   it('abrirModalAdicionarDespesa abre o MatDialog', () => {

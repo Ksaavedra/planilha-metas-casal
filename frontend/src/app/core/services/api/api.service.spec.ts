@@ -28,7 +28,7 @@ describe('ApiService', () => {
     expect(service).toBeTruthy();
   });
 
-  it("should use baseUrl 'http://localhost:3000' when environment.apiUrl is falsy", () => {
+  it("should use baseUrl 'http://localhost:3000/api' when environment.apiUrl is falsy", () => {
     const originalApiUrl = (environment as { apiUrl?: string }).apiUrl;
     (environment as { apiUrl?: string }).apiUrl = undefined;
 
@@ -42,7 +42,7 @@ describe('ApiService', () => {
 
     serviceWithFallback.get('/test').subscribe();
 
-    const req = httpMockFallback.expectOne('http://localhost:3000/test');
+    const req = httpMockFallback.expectOne('http://localhost:3000/api/test');
     expect(req.request.method).toBe('GET');
     req.flush({});
     httpMockFallback.verify();
@@ -60,7 +60,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       expect(req.request.method).toBe('GET');
       req.flush(mockData);
@@ -77,7 +77,7 @@ describe('ApiService', () => {
 
       const req = httpMock.expectOne(
         `${
-          environment.apiUrl || 'http://localhost:3000'
+          environment.apiUrl || 'http://localhost:3000/api'
         }${endpoint}?page=1&limit=10`,
       );
       expect(req.request.method).toBe('GET');
@@ -94,7 +94,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}?page=1`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}?page=1`,
       );
       expect(req.request.method).toBe('GET');
       req.flush(mockData);
@@ -111,7 +111,7 @@ describe('ApiService', () => {
 
       const req = httpMock.expectOne(
         `${
-          environment.apiUrl || 'http://localhost:3000'
+          environment.apiUrl || 'http://localhost:3000/api'
         }${endpoint}?page=0&limit=10`,
       );
       expect(req.request.method).toBe('GET');
@@ -129,7 +129,7 @@ describe('ApiService', () => {
 
       const req = httpMock.expectOne(
         `${
-          environment.apiUrl || 'http://localhost:3000'
+          environment.apiUrl || 'http://localhost:3000/api'
         }${endpoint}?page=1&search=`,
       );
       expect(req.request.method).toBe('GET');
@@ -149,7 +149,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       req.flush(errorMessage, { status: 500, statusText: errorMessage });
     });
@@ -166,7 +166,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual(requestData);
@@ -182,7 +182,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       expect(req.request.method).toBe('POST');
       expect(req.request.body).toEqual({});
@@ -203,7 +203,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       req.flush(errorMessage, { status: 400, statusText: errorMessage });
     });
@@ -220,7 +220,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual(requestData);
@@ -241,7 +241,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       req.flush(errorMessage, { status: 404, statusText: errorMessage });
     });
@@ -258,7 +258,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       expect(req.request.method).toBe('PATCH');
       expect(req.request.body).toEqual(requestData);
@@ -279,7 +279,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       req.flush(errorMessage, { status: 401, statusText: errorMessage });
     });
@@ -294,7 +294,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       expect(req.request.method).toBe('DELETE');
       req.flush(null);
@@ -309,7 +309,7 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       expect(req.request.method).toBe('DELETE');
       req.flush(mockData);
@@ -328,14 +328,14 @@ describe('ApiService', () => {
       });
 
       const req = httpMock.expectOne(
-        `${environment.apiUrl || 'http://localhost:3000'}${endpoint}`,
+        `${environment.apiUrl || 'http://localhost:3000/api'}${endpoint}`,
       );
       req.flush(errorMessage, { status: 403, statusText: errorMessage });
     });
   });
 
   describe('headers (Authorization)', () => {
-    const baseUrl = environment.apiUrl || 'http://localhost:3000';
+    const baseUrl = environment.apiUrl || 'http://localhost:3000/api';
 
     afterEach(() => {
       localStorage.removeItem('auth_token');

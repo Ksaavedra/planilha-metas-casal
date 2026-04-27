@@ -47,15 +47,3 @@
   message="A receita foi excluída com sucesso." confirmText="OK" [autoCloseMs]="0"
   (close)="onCloseSucessoExcluirReceita()">
 </app-success-modal>
-
-<!-- Modal Confirmar Exclusão de Receita -->
-<app-confirm-modal [isOpen]="confirmarExcluirReceitaState.isOpen" title="Confirmar Exclusão"
-  [message]="confirmarExcluirReceitaState.message" confirmText="Sim, Excluir" cancelText="Cancelar"
-  (confirm)="onConfirmExcluirReceita()" (cancel)="onCancelExcluirReceita()">
-</app-confirm-modal>
-
-<!-- Modal Sucesso Exclusão de Receita -->
-<app-success-modal [isOpen]="sucessoExcluirReceitaState.isOpen" title="Receita excluída!"
-  message="A receita foi excluída com sucesso." confirmText="OK" [autoCloseMs]="0"
-  (close)="onCloseSucessoExcluirReceita()">
-</app-success-modal>

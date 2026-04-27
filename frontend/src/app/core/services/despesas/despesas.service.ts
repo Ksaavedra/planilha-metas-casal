@@ -7,6 +7,7 @@ export type NaturezaDespesa = 'fixa' | 'variavel';
 
 export interface Despesa {
   id: number;
+  pessoa?: string;
   natureza: NaturezaDespesa;
   categoria: string;
   descricao: string;
@@ -17,6 +18,7 @@ export interface Despesa {
 }
 
 export interface CreateDespesaRequest {
+  pessoa: string;
   natureza: NaturezaDespesa;
   categoria: string;
   descricao: string;

@@ -9,9 +9,8 @@ dist/
 out-tsc/
 .angular/
 
-# Local JSON server (não precisa no repo)
+# JSON server legado (o API real é versionado em frontend/server.js)
 db.json
-server.js
 start-json-server.bat
 start-server.bat
 create-folders.ps1

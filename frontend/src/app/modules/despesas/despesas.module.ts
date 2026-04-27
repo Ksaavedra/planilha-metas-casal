@@ -6,6 +6,7 @@ import { AdicionarDespesaDialogComponent } from './components/adicionar-despesa-
 import { DespesasRoutingModule } from './despesas.routing';
 import { DSModule } from 'app/@ds';
 import { ReactiveFormsModule } from '@angular/forms';
+import { SharedModule } from 'app/shared/shared.module';
 
 @NgModule({
   declarations: [DespesasPageComponent, AdicionarDespesaDialogComponent],
@@ -15,6 +16,7 @@ import { ReactiveFormsModule } from '@angular/forms';
     DespesasRoutingModule,
     DSModule,
     ReactiveFormsModule,
+    SharedModule,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })

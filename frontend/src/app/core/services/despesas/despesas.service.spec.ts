@@ -12,6 +12,7 @@ describe('DespesasService', () => {
 
   const mockDespesa: Despesa = {
     id: 1,
+    pessoa: 'Kelly',
     natureza: 'fixa',
     categoria: 'Casa',
     descricao: 'Aluguel',
@@ -22,6 +23,7 @@ describe('DespesasService', () => {
   };
 
   const mockCreate = {
+    pessoa: 'Casal',
     natureza: 'fixa' as const,
     categoria: 'Casa',
     descricao: 'Condomínio',

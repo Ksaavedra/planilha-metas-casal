@@ -9,11 +9,17 @@ import {
   AdicionarDespesaDialogComponent,
   AdicionarDespesaDialogData,
 } from '../../components/adicionar-despesa-dialog/adicionar-despesa-dialog.component';
+import { ConfirmModalComponent } from 'app/shared/components/confirm-modal/confirm-modal.component';
 import {
   Despesa,
   DespesasService,
   NaturezaDespesa,
 } from 'app/core/services/despesas/despesas.service';
+import {
+  EXEMPLOS_DICA_CATEGORIAS_FIXA,
+  EXEMPLOS_DICA_CATEGORIAS_VARIAVEL,
+} from '../../despesas-categorias.suggestions';
+import { SuccessModalComponent } from '@app/shared/components/success-modal/success-modal.component';
 
 @Component({
   selector: 'app-despesas-page',
@@ -24,46 +30,16 @@ import {
 })
 export class DespesasPageComponent implements OnInit {
   readonly tituloSecundario = 'Tudo que você gasta no dia a dia';
+  readonly exemplosCategoriasFixas = EXEMPLOS_DICA_CATEGORIAS_FIXA;
+  readonly exemplosCategoriasVariaveis = EXEMPLOS_DICA_CATEGORIAS_VARIAVEL;
 
-  /** Aba: tabelas do mês ou dicas (fixa vs variável). */
   visaoDespesas: 'lista' | 'exemplos' = 'lista';
-
-  /** Categorias de exemplo para lançar como despesa fixa. */
-  readonly exemplosCategoriasFixas: readonly string[] = [
-    'Aluguel / financiamento',
-    'Internet / celular (plano mensal)',
-    'Condomínio / IPTU',
-    'Plano de saúde / dentista (convênio)',
-    'Escola / cursos / idiomas',
-    'Assinaturas (Netflix, streaming, apps, jornal, etc.)',
-    'Seguros (vida, residência, carro, etc.)',
-    'Carro (parcela, seguro, IPVA parcelado, licenciamento)',
-    'Pets (convênio / plano de saúde animal)',
-    'Academia / esporte / clube',
-    'Empregada / diarista (valor fixo mensal)',
-  ];
-
-  /** Categorias de exemplo para lançar como despesa variável. */
-  readonly exemplosCategoriasVariaveis: readonly string[] = [
-    'Mercado',
-    'Transporte (combustível, Uber, estacionamento, pedágio)',
-    'Lazer / compras / bares e shows',
-    'Energia, água e gás',
-    'Pets (ração, tosa, pet shop, emergências, fora do convênio)',
-    'Cuidados pessoais (cabeleireiro, estética, barbearia, etc.)',
-    'Manutenção da casa, do carro e eletro (oficina, consertos)',
-    'Farmácia e suplementos',
-    'Presentes e datas comemorativas',
-    'Viagem / hotel / Airbnb',
-    'Restaurante / delivery / iFood',
-    'Roupas, calçados e acessórios',
-    'Educação avulsa (livros, material escolar, workshop pontual)',
-  ];
-
   mesAtual: Date = new Date();
   despesas: Despesa[] = [];
   loading = false;
   erroCarregar: string | null = null;
+  confirmExcluirOpen = false;
+  despesaParaExcluir: Despesa | null = null;
 
   meses = [
     'Janeiro',
@@ -165,6 +141,7 @@ export class DespesasPageComponent implements OnInit {
     ref.afterClosed().subscribe((saved) => {
       if (saved) {
         this.carregar();
+        this.cdr.markForCheck();
       }
     });
   }
@@ -173,11 +150,12 @@ export class DespesasPageComponent implements OnInit {
     this.loading = true;
     this.erroCarregar = null;
     this.cdr.markForCheck();
+
     this.despesasService
       .getDespesas({ ano: this.anoRef, mes: this.mesRef })
       .subscribe({
         next: (rows) => {
-          this.despesas = rows;
+          this.despesas = [...rows];
           this.loading = false;
           this.cdr.markForCheck();
         },
@@ -193,20 +171,73 @@ export class DespesasPageComponent implements OnInit {
       });
   }
 
-  excluir(d: Despesa): void {
-    if (!confirm(`Excluir "${d.descricao}"?`)) {
-      return;
-    }
-    this.despesasService.deleteDespesa(d.id).subscribe({
+  abrirConfirmExcluir(d: Despesa): void {
+    const ref = this.dialog.open(ConfirmModalComponent, {
+      width: 'min(520px, 96vw)',
+      maxHeight: '90vh',
+      data: {
+        title: 'Excluir despesa',
+        message: `Tem certeza que deseja excluir "${d.descricao}"?`,
+        confirmText: 'Sim, excluir',
+        cancelText: 'Cancelar',
+      },
+    });
+
+    ref.afterClosed().subscribe((confirmed) => {
+      if (confirmed) {
+        this.despesasService.deleteDespesa(d.id).subscribe({
+          next: () => {
+            this.carregar();
+            this.dialog.open(SuccessModalComponent, {
+              width: 'min(520px, 96vw)',
+              maxHeight: '90vh',
+              data: {
+                title: 'Despesa excluída',
+                message: 'A despesa foi excluída com sucesso.',
+                confirmText: 'OK',
+              },
+            });
+            this.cdr.markForCheck();
+          },
+          error: (e) => {
+            this.erroCarregar =
+              e?.error?.error || e?.message || 'Erro ao excluir.';
+            this.cdr.markForCheck();
+          },
+        });
+      }
+    });
+  }
+
+  cancelarExcluir(): void {
+    this.confirmExcluirOpen = false;
+    this.despesaParaExcluir = null;
+    this.cdr.markForCheck();
+  }
+
+  confirmarExcluir(): void {
+    if (!this.despesaParaExcluir) return;
+
+    const id = this.despesaParaExcluir.id;
+
+    this.despesasService.deleteDespesa(id).subscribe({
       next: () => {
+        this.confirmExcluirOpen = false;
+        this.despesaParaExcluir = null;
         this.carregar();
         this.cdr.markForCheck();
       },
       error: (e) => {
+        this.confirmExcluirOpen = false;
         this.erroCarregar = e?.error?.error || e?.message || 'Erro ao excluir.';
         this.cdr.markForCheck();
       },
     });
+  }
+
+  labelPessoa(d: Despesa): string {
+    const p = d.pessoa?.trim();
+    return p || '—';
   }
 
   labelNatureza(n: NaturezaDespesa): string {

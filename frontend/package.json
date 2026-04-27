@@ -14,7 +14,8 @@
     "server": "node server.js",
     "db:create": "node scripts/create-database.js",
     "db:migrate": "node scripts/migrate-data.js",
-    "db:receitas": "node scripts/add-receitas-table.js"
+    "db:receitas": "node scripts/add-receitas-table.js",
+    "db:despesas": "node scripts/add-despesas-table.js"
   },
   "dependencies": {
     "@angular/animations": "~19.2.7",

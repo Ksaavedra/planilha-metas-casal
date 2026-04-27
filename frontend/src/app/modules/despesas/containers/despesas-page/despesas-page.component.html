@@ -4,7 +4,7 @@
     <div class="despesas-hero__inner">
       <div class="despesas-hero__brand">
         <div class="despesas-hero__icon-wrap" aria-hidden="true">
-          <span class="material-icons despesas-hero__icon">insights</span>
+          <span class="material-icons despesas-hero__icon">receipt_long</span>
         </div>
         <div class="despesas-hero__text">
           <h1 class="despesas-hero__title">
@@ -74,6 +74,7 @@
             <thead>
               <tr>
                 <th>Tipo</th>
+                <th>Usuário</th>
                 <th>Categoria</th>
                 <th>Descrição</th>
                 <th>Valor</th>
@@ -86,6 +87,7 @@
                 <td>
                   <span class="badge badge-fixa">{{ labelNatureza(d.natureza) }}</span>
                 </td>
+                <td class="cell-pessoa">{{ labelPessoa(d) }}</td>
                 <td>{{ d.categoria }}</td>
                 <td>{{ d.descricao }}</td>
                 <td class="num">{{ d.valor | currency : 'BRL' }}</td>
@@ -94,7 +96,8 @@
                   <button type="button" class="btn-icone" (click)="editar(d)" title="Editar">
                     <span class="material-icons">edit</span>
                   </button>
-                  <button type="button" class="btn-icone btn-icone-excluir" (click)="excluir(d)" title="Excluir">
+                  <button type="button" class="btn-icone btn-icone-excluir" (click)="abrirConfirmExcluir(d)"
+                    title="Excluir">
                     <span class="material-icons">delete</span>
                   </button>
                 </td>
@@ -119,6 +122,7 @@
             <thead>
               <tr>
                 <th>Tipo</th>
+                <th>Usuário</th>
                 <th>Categoria</th>
                 <th>Descrição</th>
                 <th>Valor</th>
@@ -131,6 +135,7 @@
                 <td>
                   <span class="badge badge-var">{{ labelNatureza(d.natureza) }}</span>
                 </td>
+                <td class="cell-pessoa">{{ labelPessoa(d) }}</td>
                 <td>{{ d.categoria }}</td>
                 <td>{{ d.descricao }}</td>
                 <td class="num">{{ d.valor | currency : 'BRL' }}</td>
@@ -139,7 +144,8 @@
                   <button type="button" class="btn-icone" (click)="editar(d)" title="Editar">
                     <span class="material-icons">edit</span>
                   </button>
-                  <button type="button" class="btn-icone btn-icone-excluir" (click)="excluir(d)" title="Excluir">
+                  <button type="button" class="btn-icone btn-icone-excluir" (click)="abrirConfirmExcluir(d)"
+                    title="Excluir">
                     <span class="material-icons">delete</span>
                   </button>
                 </td>
@@ -159,17 +165,14 @@
     <div class="total-geral" *ngIf="despesas.length">
       <div class="total-geral-header">
         <span class="material-icons">account_balance_wallet</span>
-        <span>Total geral ({{ nomeMesAtual }})</span>
+        <span>Total Geral do Mês</span>
       </div>
       <div class="total-geral-valor">{{ totalGeral | currency : 'BRL' }}</div>
     </div>
   </ng-container>
 
-  <section
-    *ngIf="visaoDespesas === 'exemplos'"
-    class="despesas-exemplos"
-    aria-label="O que são despesas fixas e variáveis"
-  >
+  <section *ngIf="visaoDespesas === 'exemplos'" class="despesas-exemplos"
+    aria-label="O que são despesas fixas e variáveis">
     <h2 class="despesas-exemplos__h2">Despesa fixa e variável</h2>
     <p class="despesas-exemplos__intro">
       Ao lançar, escolha o tipo certo na aba <strong>Minhas despesas</strong> (botão
@@ -208,16 +211,14 @@
       </p>
     </article>
 
-    <div
-      class="despesas-exemplos__categorias-wrap"
-      aria-label="Mais ideias de categorias, separadas por fixa e variável"
-    >
+    <div class="despesas-exemplos__categorias-wrap"
+      aria-label="Mais ideias de categorias, separadas por fixa e variável">
       <h3 class="despesas-exemplos__h3 despesas-exemplos__h3--sec">Mais ideias de categorias</h3>
       <p class="despesas-exemplos__lista-intro">
-        Você pode usar qualquer um destes (ou outro nome) no campo
-        <strong>Categoria</strong> ao adicionar uma despesa — o importante é
-        <strong>marcar o tipo certo: fixa ou variável</strong>, alinhado à lista
-        abaixo e ao que você leu acima.
+        No formulário, a <strong>categoria</strong> aparece com
+        <strong>nome curto</strong> (fácil de escolher); aqui está a versão
+        <strong>detalhada</strong> do que cada uma costuma incluir. O importante é
+        <strong>marcar fixa ou variável</strong> em coerência com o gasto.
       </p>
       <div class="despesas-exemplos__categorias-grid">
         <div class="despesas-exemplos__categorias-col">

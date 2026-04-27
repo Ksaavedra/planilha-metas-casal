@@ -485,6 +485,12 @@
   background: #f8fafc;
 }
 
+.despesas-table .cell-pessoa {
+  font-weight: 600;
+  color: #5b21b6;
+  white-space: nowrap;
+}
+
 .despesas-table .num {
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -568,36 +574,39 @@
 }
 
 .total-geral {
-  margin-top: 0.5rem;
-  background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 50%, #8b5cf6 100%);
-  color: #f5f3ff;
+  background: white;
   border-radius: 14px;
-  padding: 1.25rem 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  box-shadow: 0 6px 24px rgba(91, 33, 182, 0.3);
-  border: 1px solid #a78bfa;
+  border: 2px solid #fef3c7;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  margin-top: 1.5rem;
 }
 
 .total-geral-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin-bottom: 0.4rem;
-  letter-spacing: 0.02em;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #92400e;
 }
 
 .total-geral-header .material-icons {
+  font-size: 1.8rem;
   color: #fbbf24;
-  font-size: 1.2rem;
 }
 
 .total-geral-valor {
-  font-size: 1.6rem;
+  font-size: 2rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: -0.05em;
+  color: #78350f;
 }
 
 @media (max-width: 768px) {
