@@ -54,7 +54,7 @@ export class SuccessModalComponent {
       return;
     }
 
-    if (!this.isOpen) {
+    if (this.isOpen) {
       this.isOpen = false;
       this.close.emit();
     }
