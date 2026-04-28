@@ -107,6 +107,9 @@ describe('AdicionarDespesaDialogComponent', () => {
     });
 
     it('categoriasOpcoes reflete sugestões fixa/variável', () => {
+      expect(component.categoriasOpcoes.length).toBe(0);
+      component.form.patchValue({ natureza: 'fixa' });
+      fixture.detectChanges();
       expect(component.categoriasOpcoes.length).toBeGreaterThan(0);
       component.form.patchValue({ natureza: 'variavel' });
       fixture.detectChanges();

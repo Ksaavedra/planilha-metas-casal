@@ -15,10 +15,6 @@ import {
   DespesasService,
   NaturezaDespesa,
 } from 'app/core/services/despesas/despesas.service';
-import {
-  EXEMPLOS_DICA_CATEGORIAS_FIXA,
-  EXEMPLOS_DICA_CATEGORIAS_VARIAVEL,
-} from '../../despesas-categorias.suggestions';
 import { SuccessModalComponent } from '@app/shared/components/success-modal/success-modal.component';
 
 @Component({
@@ -30,8 +26,6 @@ import { SuccessModalComponent } from '@app/shared/components/success-modal/succ
 })
 export class DespesasPageComponent implements OnInit {
   readonly tituloSecundario = 'Tudo que você gasta no dia a dia';
-  readonly exemplosCategoriasFixas = EXEMPLOS_DICA_CATEGORIAS_FIXA;
-  readonly exemplosCategoriasVariaveis = EXEMPLOS_DICA_CATEGORIAS_VARIAVEL;
 
   visaoDespesas: 'lista' | 'exemplos' = 'lista';
   mesAtual: Date = new Date();
@@ -137,10 +131,26 @@ export class DespesasPageComponent implements OnInit {
       width: 'min(520px, 96vw)',
       maxHeight: '90vh',
       data,
+      autoFocus: 'dialog',
+      restoreFocus: true,
     });
     ref.afterClosed().subscribe((saved) => {
       if (saved) {
         this.carregar();
+
+        const isEdicao = despesa != null;
+
+        this.dialog.open(SuccessModalComponent, {
+          width: 'min(520px, 96vw)',
+          maxHeight: '90vh',
+          data: {
+            title: isEdicao ? 'Despesa atualizada!' : 'Despesa adicionada!',
+            message: isEdicao
+              ? 'A despesa foi atualizada com sucesso.'
+              : 'A despesa foi adicionada com sucesso.',
+            confirmText: 'OK',
+          },
+        });
         this.cdr.markForCheck();
       }
     });
@@ -177,7 +187,7 @@ export class DespesasPageComponent implements OnInit {
       maxHeight: '90vh',
       data: {
         title: 'Excluir despesa',
-        message: `Tem certeza que deseja excluir "${d.descricao}"?`,
+        message: `Tem certeza que deseja excluir "${d.descricao}" (${d.categoria}) no valor de ${this.formatarValor(d.valor)}?`,
         confirmText: 'Sim, excluir',
         cancelText: 'Cancelar',
       },
@@ -207,6 +217,13 @@ export class DespesasPageComponent implements OnInit {
         });
       }
     });
+  }
+
+  private formatarValor(valor: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(valor);
   }
 
   cancelarExcluir(): void {

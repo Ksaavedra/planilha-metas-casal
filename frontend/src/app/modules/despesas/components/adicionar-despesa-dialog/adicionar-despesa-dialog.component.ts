@@ -21,7 +21,6 @@ import { ReceitasService } from 'app/core/services/receitas/receitas.service';
 import { listaCategoriasSugestao } from '../../despesas-categorias.suggestions';
 
 export interface AdicionarDespesaDialogData {
-  /** `null` = nova despesa; caso contrário, edição. */
   despesa: Despesa | null;
   ano: number;
   mes: number;
@@ -35,21 +34,19 @@ export interface AdicionarDespesaDialogData {
   standalone: false,
 })
 export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
-  /** Pessoas distintas das receitas (cache + API), como no adicionar-usuário. */
   pessoasAutocompleteOptions: string[] = [];
-
   filteredPessoas$!: Observable<string[]>;
-
-  /** Opções do select (sugestões + valor atual se for legado, fora da lista). */
   categoriasOpcoes: string[] = [];
 
   private naturezaSub?: Subscription;
   private pessoasApiSub?: Subscription;
-  /** Atualiza a lista do autocomplete sem escrever no FormControl (evita limpar a escolha da lista). */
   private readonly pessoasOpcoesAtualizadas$ = new Subject<void>();
 
   @ViewChild('pessoaInput')
   private pessoaInputRef?: ElementRef<HTMLInputElement>;
+
+  /** Só há opções na lista depois do utilizador entrar no campo (evita abrir só ao montar o diálogo). */
+  listaAutocompletePessoaAtiva = false;
 
   form: FormGroup;
   saving = false;
@@ -76,7 +73,7 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
   ) {
     this.form = this.fb.group({
       pessoa: ['', [Validators.required, Validators.minLength(2)]],
-      natureza: ['fixa' as NaturezaDespesa, Validators.required],
+      natureza: ['', Validators.required],
       categoria: ['', Validators.required],
       descricao: ['', [Validators.required, Validators.maxLength(200)]],
       valor: [
@@ -105,7 +102,7 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
       this.form.reset(
         {
           pessoa: '',
-          natureza: 'fixa',
+          natureza: '',
           categoria: '',
           descricao: '',
           valor: null,
@@ -128,8 +125,13 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
 
     this.atualizarCategoriasOpcoes();
     this.naturezaSub = this.form.get('natureza')?.valueChanges.subscribe(() => {
-      const n = (this.form.get('natureza')?.value || 'fixa') as NaturezaDespesa;
-      const lista = listaCategoriasSugestao(n);
+      const raw = String(this.form.get('natureza')?.value ?? '').trim();
+      if (raw !== 'fixa' && raw !== 'variavel') {
+        this.form.patchValue({ categoria: '' }, { emitEvent: false });
+        this.atualizarCategoriasOpcoes();
+        return;
+      }
+      const lista = listaCategoriasSugestao(raw as NaturezaDespesa);
       const cur = String(this.form.get('categoria')?.value || '').trim();
       if (cur && !lista.includes(cur)) {
         this.form.patchValue({ categoria: '' }, { emitEvent: false });
@@ -155,13 +157,24 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
   }
 
   private _filterPessoa(value: string): string[] {
+    if (!this.listaAutocompletePessoaAtiva) {
+      return [];
+    }
     const filterValue = value.toLowerCase();
     return this.pessoasAutocompleteOptions.filter((option) =>
       option.toLowerCase().includes(filterValue),
     );
   }
 
-  /** Normaliza e deduplica, igual ao adicionar-usuário (receitas). */
+  onPessoaFieldFocus(): void {
+    if (this.listaAutocompletePessoaAtiva) {
+      return;
+    }
+    this.listaAutocompletePessoaAtiva = true;
+    this.pessoasOpcoesAtualizadas$.next();
+    this.cdr.markForCheck();
+  }
+
   private normalizarListaNomes(bruto: (string | null | undefined)[]): string[] {
     const nomes = (bruto || [])
       .map((p) => this.toTitleCase((p || '').trim()))
@@ -195,7 +208,6 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** Nome a gravar: FormControl, ou o texto do input (corrige desfasamento com o autocomplete). */
   private pessoaTextoParaSalvar(): string {
     const ctrl = this.form.get('pessoa');
     const doForm = String(ctrl?.value ?? '').trim();
@@ -214,10 +226,14 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Alinha o <select> com a lista fixa/variável; mantém categoria legada visível. */
   private atualizarCategoriasOpcoes(): void {
-    const n = (this.form.get('natureza')?.value || 'fixa') as NaturezaDespesa;
-    const lista = listaCategoriasSugestao(n);
+    const raw = String(this.form.get('natureza')?.value ?? '').trim();
+    if (raw !== 'fixa' && raw !== 'variavel') {
+      const cur = String(this.form.get('categoria')?.value || '').trim();
+      this.categoriasOpcoes = cur ? [cur] : [];
+      return;
+    }
+    const lista = listaCategoriasSugestao(raw as NaturezaDespesa);
     const cur = String(this.form.get('categoria')?.value || '').trim();
     this.categoriasOpcoes =
       cur && !lista.includes(cur) ? [cur, ...lista] : [...lista];

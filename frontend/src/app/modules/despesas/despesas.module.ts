@@ -7,9 +7,14 @@ import { DespesasRoutingModule } from './despesas.routing';
 import { DSModule } from 'app/@ds';
 import { ReactiveFormsModule } from '@angular/forms';
 import { SharedModule } from 'app/shared/shared.module';
+import { DespesasExemplosComponent } from './containers/despesas-exemplos/despesas-exemplos.component';
 
 @NgModule({
-  declarations: [DespesasPageComponent, AdicionarDespesaDialogComponent],
+  declarations: [
+    DespesasPageComponent,
+    AdicionarDespesaDialogComponent,
+    DespesasExemplosComponent,
+  ],
   imports: [
     CommonModule,
     RouterModule,
