@@ -32,8 +32,7 @@
         Resumo anual
       </button>
       <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'categorias'"
-        (click)="selecionarVisao('categorias')" role="tab"
-        [attr.aria-selected]="visaoRelatorio === 'categorias'">
+        (click)="selecionarVisao('categorias')" role="tab" [attr.aria-selected]="visaoRelatorio === 'categorias'">
         Categorias
       </button>
     </div>
@@ -41,120 +40,75 @@
 
   <!-- Tabela de Dados -->
   <ng-container *ngIf="visaoRelatorio === 'resumo'">
-  <div class="data-table">
-    <table>
-      <thead>
-        <tr>
-          <th>Categoria</th>
-          <th *ngFor="let mes of meses">{{ mes }}</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="receitas-row">
-          <td>Receitas</td>
-          <td *ngFor="let valor of dadosReceitas">
-            {{ valor | currency : 'BRL' }}
-          </td>
-          <td>{{ totalReceitas | currency : 'BRL' }}</td>
-        </tr>
-        <tr class="despesas-row">
-          <td>Despesas</td>
-          <td *ngFor="let valor of dadosDespesas">
-            {{ valor | currency : 'BRL' }}
-          </td>
-          <td>{{ totalDespesas | currency : 'BRL' }}</td>
-        </tr>
-        <tr class="dividas-row">
-          <td>Dívidas</td>
-          <td *ngFor="let valor of dadosDividas">
-            {{ valor | currency : 'BRL' }}
-          </td>
-          <td>{{ totalDividas | currency : 'BRL' }}</td>
-        </tr>
-        <tr class="investimentos-row">
-          <td>Investimentos</td>
-          <td *ngFor="let valor of dadosInvestimentos">
-            {{ valor | currency : 'BRL' }}
-          </td>
-          <td>{{ totalInvestimentos | currency : 'BRL' }}</td>
-        </tr>
-        <tr class="total-row">
-          <td>Total</td>
-          <td *ngFor="let valor of dadosTotal; let i = index" [class.negative]="valor < 0"
-            [class.positive]="valor >= 0">
-            {{ valor | currency : 'BRL' }}
-          </td>
-          <td [class.negative]="saldoTotal < 0" [class.positive]="saldoTotal >= 0">
-            {{ saldoTotal | currency : 'BRL' }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="charts-container">
-    <div class="chart-section">
-      <div #chartSaldo class="demo-chart"></div>
+    <div class="data-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Categoria</th>
+            <th *ngFor="let mes of meses">{{ mes }}</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="receitas-row">
+            <td>Receitas</td>
+            <td *ngFor="let valor of dadosReceitas">
+              {{ valor | currency : 'BRL' }}
+            </td>
+            <td>{{ totalReceitas | currency : 'BRL' }}</td>
+          </tr>
+          <tr class="despesas-row">
+            <td>Despesas</td>
+            <td *ngFor="let valor of dadosDespesas">
+              {{ valor | currency : 'BRL' }}
+            </td>
+            <td>{{ totalDespesas | currency : 'BRL' }}</td>
+          </tr>
+          <tr class="dividas-row">
+            <td>Dívidas</td>
+            <td *ngFor="let valor of dadosDividas">
+              {{ valor | currency : 'BRL' }}
+            </td>
+            <td>{{ totalDividas | currency : 'BRL' }}</td>
+          </tr>
+          <tr class="investimentos-row">
+            <td>Investimentos</td>
+            <td *ngFor="let valor of dadosInvestimentos">
+              {{ valor | currency : 'BRL' }}
+            </td>
+            <td>{{ totalInvestimentos | currency : 'BRL' }}</td>
+          </tr>
+          <tr class="total-row">
+            <td>Total</td>
+            <td *ngFor="let valor of dadosTotal; let i = index" [class.negative]="valor < 0"
+              [class.positive]="valor >= 0">
+              {{ valor | currency : 'BRL' }}
+            </td>
+            <td [class.negative]="saldoTotal < 0" [class.positive]="saldoTotal >= 0">
+              {{ saldoTotal | currency : 'BRL' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <div class="chart-section">
-      <div #chartReceitasDespesas class="demo-chart"></div>
-    </div>
+    <div class="charts-container">
+      <div class="chart-section">
+        <div #chartSaldo class="demo-chart"></div>
+      </div>
 
-    <div class="chart-section">
-      <div #chartDividasInvestimentos class="demo-chart"></div>
+      <div class="chart-section">
+        <div #chartReceitasDespesas class="demo-chart"></div>
+      </div>
+
+      <div class="chart-section">
+        <div #chartDividasInvestimentos class="demo-chart"></div>
+      </div>
     </div>
-  </div>
   </ng-container>
 
-  <section *ngIf="visaoRelatorio === 'categorias'" class="relatorio-categorias"
-    [attr.aria-label]="'Receitas em ' + anoSelecionado + ' por categoria'">
-    <p class="relatorio-categorias__intro">
-      Valores com base nas receitas lançadas no exercício <strong>{{ anoSelecionado }}</strong> (mesma origem da página Receitas).
-    </p>
-
-    <h2 class="relatorio-categorias__h2">Natureza: fixa e variável</h2>
-    <div class="data-table data-table--categorias">
-      <table>
-        <thead>
-          <tr>
-            <th>Receita</th>
-            <th *ngFor="let mes of meses">{{ mes }}</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of naturezaReceitaLinhas" [ngClass]="'natureza-receita--' + row.id">
-            <td>{{ row.label }}</td>
-            <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
-            <td>{{ row.total | currency : 'BRL' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h2 class="relatorio-categorias__h2">Por tipo (Salário, Freela, etc.)</h2>
-    <div class="data-table data-table--categorias" *ngIf="receitasPorTipoLinhas.length">
-      <table>
-        <thead>
-          <tr>
-            <th>Tipo</th>
-            <th *ngFor="let mes of meses">{{ mes }}</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of receitasPorTipoLinhas" class="tipo-receita-linha">
-            <td>{{ row.tipo }}</td>
-            <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
-            <td>{{ row.total | currency : 'BRL' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <p *ngIf="!receitasPorTipoLinhas.length" class="relatorio-categorias__vazio">
-      Nenhum lançamento de receita com valor neste exercício, ou ainda não há tipos agregados.
-    </p>
-  </section>
+  <app-relatorio-categorias *ngIf="visaoRelatorio === 'categorias'" [anoSelecionado]="anoSelecionado"
+    [meses]="meses" [naturezaReceitaLinhas]="naturezaReceitaLinhas"
+    [receitasPorTipoLinhas]="receitasPorTipoLinhas" [naturezaDespesaLinhas]="naturezaDespesaLinhas"
+    [despesasPorCategoriaLinhas]="despesasPorCategoriaLinhas" />
 </div>

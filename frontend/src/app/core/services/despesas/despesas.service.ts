@@ -30,9 +30,7 @@ export interface CreateDespesaRequest {
 
 export type UpdateDespesaRequest = Partial<CreateDespesaRequest>;
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class DespesasService {
   constructor(private apiService: ApiService) {}
 
