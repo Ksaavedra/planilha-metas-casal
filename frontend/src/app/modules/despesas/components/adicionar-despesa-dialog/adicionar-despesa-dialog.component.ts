@@ -34,31 +34,20 @@ export interface AdicionarDespesaDialogData {
   standalone: false,
 })
 export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
+  @ViewChild('pessoaInput')
   pessoasAutocompleteOptions: string[] = [];
   filteredPessoas$!: Observable<string[]>;
   categoriasOpcoes: string[] = [];
+  listaAutocompletePessoaAtiva = false;
 
   private naturezaSub?: Subscription;
   private pessoasApiSub?: Subscription;
   private readonly pessoasOpcoesAtualizadas$ = new Subject<void>();
-
-  @ViewChild('pessoaInput')
   private pessoaInputRef?: ElementRef<HTMLInputElement>;
-
-  /** Só há opções na lista depois do utilizador entrar no campo (evita abrir só ao montar o diálogo). */
-  listaAutocompletePessoaAtiva = false;
 
   form: FormGroup;
   saving = false;
   erro: string | null = null;
-
-  get isEdicao(): boolean {
-    return this.data.despesa != null;
-  }
-
-  get tituloDialog(): string {
-    return this.isEdicao ? 'Editar despesa' : 'Incluir despesa';
-  }
 
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarDespesaDialogData,
@@ -85,7 +74,22 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.inicializarFormulario();
+    this.configurarFiltroPessoas();
+    this.carregarPessoasOpcoes();
+    this.configurarCategoriasPorNatureza();
+    this.cdr.markForCheck();
+  }
+
+  ngOnDestroy(): void {
+    this.naturezaSub?.unsubscribe();
+    this.pessoasApiSub?.unsubscribe();
+    this.pessoasOpcoesAtualizadas$.complete();
+  }
+
+  private inicializarFormulario(): void {
     const d = this.data.despesa;
+
     if (d) {
       this.form.patchValue(
         {
@@ -94,57 +98,71 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
           categoria: d.categoria,
           descricao: d.descricao,
           valor: d.valor,
-          data: d.data || '',
+          data: d.data ?? '',
         },
         { emitEvent: false },
       );
-    } else {
-      this.form.reset(
-        {
-          pessoa: '',
-          natureza: '',
-          categoria: '',
-          descricao: '',
-          valor: null,
-          data: this.dataDefaultIso(),
-        },
-        { emitEvent: false },
-      );
+      return;
     }
 
+    this.form.reset(
+      {
+        pessoa: '',
+        natureza: '',
+        categoria: '',
+        descricao: '',
+        valor: null,
+        data: this.dataDefaultIso(),
+      },
+      { emitEvent: false },
+    );
+  }
+
+  private configurarFiltroPessoas(): void {
     const pessoaCtrl = this.form.get('pessoa')!;
+
     this.filteredPessoas$ = merge(
       pessoaCtrl.valueChanges,
       this.pessoasOpcoesAtualizadas$,
     ).pipe(
-      map(() => this._filterPessoa(String(pessoaCtrl.value ?? ''))),
-      startWith(this._filterPessoa(String(pessoaCtrl.value ?? ''))),
+      map(() => this._filterPessoa(String(pessoaCtrl.value ?? '').trim())),
+      startWith(this._filterPessoa(String(pessoaCtrl.value ?? '').trim())),
     );
-
-    this.carregarPessoasOpcoes();
-
-    this.atualizarCategoriasOpcoes();
-    this.naturezaSub = this.form.get('natureza')?.valueChanges.subscribe(() => {
-      const raw = String(this.form.get('natureza')?.value ?? '').trim();
-      if (raw !== 'fixa' && raw !== 'variavel') {
-        this.form.patchValue({ categoria: '' }, { emitEvent: false });
-        this.atualizarCategoriasOpcoes();
-        return;
-      }
-      const lista = listaCategoriasSugestao(raw as NaturezaDespesa);
-      const cur = String(this.form.get('categoria')?.value || '').trim();
-      if (cur && !lista.includes(cur)) {
-        this.form.patchValue({ categoria: '' }, { emitEvent: false });
-      }
-      this.atualizarCategoriasOpcoes();
-    });
-    this.cdr.markForCheck();
   }
 
-  ngOnDestroy(): void {
-    this.naturezaSub?.unsubscribe();
-    this.pessoasApiSub?.unsubscribe();
-    this.pessoasOpcoesAtualizadas$.complete();
+  private configurarCategoriasPorNatureza(): void {
+    this.atualizarCategoriasOpcoes();
+
+    this.naturezaSub = this.form.get('natureza')?.valueChanges.subscribe(() => {
+      this.tratarMudancaNatureza();
+    });
+  }
+
+  private tratarMudancaNatureza(): void {
+    const raw = String(this.form.get('natureza')?.value ?? '').trim();
+
+    if (raw !== 'fixa' && raw !== 'variavel') {
+      this.form.patchValue({ categoria: '' }, { emitEvent: false });
+      this.atualizarCategoriasOpcoes();
+      return;
+    }
+
+    const lista = listaCategoriasSugestao(raw as NaturezaDespesa);
+    const cur = String(this.form.get('categoria')?.value || '').trim();
+
+    if (cur && !lista.includes(cur)) {
+      this.form.patchValue({ categoria: '' }, { emitEvent: false });
+    }
+
+    this.atualizarCategoriasOpcoes();
+  }
+
+  get isEdicao(): boolean {
+    return this.data.despesa != null;
+  }
+
+  get tituloDialog(): string {
+    return this.isEdicao ? 'Editar despesa' : 'Incluir despesa';
   }
 
   private toTitleCase(value: string): string {

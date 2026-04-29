@@ -1,9 +1,5 @@
 import { NaturezaDespesa } from 'app/core/services/despesas/despesas.service';
 
-/**
- * Rótulos curtos para o <select> Categoria (modal e combinação com Fixa/Variável).
- * O detalhe fica no campo descrição e na aba Exemplos.
- */
 export const CATEGORIAS_FORM_FIXA: readonly string[] = [
   'Aluguel',
   'Internet / celular',
@@ -38,10 +34,6 @@ export const CATEGORIAS_FORM_VARIAVEL: readonly string[] = [
   'Outros',
 ];
 
-/**
- * Texto completo (aba Exemplos) — explica o que entra em cada categoria.
- * Não precisa ser igual ao valor gravado no banco; é só dica.
- */
 export const EXEMPLOS_DICA_CATEGORIAS_FIXA: readonly string[] = [
   'Aluguel / financiamento',
   'Internet / celular (plano mensal)',

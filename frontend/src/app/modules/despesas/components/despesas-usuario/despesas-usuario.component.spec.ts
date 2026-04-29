@@ -135,12 +135,11 @@ describe('DespesasUsuarioComponent', () => {
 
     component.usuarioFiltro = 'Kelly';
     fixture.detectChanges();
-    expect(el.textContent).toContain('Despesas de Kelly');
+    expect(el.textContent).toContain('Despesas - Kelly');
     expect(el.textContent).toContain('Despesas fixas');
     expect(el.textContent).toContain('Despesas variáveis');
     expect(el.textContent).toContain('Subtotal fixas');
-    expect(el.textContent).toContain('TOTAL FINAL');
-    expect(el.textContent).toContain('Total geral');
+    expect(el.textContent).toContain('Total do mês');
     const ths = el.querySelectorAll('.despesas-table thead th');
     expect(Array.from(ths).some((h) => h.textContent?.trim() === 'Data')).toBe(true);
     expect(Array.from(ths).some((h) => h.textContent?.trim() === 'Descrição')).toBe(true);

@@ -1,14 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import {
-  Despesa,
-  DespesasService,
-} from './despesas.service';
+import { Despesa, DespesasService } from './despesas.service';
 import { ApiService } from '../api/api.service';
 
 describe('DespesasService', () => {
   let service: DespesasService;
-  let apiService: jest.Mocked<Pick<ApiService, 'get' | 'post' | 'patch' | 'delete'>>;
+  let apiService: jest.Mocked<
+    Pick<ApiService, 'get' | 'post' | 'patch' | 'delete'>
+  >;
 
   const mockDespesa: Despesa = {
     id: 1,
@@ -60,7 +59,10 @@ describe('DespesasService', () => {
       service.getDespesas({ ano: 2025, mes: 3 }).subscribe((r) => {
         expect(r).toEqual(rows);
       });
-      expect(apiService.get).toHaveBeenCalledWith('/despesas', { ano: 2025, mes: 3 });
+      expect(apiService.get).toHaveBeenCalledWith('/despesas', {
+        ano: 2025,
+        mes: 3,
+      });
     });
 
     it('propaga erro', () => {
@@ -85,7 +87,9 @@ describe('DespesasService', () => {
     it('faz POST', () => {
       const created = { ...mockDespesa, id: 2, descricao: 'Novo' };
       apiService.post.mockReturnValue(of(created));
-      service.createDespesa(mockCreate).subscribe((r) => expect(r).toEqual(created));
+      service
+        .createDespesa(mockCreate)
+        .subscribe((r) => expect(r).toEqual(created));
       expect(apiService.post).toHaveBeenCalledWith('/despesas', mockCreate);
     });
   });
@@ -118,6 +122,40 @@ describe('DespesasService', () => {
 
     it('retorna 0 para array vazio', () => {
       expect(service.calcularTotalDespesas([])).toBe(0);
+    });
+
+    it('deve considerar valor null como 0', () => {
+      const total = service.calcularTotalDespesas([
+        { ...mockDespesa, valor: null as any },
+      ]);
+
+      expect(total).toBe(0);
+    });
+
+    it('deve considerar valor undefined como 0', () => {
+      const total = service.calcularTotalDespesas([
+        { ...mockDespesa, valor: undefined as any },
+      ]);
+
+      expect(total).toBe(0);
+    });
+
+    it('deve considerar valor inválido como 0', () => {
+      const total = service.calcularTotalDespesas([
+        { ...mockDespesa, valor: 'abc' as any },
+      ]);
+
+      expect(total).toBe(0);
+    });
+
+    it('deve somar ignorando valores inválidos', () => {
+      const total = service.calcularTotalDespesas([
+        mockDespesa,
+        { ...mockDespesa, id: 2, valor: 'abc' as any },
+        { ...mockDespesa, id: 3, valor: 100 },
+      ]);
+
+      expect(total).toBe(100);
     });
   });
 });

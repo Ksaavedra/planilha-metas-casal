@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../api/api.service';
 
-/** Despesa recorrente (ex.: aluguel) vs que muda mês a mês (mercado). */
 export type NaturezaDespesa = 'fixa' | 'variavel';
 
 export interface Despesa {
@@ -57,8 +56,7 @@ export class DespesasService {
     return this.apiService.delete<void>(`/despesas/${id}`);
   }
 
-  /** Total do array (útil para subtotais). */
   calcularTotalDespesas(despesas: Despesa[]): number {
-    return despesas.reduce((total, d) => total + (Number(d.valor) || 0), 0);
+    return despesas.reduce((total, d) => total + Number(d.valor) || 0, 0);
   }
 }
