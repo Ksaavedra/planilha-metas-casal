@@ -1,0 +1,112 @@
+<section class="despesas-usuario" aria-label="Despesas por pessoa no mês">
+  <h2 class="despesas-usuario__h2" *ngIf="!usuarioFiltro">Por pessoa</h2>
+  <h2 class="despesas-usuario__h2 despesas-usuario__h2--pessoa" *ngIf="usuarioFiltro">
+    👉 Despesas - {{ usuarioFiltro }}
+  </h2>
+
+  <p class="despesas-usuario__passo" *ngIf="nomeMesReferencia">
+    <strong>Referência:</strong> {{ nomeMesReferencia }} — valores por pessoa que lançou despesa neste mês.
+    Selecione quem fez as despesas para ver o resumo e os detalhes do mês.
+  </p>
+  <p class="despesas-usuario__passo" *ngIf="!nomeMesReferencia">
+    Valores por pessoa que lançou despesa. Use <strong>Quem comprou</strong> para escolher a pessoa e ver os
+    lançamentos.
+  </p>
+
+  <ng-container *ngIf="linhasPorUsuario.length; else semDadosMes">
+    <div class="despesas-usuario__filtro-linha">
+      <label class="despesas-usuario__filtro-inline-label" for="despesasUsuarioSelect">Quem comprou:</label>
+      <select id="despesasUsuarioSelect" class="despesas-usuario__filtro-select" [(ngModel)]="usuarioFiltro"
+        [attr.aria-label]="'Quem comprou no mês ' + (nomeMesReferencia || 'atual')">
+        <option [ngValue]="''">Selecione uma pessoa</option>
+        <option *ngFor="let row of linhasPorUsuario" [ngValue]="row.usuario">{{ row.usuario }}</option>
+      </select>
+    </div>
+
+    <div class="despesas-usuario__conteudo" *ngIf="usuarioFiltro">
+      <div class="tabelas-mes">
+        <section class="bloco-tabela" aria-labelledby="du-h-fixas">
+          <h3 id="du-h-fixas" class="bloco-titulo bloco-titulo--fixa">
+            <span class="material-icons">lock</span>
+            Despesas fixas
+          </h3>
+          <p class="bloco-sub">Mais estáveis, costumam repetir mês a mês.</p>
+          <div class="table-wrap" *ngIf="despesasFixasUsuario.length; else vazioFixasU">
+            <table class="despesas-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Categoria</th>
+                  <th>Descrição</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of despesasFixasUsuario">
+                  <td>{{ d.data ? (d.data | date : 'dd/MM/yyyy') : '—' }}</td>
+                  <td>{{ d.categoria }}</td>
+                  <td>{{ d.descricao || '—' }}</td>
+                  <td class="num">{{ d.valor | currency : 'BRL' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="subtotal">
+            Subtotal fixas: <strong>{{ subtotalFixasUsuario | currency : 'BRL' }}</strong>
+          </p>
+          <ng-template #vazioFixasU>
+            <p class="vazio">Nenhuma despesa fixa para esta pessoa neste mês.</p>
+          </ng-template>
+        </section>
+
+        <section class="bloco-tabela" aria-labelledby="du-h-var">
+          <h3 id="du-h-var" class="bloco-titulo bloco-titulo--var">
+            <span class="material-icons">trending_up</span>
+            Despesas variáveis
+          </h3>
+          <p class="bloco-sub">Cambiam de valor ou frequência (mercado, lazer, etc.).</p>
+          <div class="table-wrap" *ngIf="despesasVariaveisUsuario.length; else vazioVarU">
+            <table class="despesas-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Categoria</th>
+                  <th>Descrição</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of despesasVariaveisUsuario">
+                  <td>{{ d.data ? (d.data | date : 'dd/MM/yyyy') : '—' }}</td>
+                  <td>{{ d.categoria }}</td>
+                  <td>{{ d.descricao || '—' }}</td>
+                  <td class="num">{{ d.valor | currency : 'BRL' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="subtotal">
+            Subtotal variáveis: <strong>{{ subtotalVariaveisUsuario | currency : 'BRL' }}</strong>
+          </p>
+          <ng-template #vazioVarU>
+            <p class="vazio">Nenhuma despesa variável para esta pessoa neste mês.</p>
+          </ng-template>
+        </section>
+      </div>
+
+      <div class="total-geral total-geral--final-usuario">
+        <div class="total-geral-header">
+          <span class="material-icons">account_balance_wallet</span>
+          <span>Total do mês:</span>
+        </div>
+        <div class="total-geral-valor">{{ totalGeralUsuario | currency : 'BRL' }}</div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #semDadosMes>
+    <p class="despesas-usuario__vazio">
+      Nenhuma despesa neste mês para agrupar por usuário.
+    </p>
+  </ng-template>
+</section>

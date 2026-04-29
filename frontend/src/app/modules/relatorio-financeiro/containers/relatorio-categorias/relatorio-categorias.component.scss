@@ -37,6 +37,10 @@
   color: #0f172a;
   letter-spacing: -0.02em;
 
+  &--sec {
+    margin-top: 0;
+  }
+
   & + .data-table {
     margin-bottom: 2rem;
   }

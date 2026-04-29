@@ -40,13 +40,18 @@
           (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoDespesas === 'lista'">
           Minhas despesas
         </button>
+        <button type="button" class="despesas-hero__chip" [class.is-active]="visaoDespesas === 'usuario'"
+          (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoDespesas === 'usuario'">
+          Por pesssoa
+        </button>
         <button type="button" class="despesas-hero__chip" [class.is-active]="visaoDespesas === 'exemplos'"
           (click)="selecionarVisao('exemplos')" role="tab" [attr.aria-selected]="visaoDespesas === 'exemplos'">
           Exemplos
         </button>
       </div>
       <div class="despesas-hero__actions">
-        <button type="button" class="btn-add-despesa" (click)="abrirModalAdicionarDespesa()">
+        <button type="button" class="btn-add-despesa" (click)="abrirModalAdicionarDespesa()"
+          *ngIf="visaoDespesas === 'lista'">
           <span class="material-icons" aria-hidden="true">add</span>
           Adicionar despesa
         </button>
@@ -171,5 +176,7 @@
     </div>
   </ng-container>
 
+  <app-despesas-usuario *ngIf="visaoDespesas === 'usuario'" [despesas]="despesas" [nomeMesReferencia]="nomeMesAtual">
+  </app-despesas-usuario>
   <app-despesas-exemplos *ngIf="visaoDespesas === 'exemplos'"></app-despesas-exemplos>
 </div>

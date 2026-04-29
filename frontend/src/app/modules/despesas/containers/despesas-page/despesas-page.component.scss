@@ -221,10 +221,15 @@
   cursor: default;
 }
 
+/* Mantém o mesmo encaixe dos chips quando «Adicionar despesa» está oculto (Por pessoa / Exemplos). */
 .despesas-hero__actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   flex-shrink: 0;
+  box-sizing: border-box;
+  min-width: 13rem;
+  min-height: 2.85rem;
 }
 
 .btn-add-despesa {
@@ -504,6 +509,8 @@
 
   .despesas-hero__actions {
     justify-content: center;
+    min-width: 0;
+    min-height: 0;
   }
 
   .btn-add-despesa {

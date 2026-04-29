@@ -5,15 +5,17 @@ import { DespesasPageComponent } from './containers/despesas-page/despesas-page.
 import { AdicionarDespesaDialogComponent } from './components/adicionar-despesa-dialog/adicionar-despesa-dialog.component';
 import { DespesasRoutingModule } from './despesas.routing';
 import { DSModule } from 'app/@ds';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { SharedModule } from 'app/shared/shared.module';
-import { DespesasExemplosComponent } from './containers/despesas-exemplos/despesas-exemplos.component';
+import { DespesasExemplosComponent } from './components/despesas-exemplos/despesas-exemplos.component';
+import { DespesasUsuarioComponent } from './components/despesas-usuario/despesas-usuario.component';
 
 @NgModule({
   declarations: [
     DespesasPageComponent,
     AdicionarDespesaDialogComponent,
     DespesasExemplosComponent,
+    DespesasUsuarioComponent,
   ],
   imports: [
     CommonModule,
@@ -21,6 +23,7 @@ import { DespesasExemplosComponent } from './containers/despesas-exemplos/despes
     DespesasRoutingModule,
     DSModule,
     ReactiveFormsModule,
+    FormsModule,
     SharedModule,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],

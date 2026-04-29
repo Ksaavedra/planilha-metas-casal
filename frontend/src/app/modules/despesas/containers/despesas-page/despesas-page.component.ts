@@ -27,7 +27,7 @@ import { SuccessModalComponent } from '@app/shared/components/success-modal/succ
 export class DespesasPageComponent implements OnInit {
   readonly tituloSecundario = 'Tudo que você gasta no dia a dia';
 
-  visaoDespesas: 'lista' | 'exemplos' = 'lista';
+  visaoDespesas: 'lista' | 'exemplos' | 'usuario' = 'lista';
   mesAtual: Date = new Date();
   despesas: Despesa[] = [];
   loading = false;
@@ -108,7 +108,7 @@ export class DespesasPageComponent implements OnInit {
     this.carregar();
   }
 
-  selecionarVisao(visao: 'lista' | 'exemplos'): void {
+  selecionarVisao(visao: 'lista' | 'exemplos' | 'usuario'): void {
     this.visaoDespesas = visao;
     this.cdr.markForCheck();
   }
