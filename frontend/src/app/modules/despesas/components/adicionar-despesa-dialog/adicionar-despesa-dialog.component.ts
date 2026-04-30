@@ -118,6 +118,11 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
     );
   }
 
+  private getPessoaFiltroValue(): string {
+    const value = this.form.get('pessoa')?.value;
+    return String(value ?? '').trim();
+  }
+
   private configurarFiltroPessoas(): void {
     const pessoaCtrl = this.form.get('pessoa')!;
 
@@ -125,8 +130,8 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
       pessoaCtrl.valueChanges,
       this.pessoasOpcoesAtualizadas$,
     ).pipe(
-      map(() => this._filterPessoa(String(pessoaCtrl.value ?? '').trim())),
-      startWith(this._filterPessoa(String(pessoaCtrl.value ?? '').trim())),
+      map(() => this._filterPessoa(this.getPessoaFiltroValue())),
+      startWith(this._filterPessoa(this.getPessoaFiltroValue())),
     );
   }
 

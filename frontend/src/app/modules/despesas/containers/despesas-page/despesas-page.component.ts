@@ -122,37 +122,50 @@ export class DespesasPageComponent implements OnInit {
   }
 
   private abrirDialogDespesa(despesa: Despesa | null): void {
+    const ref = this.abrirDialog(despesa);
+    ref.afterClosed().subscribe((saved) => {
+      if (saved) {
+        this.porSalvarDespesa(despesa);
+      }
+    });
+  }
+
+  private abrirDialog(despesa: Despesa | null) {
     const data: AdicionarDespesaDialogData = {
       despesa,
       ano: this.anoRef,
       mes: this.mesRef,
     };
-    const ref = this.dialog.open(AdicionarDespesaDialogComponent, {
+    return this.dialog.open(AdicionarDespesaDialogComponent, {
       width: 'min(520px, 96vw)',
       maxHeight: '90vh',
       data,
       autoFocus: 'dialog',
       restoreFocus: true,
     });
-    ref.afterClosed().subscribe((saved) => {
-      if (saved) {
-        this.carregar();
+  }
 
-        const isEdicao = despesa != null;
+  private porSalvarDespesa(despesa: Despesa | null): void {
+    this.carregar();
 
-        this.dialog.open(SuccessModalComponent, {
-          width: 'min(520px, 96vw)',
-          maxHeight: '90vh',
-          data: {
-            title: isEdicao ? 'Despesa atualizada!' : 'Despesa adicionada!',
-            message: isEdicao
-              ? 'A despesa foi atualizada com sucesso.'
-              : 'A despesa foi adicionada com sucesso.',
-            confirmText: 'OK',
-          },
-        });
-        this.cdr.markForCheck();
-      }
+    const isEdicao = despesa != null;
+
+    this.abrirModalSucesso(isEdicao);
+
+    this.cdr.markForCheck();
+  }
+
+  private abrirModalSucesso(isEdicao: boolean): void {
+    this.dialog.open(SuccessModalComponent, {
+      width: 'min(520px, 96vw)',
+      maxHeight: '90vh',
+      data: {
+        title: isEdicao ? 'Despesa atualizada!' : 'Despesa adicionada!',
+        message: isEdicao
+          ? 'A despesa foi atualizada com sucesso.'
+          : 'A despesa foi adicionada com sucesso.',
+        confirmText: 'OK',
+      },
     });
   }
 

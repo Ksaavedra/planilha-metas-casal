@@ -1,9 +1,4 @@
-import {
-  Component,
-  Input,
-  OnChanges,
-  SimpleChanges,
-} from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { Despesa } from 'app/core/services/despesas/despesas.service';
 
 export interface LinhaUsuarioDespesasMes {
@@ -23,7 +18,6 @@ export class DespesasUsuarioComponent implements OnChanges {
   @Input() despesas: Despesa[] = [];
   @Input() nomeMesReferencia = '';
 
-  /** Vazio até o usuário escolher no select (Carla, Kelly, etc.). */
   usuarioFiltro = '';
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -32,10 +26,6 @@ export class DespesasUsuarioComponent implements OnChanges {
     }
   }
 
-  /**
-   * Mantém a seleção só se o nome ainda existir no mês; caso contrário volta ao placeholder.
-   * Não escolhe ninguém automaticamente.
-   */
   private reconciliarSelecaoAposMudancaLista(): void {
     const linhas = this.linhasPorUsuario;
     if (!linhas.length) {
@@ -71,7 +61,9 @@ export class DespesasUsuarioComponent implements OnChanges {
 
   get linhasVisiveis(): LinhaUsuarioDespesasMes[] {
     if (!this.usuarioFiltro) return [];
-    return this.linhasPorUsuario.filter((r) => r.usuario === this.usuarioFiltro);
+    return this.linhasPorUsuario.filter(
+      (r) => r.usuario === this.usuarioFiltro,
+    );
   }
 
   get despesasDetalhesFiltradas(): Despesa[] {
@@ -87,14 +79,14 @@ export class DespesasUsuarioComponent implements OnChanges {
     });
   }
 
-  /** Detalhes só da pessoa — natureza fixa. */
   get despesasFixasUsuario(): Despesa[] {
     return this.despesasDetalhesFiltradas.filter((d) => d.natureza === 'fixa');
   }
 
-  /** Detalhes só da pessoa — natureza variável. */
   get despesasVariaveisUsuario(): Despesa[] {
-    return this.despesasDetalhesFiltradas.filter((d) => d.natureza === 'variavel');
+    return this.despesasDetalhesFiltradas.filter(
+      (d) => d.natureza === 'variavel',
+    );
   }
 
   get subtotalFixasUsuario(): number {

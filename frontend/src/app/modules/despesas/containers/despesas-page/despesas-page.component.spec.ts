@@ -246,6 +246,30 @@ describe('DespesasPageComponent', () => {
     });
   });
 
+  describe('abrirModalSucesso', () => {
+    it('deve abrir modal com mensagem de edição', () => {
+      component['abrirModalSucesso'](true);
+
+      expect(dialogMock.open).toHaveBeenCalled();
+
+      const call = dialogMock.open.mock.calls[0][1];
+
+      expect(call.data.title).toBe('Despesa atualizada!');
+      expect(call.data.message).toBe('A despesa foi atualizada com sucesso.');
+    });
+
+    it('deve abrir modal com mensagem de criação', () => {
+      component['abrirModalSucesso'](false);
+
+      expect(dialogMock.open).toHaveBeenCalled();
+
+      const call = dialogMock.open.mock.calls[0][1];
+
+      expect(call.data.title).toBe('Despesa adicionada!');
+      expect(call.data.message).toBe('A despesa foi adicionada com sucesso.');
+    });
+  });
+
   describe('Excluir com MatDialog', () => {
     it('abrirConfirmExcluir deve abrir modal de confirmação', () => {
       component.abrirConfirmExcluir(mockDespesa);

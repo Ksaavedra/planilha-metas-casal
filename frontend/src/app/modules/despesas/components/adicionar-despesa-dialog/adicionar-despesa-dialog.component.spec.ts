@@ -323,6 +323,24 @@ describe('AdicionarDespesaDialogComponent', () => {
       expect(resultados[0]).toEqual(['Kelly', 'David']);
     });
 
+    it('deve aplicar filtro vazio via valueChanges quando pessoa vira string vazia', () => {
+      component.pessoasAutocompleteOptions = ['Kelly', 'David'];
+      component.listaAutocompletePessoaAtiva = true;
+      component.form.get('pessoa')?.setValue('ke', { emitEvent: false });
+
+      component['configurarFiltroPessoas']();
+
+      const resultados: string[][] = [];
+
+      component.filteredPessoas$.subscribe((result) => {
+        resultados.push(result);
+      });
+
+      component.form.get('pessoa')?.setValue('');
+
+      expect(resultados[resultados.length - 1]).toEqual(['Kelly', 'David']);
+    });
+
     it('deve tratar espaços como vazio (trim)', () => {
       component.pessoasAutocompleteOptions = ['Kelly', 'David'];
       component.listaAutocompletePessoaAtiva = true;
@@ -341,22 +359,40 @@ describe('AdicionarDespesaDialogComponent', () => {
   });
 
   describe('tratarMudancaNatureza', () => {
-    it('deve tratar natureza com espaços como vazia', () => {
-      component.form.get('natureza')?.setValue('   ');
+    it('deve tratar natureza como string vazia', () => {
+      component.form.get('natureza')?.setValue('');
       component.form.get('categoria')?.setValue('');
 
-      component['atualizarCategoriasOpcoes']();
+      component['tratarMudancaNatureza']();
 
-      expect(component.categoriasOpcoes).toEqual([]);
+      expect(component.form.get('categoria')?.value).toBe('');
     });
 
-    it('deve manter categoria atual quando natureza inválida', () => {
-      component.form.get('natureza')?.setValue('');
-      component.form.get('categoria')?.setValue('Outra');
+    it('deve tratar natureza null como vazia', () => {
+      component.form.get('natureza')?.setValue(null);
+      component.form.get('categoria')?.setValue('Teste');
 
-      component['atualizarCategoriasOpcoes']();
+      component['tratarMudancaNatureza']();
 
-      expect(component.categoriasOpcoes).toEqual(['Outra']);
+      expect(component.form.get('categoria')?.value).toBe('');
+    });
+
+    it('deve tratar natureza undefined como vazia', () => {
+      component.form.get('natureza')?.setValue(undefined);
+      component.form.get('categoria')?.setValue('Teste');
+
+      component['tratarMudancaNatureza']();
+
+      expect(component.form.get('categoria')?.value).toBe('');
+    });
+
+    it('deve tratar natureza com espaços como vazia (trim)', () => {
+      component.form.get('natureza')?.setValue('   ');
+      component.form.get('categoria')?.setValue('Teste');
+
+      component['tratarMudancaNatureza']();
+
+      expect(component.form.get('categoria')?.value).toBe('');
     });
   });
 
@@ -424,6 +460,26 @@ describe('AdicionarDespesaDialogComponent', () => {
     });
   });
 
+  describe('carregarPessoasOpcoes', () => {
+    it('deve usar array vazio quando API retornar null', () => {
+      receitasServiceMock.getPessoasCache.mockReturnValue([]);
+      receitasServiceMock.loadPessoasDistintas.mockReturnValue(of(null));
+
+      component['carregarPessoasOpcoes']();
+
+      expect(component.pessoasAutocompleteOptions).toEqual([]);
+    });
+
+    it('deve usar array vazio quando API retornar undefined', () => {
+      receitasServiceMock.getPessoasCache.mockReturnValue([]);
+      receitasServiceMock.loadPessoasDistintas.mockReturnValue(of(undefined));
+
+      component['carregarPessoasOpcoes']();
+
+      expect(component.pessoasAutocompleteOptions).toEqual([]);
+    });
+  });
+
   describe('Pessoa blur e texto para salvar', () => {
     it('onPessoaBlur deve formatar pessoa', () => {
       component.form.get('pessoa')?.setValue('kelly saavedra');
@@ -431,6 +487,30 @@ describe('AdicionarDespesaDialogComponent', () => {
       component.onPessoaBlur();
 
       expect(component.form.get('pessoa')?.value).toBe('Kelly Saavedra');
+    });
+
+    it('onPessoaBlur deve tratar null como string vazia', () => {
+      component.form.get('pessoa')?.setValue(null);
+
+      component.onPessoaBlur();
+
+      expect(component.form.get('pessoa')?.value).toBe(null);
+    });
+
+    it('onPessoaBlur não deve alterar quando valor já estiver formatado', () => {
+      component.form.get('pessoa')?.setValue('Kelly');
+
+      component.onPessoaBlur();
+
+      expect(component.form.get('pessoa')?.value).toBe('Kelly');
+    });
+
+    it('onPessoaBlur não deve alterar quando valor for vazio', () => {
+      component.form.get('pessoa')?.setValue('');
+
+      component.onPessoaBlur();
+
+      expect(component.form.get('pessoa')?.value).toBe('');
     });
 
     it('pessoaTextoParaSalvar deve pegar valor do form', () => {
@@ -453,6 +533,26 @@ describe('AdicionarDespesaDialogComponent', () => {
       const result = component['pessoaTextoParaSalvar']();
 
       expect(result).toBe('David');
+    });
+
+    it('pessoaTextoParaSalvar deve tratar null como vazio', () => {
+      component.form.get('pessoa')?.setValue(null);
+
+      const result = component['pessoaTextoParaSalvar']();
+
+      expect(result).toBe('');
+    });
+
+    it('deve retornar array vazio quando bruto for null', () => {
+      const result = component['normalizarListaNomes'](null as any);
+
+      expect(result).toEqual([]);
+    });
+
+    it('deve retornar array vazio quando bruto for undefined', () => {
+      const result = component['normalizarListaNomes'](undefined as any);
+
+      expect(result).toEqual([]);
     });
   });
 
