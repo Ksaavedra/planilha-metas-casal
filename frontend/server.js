@@ -26,10 +26,11 @@ db.pragma("foreign_keys = ON");
 db.exec(`
   CREATE TABLE IF NOT EXISTS receitas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    pessoa TEXT NOT NULL,
-    tipo TEXT NOT NULL,
+    pessoa TEXT NOT NULL DEFAULT 'Casal',
+    natureza TEXT NOT NULL,
     categoria TEXT NOT NULL,
-    valor REAL NOT NULL DEFAULT 0,
+    valor REAL NOT NULL,
+    data TEXT,
     ano INTEGER NOT NULL,
     mes INTEGER NOT NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -40,11 +41,62 @@ db.exec(
   `CREATE INDEX IF NOT EXISTS idx_receitas_ano_mes ON receitas(ano, mes)`,
 );
 
-console.log("📦 Conectado ao banco SQLite:", DB_PATH);
+// Bancos antigos: coluna pessoa (quem comprou)
+let RECEITAS_COLUNAS = [];
+let RECEITAS_TEM_NATUREZA = false;
+let RECEITAS_TEM_TIPO = false;
+{
+  const cols = db.prepare("PRAGMA table_info(receitas)").all();
+  const nomes = cols.map((c) => c.name);
+  RECEITAS_COLUNAS = nomes;
+  RECEITAS_TEM_NATUREZA = nomes.includes("natureza");
+  RECEITAS_TEM_TIPO = nomes.includes("tipo");
 
-// ---------- RECEITAS (Kelly, David, Casal) ----------
+  if (!nomes.includes("pessoa")) {
+    db.exec(
+      "ALTER TABLE receitas ADD COLUMN pessoa TEXT NOT NULL DEFAULT 'Casal'",
+    );
+  }
 
-// GET /api/receitas?ano=2026&mes=1 - Listar receitas do mês/ano
+  // Bancos legados tinham coluna "tipo" (Fixa/Variável) em vez de "natureza" (fixa/variavel).
+  if (!RECEITAS_TEM_NATUREZA) {
+    try {
+      db.exec(
+        "ALTER TABLE receitas ADD COLUMN natureza TEXT NOT NULL DEFAULT 'fixa'",
+      );
+      if (RECEITAS_TEM_TIPO) {
+        db.exec(`
+          UPDATE receitas
+             SET natureza = CASE
+               WHEN lower(trim(tipo)) LIKE 'vari%' THEN 'variavel'
+               ELSE 'fixa'
+             END
+        `);
+      }
+      RECEITAS_TEM_NATUREZA = true;
+    } catch (e) {
+      console.warn(
+        "Aviso ao migrar coluna natureza em receitas (seguindo com fallback):",
+        e?.message || e,
+      );
+    }
+  }
+
+  if (!nomes.includes("data")) {
+    db.exec("ALTER TABLE receitas ADD COLUMN data TEXT");
+  }
+}
+
+const RECEITAS_NATUREZA_SELECT = RECEITAS_TEM_NATUREZA
+  ? "natureza"
+  : RECEITAS_TEM_TIPO
+    ? "CASE WHEN lower(trim(tipo)) LIKE 'vari%' THEN 'variavel' ELSE 'fixa' END AS natureza"
+    : "'fixa' AS natureza";
+
+const toTipoLegacy = (natureza) =>
+  natureza === "variavel" ? "Variável" : "Fixa";
+
+// GET /api/receitas?ano=2026&mes=1
 app.get("/api/receitas", (req, res) => {
   try {
     const ano = parseInt(req.query.ano, 10);
@@ -56,7 +108,10 @@ app.get("/api/receitas", (req, res) => {
     }
     const rows = db
       .prepare(
-        "SELECT id, pessoa, tipo, categoria, valor, ano, mes FROM receitas WHERE ano = ? AND mes = ? ORDER BY pessoa, id",
+        `SELECT id, pessoa, ${RECEITAS_NATUREZA_SELECT}, categoria, valor, data, ano, mes
+           FROM receitas
+          WHERE ano = ? AND mes = ?
+          ORDER BY natureza ASC, pessoa, categoria, id`,
       )
       .all(ano, mes);
     res.json(rows);
@@ -66,58 +121,98 @@ app.get("/api/receitas", (req, res) => {
   }
 });
 
-// GET /api/receitas/pessoas - Listar nomes distintos de pessoa (para autocomplete)
-app.get("/api/receitas/pessoas", (req, res) => {
+// GET /api/receitas/:id
+app.get("/api/receitas/:id", (req, res) => {
   try {
-    const rows = db
-      .prepare("SELECT DISTINCT pessoa FROM receitas ORDER BY pessoa")
-      .all();
-    const pessoas = rows.map((r) => (r.pessoa || "").trim()).filter(Boolean);
-    res.json(pessoas);
+    const id = parseInt(req.params.id, 10);
+    const row = db
+      .prepare(
+        `SELECT id, pessoa, ${RECEITAS_NATUREZA_SELECT}, categoria, valor, data, ano, mes
+           FROM receitas
+          WHERE id = ?`,
+      )
+      .get(id);
+    if (!row) {
+      return res.status(404).json({ error: "Receita não encontrada" });
+    }
+    res.json(row);
   } catch (error) {
-    console.error("Erro ao buscar pessoas:", error);
-    res.status(500).json({ error: "Erro ao buscar pessoas" });
+    console.error("Erro ao buscar receita:", error);
+    res.status(500).json({ error: "Erro ao buscar receita" });
   }
 });
 
-// POST /api/receitas - Criar receita
+// POST /api/receitas
 app.post("/api/receitas", (req, res) => {
   try {
-    const { pessoa, tipo, categoria, valor, ano, mes } = req.body;
-    if (
-      !pessoa ||
-      !tipo ||
-      !categoria ||
-      valor == null ||
-      valor === "" ||
-      ano == null ||
-      mes == null
-    ) {
-      return res.status(400).json({
-        error: "Campos obrigatórios: pessoa, tipo, categoria, valor, ano, mes.",
-      });
+    const { pessoa, natureza, categoria, valor, data, ano, mes } = req.body;
+    if (!natureza || !categoria) {
+      return res
+        .status(400)
+        .json({ error: "natureza e categoria são obrigatórios." });
     }
-    const v = parseFloat(valor);
+    const pessoaVal =
+      pessoa != null && String(pessoa).trim() !== ""
+        ? String(pessoa).trim()
+        : "Casal";
+    if (natureza !== "fixa" && natureza !== "variavel") {
+      return res
+        .status(400)
+        .json({ error: "natureza deve ser 'fixa' ou 'variavel'." });
+    }
+    if (valor == null || valor === "") {
+      return res.status(400).json({ error: "valor é obrigatório." });
+    }
     const a = parseInt(ano, 10);
     const m = parseInt(mes, 10);
-    if (isNaN(v) || isNaN(a) || isNaN(m) || m < 1 || m > 12) {
-      return res.status(400).json({ error: "valor, ano e mes inválidos." });
+    if (isNaN(a) || isNaN(m) || m < 1 || m > 12) {
+      return res.status(400).json({ error: "ano e mes (1-12) inválidos." });
     }
-    const result = db
-      .prepare(
-        "INSERT INTO receitas (pessoa, tipo, categoria, valor, ano, mes) VALUES (?, ?, ?, ?, ?, ?)",
-      )
-      .run(
-        String(pessoa).trim(),
-        String(tipo).trim(),
-        String(categoria).trim(),
-        v,
-        a,
-        m,
-      );
+    const v = parseFloat(String(valor).replace(",", "."));
+    if (isNaN(v)) {
+      return res.status(400).json({ error: "valor inválido." });
+    }
+    const dataVal =
+      data != null && String(data).trim() !== "" ? String(data).trim() : null;
+    const naturezaFinal = String(natureza).trim();
+    const result = RECEITAS_TEM_NATUREZA
+      ? db
+          .prepare(
+            "INSERT INTO receitas (pessoa, natureza, categoria, valor, data, ano, mes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          )
+          .run(
+            pessoaVal,
+            naturezaFinal,
+            String(categoria).trim(),
+            v,
+            dataVal,
+            a,
+            m,
+          )
+      : RECEITAS_TEM_TIPO
+        ? db
+            .prepare(
+              "INSERT INTO receitas (pessoa, tipo, categoria, valor, data, ano, mes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            )
+            .run(
+              pessoaVal,
+              toTipoLegacy(naturezaFinal),
+              String(categoria).trim(),
+              v,
+              dataVal,
+              a,
+              m,
+            )
+        : db
+            .prepare(
+              "INSERT INTO receitas (pessoa, categoria, valor, data, ano, mes) VALUES (?, ?, ?, ?, ?, ?)",
+            )
+            .run(pessoaVal, String(categoria).trim(), v, dataVal, a, m);
     const created = db
       .prepare(
-        "SELECT id, pessoa, tipo, categoria, valor, ano, mes FROM receitas WHERE id = ?",
+        `SELECT id, pessoa, ${RECEITAS_NATUREZA_SELECT}, categoria, valor, data, ano, mes
+           FROM receitas
+          WHERE id = ?`,
       )
       .get(result.lastInsertRowid);
     res.status(201).json(created);
@@ -127,37 +222,85 @@ app.post("/api/receitas", (req, res) => {
   }
 });
 
-// PATCH /api/receitas/:id - Atualizar receita
+// PATCH /api/receitas/:id
 app.patch("/api/receitas/:id", (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const existing = db.prepare("SELECT * FROM receitas WHERE id = ?").get(id);
-    if (!existing)
+    if (!existing) {
       return res.status(404).json({ error: "Receita não encontrada" });
+    }
     const updates = req.body;
-    const allowed = ["pessoa", "tipo", "categoria", "valor", "ano", "mes"];
+    const allowed = [
+      "pessoa",
+      "natureza",
+      "categoria",
+      "valor",
+      "data",
+      "ano",
+      "mes",
+    ];
     const set = [];
     const values = [];
     for (const k of allowed) {
-      if (updates[k] !== undefined) {
+      if (updates[k] === undefined) continue;
+
+      if (k === "pessoa") {
+        set.push("pessoa = ?");
+        values.push(String(updates.pessoa).trim() || "Casal");
+        continue;
+      }
+
+      if (k === "natureza") {
+        if (updates.natureza !== "fixa" && updates.natureza !== "variavel") {
+          return res
+            .status(400)
+            .json({ error: "natureza deve ser 'fixa' ou 'variavel'." });
+        }
+        if (RECEITAS_TEM_NATUREZA) {
+          set.push("natureza = ?");
+          values.push(updates.natureza);
+        } else if (RECEITAS_TEM_TIPO) {
+          set.push("tipo = ?");
+          values.push(toTipoLegacy(updates.natureza));
+        }
+      } else if (k === "valor") {
+        const v = parseFloat(String(updates[k]).replace(",", "."));
+
+        if (isNaN(v)) {
+          return res.status(400).json({ error: "valor inválido." });
+        }
+
+        set.push("valor = ?");
+        values.push(v);
+      } else if (k === "ano" || k === "mes") {
         set.push(`${k} = ?`);
-        values.push(
-          k === "valor"
-            ? parseFloat(updates[k])
-            : k === "ano" || k === "mes"
-              ? parseInt(updates[k], 10)
-              : updates[k],
-        );
+        values.push(parseInt(updates[k], 10));
+      } else if (k === "data") {
+        const d =
+          updates.data != null && String(updates.data).trim() !== ""
+            ? String(updates.data).trim()
+            : null;
+
+        set.push("data = ?");
+        values.push(d);
+      } else {
+        set.push(`${k} = ?`);
+        values.push(k === "categoria" ? String(updates[k]).trim() : updates[k]);
       }
     }
     if (set.length) {
-      db.prepare(
-        `UPDATE receitas SET ${set.join(", ")}, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
-      ).run(...values, id);
+      set.push("updatedAt = CURRENT_TIMESTAMP");
+      db.prepare(`UPDATE receitas SET ${set.join(", ")} WHERE id = ?`).run(
+        ...values,
+        id,
+      );
     }
     const updated = db
       .prepare(
-        "SELECT id, pessoa, tipo, categoria, valor, ano, mes FROM receitas WHERE id = ?",
+        `SELECT id, pessoa, ${RECEITAS_NATUREZA_SELECT}, categoria, valor, data, ano, mes
+           FROM receitas
+          WHERE id = ?`,
       )
       .get(id);
     res.json(updated);
@@ -167,13 +310,14 @@ app.patch("/api/receitas/:id", (req, res) => {
   }
 });
 
-// DELETE /api/receitas/:id - Deletar receita
+// DELETE /api/receitas/:id
 app.delete("/api/receitas/:id", (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const existing = db.prepare("SELECT * FROM receitas WHERE id = ?").get(id);
-    if (!existing)
+    if (!existing) {
       return res.status(404).json({ error: "Receita não encontrada" });
+    }
     db.prepare("DELETE FROM receitas WHERE id = ?").run(id);
     res.status(204).send();
   } catch (error) {
