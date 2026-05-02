@@ -5,7 +5,7 @@ import {
   Despesa,
   CreateDespesaRequest,
   UpdateDespesaRequest,
-} from '@app/core/interfaces/despesas/despesas';
+} from '../../interfaces/despesas/despesas';
 
 @Injectable({ providedIn: 'root' })
 export class DespesasService {

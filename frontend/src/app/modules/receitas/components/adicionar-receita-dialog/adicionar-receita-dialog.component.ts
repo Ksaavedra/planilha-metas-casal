@@ -9,7 +9,11 @@ import {
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { NaturezaReceita, Receita, ReceitasService } from '@app/core';
+import {
+  NaturezaReceita,
+  Receita,
+} from '../../../../core/interfaces/receitas/receitas';
+import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
 import { UsuariosService } from '@app/core/services/usuarios/usuarios.service';
 import { listaCategoriasSugestao } from '../../../receitas/receitas-categorias.suggestions';
 import { map, merge, Observable, startWith, Subject, Subscription } from 'rxjs';

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { Despesa, DespesasService } from './despesas.service';
+import { DespesasService } from './despesas.service';
+import { Despesa } from '@app/core/interfaces/despesas/despesas';
 import { ApiService } from '../api/api.service';
 
 describe('DespesasService', () => {
@@ -48,8 +49,10 @@ describe('DespesasService', () => {
     service = TestBed.inject(DespesasService);
   });
 
-  it('deve instanciar', () => {
-    expect(service).toBeTruthy();
+  describe('Inicialização', () => {
+    it('deve instanciar', () => {
+      expect(service).toBeTruthy();
+    });
   });
 
   describe('getDespesas', () => {

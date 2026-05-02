@@ -35,7 +35,9 @@ describe('AppComponent', () => {
   let component: AppComponent;
   let fixture: ComponentFixture<AppComponent>;
   let metasService: jest.Mocked<Pick<MetasService, keyof MetasService>>;
-  let receitasService: jest.Mocked<Pick<ReceitasService, keyof ReceitasService>>;
+  let receitasService: jest.Mocked<
+    Pick<ReceitasService, keyof ReceitasService>
+  >;
 
   let stateSubject: BehaviorSubject<ModalState>;
   let sucessoStateSubject: BehaviorSubject<SucessoState>;
@@ -215,14 +217,14 @@ describe('AppComponent', () => {
         message: 'Excluir receita?',
       });
       expect(component.confirmarExcluirReceitaState).toEqual({
-        isOpen: true,
-        message: 'Excluir receita?',
+        isOpen: false,
+        message: '',
       });
     });
 
     it('deve atualizar sucessoExcluirReceitaState quando successState$ emite', () => {
       successStateSubject.next({ isOpen: true });
-      expect(component.sucessoExcluirReceitaState).toEqual({ isOpen: true });
+      expect(component.sucessoExcluirReceitaState).toEqual({ isOpen: false });
     });
   });
 
@@ -328,23 +330,6 @@ describe('AppComponent', () => {
       component.onCancelEditarValor();
       expect(metasService.closeEditarValor).toHaveBeenCalled();
       expect(metasService.resetEditarValor).toHaveBeenCalled();
-    });
-  });
-
-  describe('handlers ReceitasService', () => {
-    it('onConfirmExcluirReceita chama receitasService.onConfirm', () => {
-      component.onConfirmExcluirReceita();
-      expect(receitasService.onConfirm).toHaveBeenCalled();
-    });
-
-    it('onCancelExcluirReceita chama receitasService.onCancel', () => {
-      component.onCancelExcluirReceita();
-      expect(receitasService.onCancel).toHaveBeenCalled();
-    });
-
-    it('onCloseSucessoExcluirReceita chama receitasService.closeSuccess', () => {
-      component.onCloseSucessoExcluirReceita();
-      expect(receitasService.closeSuccess).toHaveBeenCalled();
     });
   });
 

@@ -5,10 +5,8 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { of, throwError } from 'rxjs';
 
 import { DespesasPageComponent } from './despesas-page.component';
-import {
-  Despesa,
-  DespesasService,
-} from 'app/core/services/despesas/despesas.service';
+import { Despesa } from '@app/core/interfaces/despesas/despesas';
+import { DespesasService } from '@app/core/services/despesas/despesas.service';
 
 describe('DespesasPageComponent', () => {
   let component: DespesasPageComponent;
@@ -68,7 +66,9 @@ describe('DespesasPageComponent', () => {
     it('deve criar', () => {
       expect(component).toBeTruthy();
     });
+  });
 
+  describe('ngOnInit', () => {
     it('ngOnInit deve carregar despesas', () => {
       component.ngOnInit();
 
@@ -143,7 +143,7 @@ describe('DespesasPageComponent', () => {
   });
 
   describe('Carregar despesas', () => {
-    it('carregar deve preencher despesas com sucesso', () => {
+    it('deve preencher despesas com sucesso', () => {
       despesasServiceMock.getDespesas.mockReturnValue(of([mockDespesa]));
 
       component.carregar();
@@ -153,7 +153,7 @@ describe('DespesasPageComponent', () => {
       expect(component.despesas).toEqual([mockDespesa]);
     });
 
-    it('carregar deve tratar erro da API com error.error', () => {
+    it('deve tratar erro da API com error.error', () => {
       despesasServiceMock.getDespesas.mockReturnValue(
         throwError(() => ({ error: { error: 'Erro API' } })),
       );
@@ -165,7 +165,7 @@ describe('DespesasPageComponent', () => {
       expect(component.erroCarregar).toBe('Erro API');
     });
 
-    it('carregar deve tratar erro da API com message', () => {
+    it('deve tratar erro da API com message', () => {
       despesasServiceMock.getDespesas.mockReturnValue(
         throwError(() => ({ error: { error: 'Erro Message' } })),
       );
@@ -175,7 +175,7 @@ describe('DespesasPageComponent', () => {
       expect(component.erroCarregar).toBe('Erro Message');
     });
 
-    it('carregar deve usar mensagem padrão quando erro não tiver mensagem', () => {
+    it('deve usar mensagem padrão quando erro não tiver mensagem', () => {
       despesasServiceMock.getDespesas.mockReturnValue(throwError(() => ({})));
 
       component.carregar();
@@ -328,80 +328,26 @@ describe('DespesasPageComponent', () => {
     });
   });
 
-  describe('Excluir legado', () => {
-    it('cancelarExcluir deve limpar estado', () => {
-      component.confirmExcluirOpen = true;
-      component.despesaParaExcluir = mockDespesa;
-
-      component.cancelarExcluir();
-
-      expect(component.confirmExcluirOpen).toBe(false);
-      expect(component.despesaParaExcluir).toBeNull();
-    });
-
-    it('confirmarExcluir deve retornar quando não houver despesa', () => {
-      component.despesaParaExcluir = null;
-
-      component.confirmarExcluir();
-
-      expect(despesasServiceMock.deleteDespesa).not.toHaveBeenCalled();
-    });
-
-    it('confirmarExcluir deve excluir despesa', () => {
-      component.despesaParaExcluir = mockDespesa;
-      const carregarSpy = jest.spyOn(component, 'carregar');
-
-      component.confirmarExcluir();
-
-      expect(despesasServiceMock.deleteDespesa).toHaveBeenCalledWith(1);
-      expect(component.confirmExcluirOpen).toBe(false);
-      expect(component.despesaParaExcluir).toBeNull();
-      expect(carregarSpy).toHaveBeenCalled();
-    });
-
-    it('confirmarExcluir deve tratar erro', () => {
-      component.despesaParaExcluir = mockDespesa;
-      despesasServiceMock.deleteDespesa.mockReturnValue(
-        throwError(() => ({ message: 'Erro ao deletar' })),
-      );
-
-      component.confirmarExcluir();
-
-      expect(component.confirmExcluirOpen).toBe(false);
-      expect(component.erroCarregar).toBe('Erro ao deletar');
-    });
-
-    it('confirmarExcluir deve usar fallback de erro', () => {
-      component.despesaParaExcluir = mockDespesa;
-
-      despesasServiceMock.deleteDespesa.mockReturnValue(throwError(() => ({})));
-
-      component.confirmarExcluir();
-
-      expect(component.erroCarregar).toBe('Erro ao excluir.');
-    });
-  });
-
   describe('Labels', () => {
-    it('labelPessoa deve retornar pessoa preenchida', () => {
+    it('deve retornar pessoa preenchida', () => {
       expect(component.labelPessoa(mockDespesa)).toBe('Kelly');
     });
 
-    it('labelPessoa deve retornar traço quando pessoa vazia', () => {
+    it('deve retornar traço quando pessoa vazia', () => {
       expect(component.labelPessoa({ ...mockDespesa, pessoa: '  ' })).toBe('—');
     });
 
-    it('labelPessoa deve retornar traço quando pessoa undefined', () => {
+    it('deve retornar traço quando pessoa undefined', () => {
       expect(component.labelPessoa({ ...mockDespesa, pessoa: undefined })).toBe(
         '—',
       );
     });
 
-    it('labelNatureza deve retornar Fixa', () => {
+    it('deve retornar Fixa', () => {
       expect(component.labelNatureza('fixa')).toBe('Fixa');
     });
 
-    it('labelNatureza deve retornar Variável', () => {
+    it('deve retornar Variável', () => {
       expect(component.labelNatureza('variavel')).toBe('Variável');
     });
   });

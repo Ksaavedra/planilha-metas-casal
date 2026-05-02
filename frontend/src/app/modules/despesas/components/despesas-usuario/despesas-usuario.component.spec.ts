@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { DespesasUsuarioComponent } from './despesas-usuario.component';
-import { Despesa } from 'app/core/services/despesas/despesas.service';
+import { Despesa } from '@app/core/interfaces/despesas/despesas';
 
 describe('DespesasUsuarioComponent', () => {
   let component: DespesasUsuarioComponent;

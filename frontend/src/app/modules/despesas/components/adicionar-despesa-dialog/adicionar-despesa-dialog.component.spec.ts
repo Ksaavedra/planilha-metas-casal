@@ -14,11 +14,9 @@ import {
   AdicionarDespesaDialogComponent,
   AdicionarDespesaDialogData,
 } from './adicionar-despesa-dialog.component';
-import {
-  Despesa,
-  DespesasService,
-} from 'app/core/services/despesas/despesas.service';
-import { ReceitasService } from 'app/core/services/receitas/receitas.service';
+import { Despesa } from '@app/core/interfaces/despesas/despesas';
+import { DespesasService } from 'app/core/services/despesas/despesas.service';
+import { UsuariosService } from '@app/core/services/usuarios/usuarios.service';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -54,9 +52,9 @@ describe('AdicionarDespesaDialogComponent', () => {
     updateDespesa: jest.fn(),
   };
 
-  const receitasServiceMock = {
-    getPessoasCache: jest.fn(),
-    loadPessoasDistintas: jest.fn(),
+  const usuariosServiceMock = {
+    getUsuarios: jest.fn(),
+    createUsuario: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -65,9 +63,14 @@ describe('AdicionarDespesaDialogComponent', () => {
     despesasServiceMock.createDespesa.mockReturnValue(of({}));
     despesasServiceMock.updateDespesa.mockReturnValue(of({}));
 
-    receitasServiceMock.getPessoasCache.mockReturnValue(['Kelly', 'David']);
-    receitasServiceMock.loadPessoasDistintas.mockReturnValue(
-      of(['Kelly', 'David', 'Kelly']),
+    usuariosServiceMock.getUsuarios.mockReturnValue(
+      of([
+        { id: 1, nome: 'David' },
+        { id: 2, nome: 'Kelly' },
+      ]),
+    );
+    usuariosServiceMock.createUsuario.mockReturnValue(
+      of({ id: 3, nome: 'Novo' }),
     );
 
     await TestBed.configureTestingModule({
@@ -87,7 +90,7 @@ describe('AdicionarDespesaDialogComponent', () => {
         { provide: MAT_DIALOG_DATA, useValue: dataMock },
         { provide: MatDialogRef, useValue: dialogRefMock },
         { provide: DespesasService, useValue: despesasServiceMock },
-        { provide: ReceitasService, useValue: receitasServiceMock },
+        { provide: UsuariosService, useValue: usuariosServiceMock },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     });
@@ -119,11 +122,10 @@ describe('AdicionarDespesaDialogComponent', () => {
       expect(component.form.get('data')?.value).toBeTruthy();
     });
 
-    it('deve carregar pessoas do cache e da API', () => {
+    it('deve carregar pessoas via UsuariosService.getUsuarios', () => {
       component.ngOnInit();
 
-      expect(receitasServiceMock.getPessoasCache).toHaveBeenCalled();
-      expect(receitasServiceMock.loadPessoasDistintas).toHaveBeenCalled();
+      expect(usuariosServiceMock.getUsuarios).toHaveBeenCalled();
       expect(component.pessoasAutocompleteOptions).toEqual(['David', 'Kelly']);
     });
   });
@@ -164,7 +166,7 @@ describe('AdicionarDespesaDialogComponent', () => {
           },
           { provide: MatDialogRef, useValue: dialogRefMock },
           { provide: DespesasService, useValue: despesasServiceMock },
-          { provide: ReceitasService, useValue: receitasServiceMock },
+          { provide: UsuariosService, useValue: usuariosServiceMock },
         ],
         schemas: [CUSTOM_ELEMENTS_SCHEMA],
       }).compileComponents();
@@ -172,8 +174,7 @@ describe('AdicionarDespesaDialogComponent', () => {
       fixture = TestBed.createComponent(AdicionarDespesaDialogComponent);
       component = fixture.componentInstance;
 
-      receitasServiceMock.getPessoasCache.mockReturnValue([]);
-      receitasServiceMock.loadPessoasDistintas.mockReturnValue(of([]));
+      usuariosServiceMock.getUsuarios.mockReturnValue(of([]));
     });
 
     it('deve iniciar como edição', () => {
@@ -461,18 +462,8 @@ describe('AdicionarDespesaDialogComponent', () => {
   });
 
   describe('carregarPessoasOpcoes', () => {
-    it('deve usar array vazio quando API retornar null', () => {
-      receitasServiceMock.getPessoasCache.mockReturnValue([]);
-      receitasServiceMock.loadPessoasDistintas.mockReturnValue(of(null));
-
-      component['carregarPessoasOpcoes']();
-
-      expect(component.pessoasAutocompleteOptions).toEqual([]);
-    });
-
-    it('deve usar array vazio quando API retornar undefined', () => {
-      receitasServiceMock.getPessoasCache.mockReturnValue([]);
-      receitasServiceMock.loadPessoasDistintas.mockReturnValue(of(undefined));
+    it('deve usar array vazio quando getUsuarios retornar lista vazia', () => {
+      usuariosServiceMock.getUsuarios.mockReturnValue(of([]));
 
       component['carregarPessoasOpcoes']();
 
@@ -764,7 +755,7 @@ describe('AdicionarDespesaDialogComponent', () => {
           },
           { provide: MatDialogRef, useValue: dialogRefMock },
           { provide: DespesasService, useValue: despesasServiceMock },
-          { provide: ReceitasService, useValue: receitasServiceMock },
+          { provide: UsuariosService, useValue: usuariosServiceMock },
         ],
         schemas: [CUSTOM_ELEMENTS_SCHEMA],
       }).compileComponents();
@@ -773,8 +764,7 @@ describe('AdicionarDespesaDialogComponent', () => {
       component = fixture.componentInstance;
 
       despesasServiceMock.updateDespesa.mockReturnValue(of({}));
-      receitasServiceMock.getPessoasCache.mockReturnValue([]);
-      receitasServiceMock.loadPessoasDistintas.mockReturnValue(of([]));
+      usuariosServiceMock.getUsuarios.mockReturnValue(of([]));
 
       component.ngOnInit();
     });

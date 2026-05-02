@@ -21,7 +21,7 @@ const TEMPLATE_GRAFICOS = `
 describe('RelatorioPageComponent', () => {
   let component: RelatorioPageComponent;
   let fixture: ComponentFixture<RelatorioPageComponent>;
-  let receitasStub: { getPorMesAno: jest.Mock };
+  let receitasStub: { getReceitas: jest.Mock };
   let despesasStub: { getDespesas: jest.Mock };
 
   const echartsInitMock = echarts.init as jest.Mock;
@@ -40,7 +40,7 @@ describe('RelatorioPageComponent', () => {
     echartsGetInstanceMock.mockReturnValue(null);
 
     receitasStub = {
-      getPorMesAno: jest.fn().mockReturnValue(of([])),
+      getReceitas: jest.fn().mockReturnValue(of([])),
     };
     despesasStub = {
       getDespesas: jest.fn().mockReturnValue(of([])),
@@ -491,14 +491,14 @@ describe('RelatorioPageComponent', () => {
     expect(component.dadosInvestimentos).toEqual(investimentosAtuais);
   });
 
-  it('getPorMesAno e getDespesas são chamados 12 vezes ao carregar o ano (forkJoin por mês)', (done) => {
-    const callsReceitas = receitasStub.getPorMesAno.mock.calls.length;
+  it('getReceitas e getDespesas são chamados 12 vezes ao carregar o ano (forkJoin por mês)', (done) => {
+    const callsReceitas = receitasStub.getReceitas.mock.calls.length;
     const callsDespesas = despesasStub.getDespesas.mock.calls.length;
     component['carregarReceitasAno']?.(2026);
     component['carregarDespesasAno']?.(2026);
     setTimeout(() => {
       expect(
-        receitasStub.getPorMesAno.mock.calls.length - callsReceitas,
+        receitasStub.getReceitas.mock.calls.length - callsReceitas,
       ).toBeGreaterThanOrEqual(12);
       expect(
         despesasStub.getDespesas.mock.calls.length - callsDespesas,
@@ -655,50 +655,14 @@ describe('RelatorioPageComponent', () => {
     expect(intanciaEl3.setOption).toHaveBeenCalled();
   });
 
-  it('normalizarCategoriaReceita deve retornar variavel quando categoria for Variável', () => {
-    const result = (
-      component as unknown as {
-        normalizarCategoriaReceita: (
-          c: string | undefined,
-        ) => 'fixa' | 'variavel';
-      }
-    ).normalizarCategoriaReceita('Variável');
-
-    expect(result).toBe('variavel');
-  });
-
-  it('normalizarCategoriaReceita deve retornar variavel quando texto for variavel sem acento', () => {
-    const result = (
-      component as unknown as {
-        normalizarCategoriaReceita: (
-          c: string | undefined,
-        ) => 'fixa' | 'variavel';
-      }
-    ).normalizarCategoriaReceita('variavel');
-
-    expect(result).toBe('variavel');
-  });
-
-  it('normalizarCategoriaReceita deve retornar fixa quando categoria vier undefined', () => {
-    const result = (
-      component as unknown as {
-        normalizarCategoriaReceita: (
-          c: string | undefined,
-        ) => 'fixa' | 'variavel';
-      }
-    ).normalizarCategoriaReceita(undefined);
-
-    expect(result).toBe('fixa');
-  });
-
-  it('agregarReceitasPorCategorias deve ignorar valor zero e agrupar por tipo', () => {
+  it('agregarReceitasPorCategorias deve ignorar valor zero e agrupar por categoria', () => {
     const listas = Array.from({ length: 12 }, () => []);
 
     listas[0] = [
-      { valor: 1000, categoria: 'Fixa', tipo: 'Salário' },
-      { valor: 500, categoria: 'Variável', tipo: 'Freela' },
-      { valor: 0, categoria: 'Variável', tipo: 'Ignorar' },
-      { valor: 200, categoria: 'variavel', tipo: '' },
+      { valor: 1000, natureza: 'fixa', categoria: 'Salário' },
+      { valor: 500, natureza: 'variavel', categoria: 'Freela' },
+      { valor: 0, natureza: 'variavel', categoria: 'Ignorar' },
+      { valor: 200, natureza: 'variavel', categoria: '' },
     ] as never[];
 
     (
@@ -710,15 +674,15 @@ describe('RelatorioPageComponent', () => {
     expect(component.naturezaReceitaLinhas[0].total).toBe(1000);
     expect(component.naturezaReceitaLinhas[1].total).toBe(700);
 
-    const tipos = component.receitasPorTipoLinhas;
+    const categorias = component.receitasPorTipoLinhas;
     expect(
-      tipos.find((t) => t.tipo === 'Freela' && t.total === 500),
+      categorias.find((c) => c.categoria === 'Freela' && c.total === 500),
     ).toBeTruthy();
     expect(
-      tipos.find((t) => t.tipo === 'Outras' && t.total === 200),
+      categorias.find((c) => c.categoria === 'Outras' && c.total === 200),
     ).toBeTruthy();
     expect(
-      tipos.find((t) => t.tipo === 'Salário' && t.total === 1000),
+      categorias.find((c) => c.categoria === 'Salário' && c.total === 1000),
     ).toBeTruthy();
   });
 
@@ -749,16 +713,20 @@ describe('RelatorioPageComponent', () => {
     expect(component.naturezaDespesaLinhas[0].total).toBe(300);
     expect(component.naturezaDespesaLinhas[1].total).toBe(200);
 
-    const cats = component.despesasPorCategoriaLinhas;
-    expect(cats.find((c) => c.categoria === 'Moradia' && c.total === 300)).toBeTruthy();
+    const categorias = component.despesasPorCategoriaLinhas;
     expect(
-      cats.find((c) => c.categoria === 'Alimentação' && c.total === 150),
+      categorias.find((c) => c.categoria === 'Moradia' && c.total === 300),
     ).toBeTruthy();
-    expect(cats.find((c) => c.categoria === 'Outras' && c.total === 50)).toBeTruthy();
+    expect(
+      categorias.find((c) => c.categoria === 'Alimentação' && c.total === 150),
+    ).toBeTruthy();
+    expect(
+      categorias.find((c) => c.categoria === 'Outras' && c.total === 50),
+    ).toBeTruthy();
   });
 
   it('carregarReceitasAno deve retornar quando ano não existe', () => {
-    const callsAntes = receitasStub.getPorMesAno.mock.calls.length;
+    const callsAntes = receitasStub.getReceitas.mock.calls.length;
 
     (
       component as unknown as {
@@ -766,7 +734,7 @@ describe('RelatorioPageComponent', () => {
       }
     ).carregarReceitasAno(1999);
 
-    expect(receitasStub.getPorMesAno.mock.calls.length).toBe(callsAntes);
+    expect(receitasStub.getReceitas.mock.calls.length).toBe(callsAntes);
   });
 
   it('carregarDespesasAno deve retornar quando ano não existe', () => {
@@ -782,7 +750,7 @@ describe('RelatorioPageComponent', () => {
   });
 
   it('carregarReceitasAno deve tratar erro da API e usar lista vazia', (done) => {
-    receitasStub.getPorMesAno.mockReturnValueOnce(
+    receitasStub.getReceitas.mockReturnValueOnce(
       throwError(() => new Error('erro')),
     );
 
