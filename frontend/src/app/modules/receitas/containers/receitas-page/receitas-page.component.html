@@ -39,10 +39,10 @@
           (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoReceitas === 'lista'">
           Minhas receitas
         </button>
-        <!-- <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'usuario'"
+        <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'usuario'"
           (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoReceitas === 'usuario'">
-          Por pesssoa
-        </button> -->
+          Por pessoa
+        </button>
         <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'exemplos'"
           (click)="selecionarVisao('exemplos')" role="tab" [attr.aria-selected]="visaoReceitas === 'exemplos'">
           Exemplos
@@ -172,4 +172,6 @@
   </ng-container>
 
   <app-receitas-exemplos *ngIf="visaoReceitas === 'exemplos'"></app-receitas-exemplos>
+  <app-receitas-usuario *ngIf="visaoReceitas === 'usuario'" [receitas]="receitas" [nomeMesReferencia]="nomeMesAtual">
+  </app-receitas-usuario>
 </div>
