@@ -1,33 +1,11 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../api/api.service';
-
-export type NaturezaDespesa = 'fixa' | 'variavel';
-
-export interface Despesa {
-  id: number;
-  pessoa?: string;
-  natureza: NaturezaDespesa;
-  categoria: string;
-  descricao: string;
-  valor: number;
-  data: string | null;
-  ano: number;
-  mes: number;
-}
-
-export interface CreateDespesaRequest {
-  pessoa: string;
-  natureza: NaturezaDespesa;
-  categoria: string;
-  descricao: string;
-  valor: number;
-  data?: string | null;
-  ano: number;
-  mes: number;
-}
-
-export type UpdateDespesaRequest = Partial<CreateDespesaRequest>;
+import {
+  Despesa,
+  CreateDespesaRequest,
+  UpdateDespesaRequest,
+} from '@app/core/interfaces/despesas/despesas';
 
 @Injectable({ providedIn: 'root' })
 export class DespesasService {

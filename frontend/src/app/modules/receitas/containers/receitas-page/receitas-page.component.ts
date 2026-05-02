@@ -2,16 +2,20 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  OnDestroy,
   OnInit,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
 import {
-  CategoriaReceita,
-  ReceitaMensal,
-  TipoReceita,
-} from '../../../../core/interfaces/receitas';
-import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
+  AdicionarReceitaDialogComponent,
+  AdicionarReceitaDialogData,
+} from '../../components/adicionar-receita-dialog/adicionar-receita-dialog.component';
+import { ConfirmModalComponent } from 'app/shared/components/confirm-modal/confirm-modal.component';
+import { ReceitasService } from 'app/core/services/receitas/receitas.service';
+import {
+  Receita,
+  NaturezaReceita,
+} from '@app/core/interfaces/receitas/receitas';
+import { SuccessModalComponent } from '@app/shared/components/success-modal/success-modal.component';
 
 @Component({
   selector: 'app-receitas-page',
@@ -20,14 +24,16 @@ import { ReceitasService } from '../../../../core/services/receitas/receitas.ser
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class ReceitasPageComponent implements OnInit, OnDestroy {
+export class ReceitasPageComponent implements OnInit {
+  readonly tituloSecundario = 'Acompanhem tudo o que entra e construam juntos.';
+
+  visaoReceitas: 'lista' | 'exemplos' | 'usuario' = 'lista';
   mesAtual: Date = new Date();
-  receitasMensal: ReceitaMensal[] = [];
+  receitas: Receita[] = [];
   loading = false;
   erroCarregar: string | null = null;
-
-  private saveSubscription?: Subscription;
-  private deleteSubscription?: Subscription;
+  confirmExcluirOpen = false;
+  receitaParaExcluir: Receita | null = null;
 
   meses = [
     'Janeiro',
@@ -44,272 +50,227 @@ export class ReceitasPageComponent implements OnInit, OnDestroy {
     'Dezembro',
   ];
 
+  constructor(
+    private receitasService: ReceitasService,
+    private cdr: ChangeDetectorRef,
+    private dialog: MatDialog,
+  ) {}
+
+  private log(acao: string, payload?: unknown): void {
+    if (payload === undefined) {
+      console.log(`[ReceitasPage] ${acao}`);
+      return;
+    }
+    console.log(`[ReceitasPage] ${acao}`, payload);
+  }
+
   get nomeMesAtual(): string {
     const mes = this.mesAtual.getMonth();
     const ano = this.mesAtual.getFullYear();
     return `${this.meses[mes]} ${ano}`;
   }
 
-  /** Cards por pessoa (dados da API): agrupa por nome ignorando maiúsculas. Ordem alfabética. */
-  get cardsPorPessoa(): {
-    nome: string;
-    receitas: ReceitaMensal[];
-    total: number;
-  }[] {
-    const map = new Map<string, { nome: string; receitas: ReceitaMensal[] }>();
-    for (const r of this.receitasMensal) {
-      const pessoa = r.pessoa.trim();
-      if (!pessoa) continue;
-      const key = pessoa.toLowerCase();
-      if (!map.has(key)) {
-        map.set(key, { nome: this.toTitleCase(pessoa), receitas: [] });
-      }
-      map.get(key)!.receitas.push(r);
-    }
-    const nomesOrdenados = [...map.keys()].sort((a, b) => a.localeCompare(b));
-    return nomesOrdenados.map((key) => {
-      const { nome, receitas } = map.get(key)!;
-      const total = receitas.reduce((s, r) => s + r.valor, 0);
-      return { nome, receitas, total };
-    });
+  get receitasFixas(): Receita[] {
+    return this.receitas.filter((r) => r.natureza === 'fixa');
   }
 
-  get totalMensal(): number {
-    return this.receitasMensal.reduce((s, r) => s + r.valor, 0);
+  get receitasVariaveis(): Receita[] {
+    return this.receitas.filter((r) => r.natureza === 'variavel');
   }
 
-  constructor(
-    private receitasService: ReceitasService,
-    private cdr: ChangeDetectorRef,
-  ) {}
+  get totalFixas(): number {
+    return this.receitasService.calcularTotalReceitas(this.receitasFixas);
+  }
+
+  get totalVariaveis(): number {
+    return this.receitasService.calcularTotalReceitas(this.receitasVariaveis);
+  }
+
+  get totalGeral(): number {
+    return this.receitasService.calcularTotalReceitas(this.receitas);
+  }
+
+  get anoRef(): number {
+    return this.mesAtual.getFullYear();
+  }
+
+  get mesRef(): number {
+    return this.mesAtual.getMonth() + 1;
+  }
 
   ngOnInit(): void {
-    this.carregarReceitasDoMes();
-    this.saveSubscription = this.receitasService.save$.subscribe(
-      (data: {
-        nomeUsuario: string;
-        valorSalario: number;
-        tipo: TipoReceita;
-        categoria: CategoriaReceita;
-        meses: number[];
-        ano: number;
-        receitaId?: number;
-      }) => {
-        if (data.receitaId != null) {
-          this.atualizarReceita(
-            data.receitaId,
-            data.nomeUsuario,
-            data.valorSalario,
-            data.tipo,
-            data.categoria,
-          );
-        } else {
-          this.salvarUsuario(data);
-        }
-      },
-    );
-
-    this.deleteSubscription = this.receitasService.confirmDelete$.subscribe(
-      (receitaId) => {
-        this.receitasService.delete(receitaId).subscribe({
-          next: () => {
-            this.erroCarregar = null;
-            this.receitasService.openSuccess();
-            this.carregarReceitasDoMes();
-            this.receitasService.loadPessoasDistintas().subscribe();
-            this.cdr.markForCheck();
-          },
-          error: (err) => {
-            this.erroCarregar = err?.error?.error || 'Erro ao excluir.';
-            this.cdr.markForCheck();
-          },
-        });
-      },
-    );
-  }
-
-  ngOnDestroy(): void {
-    this.saveSubscription?.unsubscribe();
-    this.deleteSubscription?.unsubscribe();
-  }
-
-  private toTitleCase(value: string): string {
-    if (!value || !value.trim()) return value;
-    return value
-      .trim()
-      .split(/\s+/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ');
-  }
-
-  abrirModalAdicionarUsuario(): void {
-    this.receitasService.open();
-  }
-
-  salvarUsuario(data: {
-    nomeUsuario: string;
-    valorSalario: number;
-    tipo: TipoReceita;
-    categoria: CategoriaReceita;
-    meses: number[];
-    ano: number;
-  }): void {
-    this.loading = true;
-    this.erroCarregar = null;
-    this.cdr.markForCheck();
-
-    this.receitasService
-      .createReceitasParaUsuario(
-        data.nomeUsuario,
-        data.valorSalario,
-        data.tipo,
-        data.categoria,
-        data.meses,
-        data.ano,
-      )
-      .subscribe({
-        next: () => {
-          this.receitasService.addPessoaToCache(data.nomeUsuario);
-          this.receitasService.loadPessoasDistintas().subscribe();
-          this.loading = false;
-          this.carregarReceitasDoMes();
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          this.loading = false;
-          this.erroCarregar = err?.error?.error || 'Erro ao salvar receitas.';
-          this.cdr.markForCheck();
-        },
-      });
-  }
-
-  carregarReceitasDoMes(): void {
-    const ano = this.mesAtual.getFullYear();
-    const mes = this.mesAtual.getMonth() + 1;
-
-    this.loading = true;
-    this.erroCarregar = null;
-    this.cdr.markForCheck();
-
-    this.receitasService.getPorMesAno(ano, mes).subscribe({
-      next: (lista) => {
-        this.receitasMensal = lista;
-        this.loading = false;
-        this.erroCarregar = null;
-        this.cdr.markForCheck();
-        // Console: mostrar dados do mês
-        // const nomeMes = this.meses[mes - 1];
-        // console.log(`📅 Receitas – ${nomeMes} ${ano}`, {
-        //   mes: mes,
-        //   ano: ano,
-        //   totalRegistros: lista.length,
-        //   totalValor: lista.reduce((s, r) => s + r.valor, 0),
-        //   dados: lista,
-        // });
-      },
-      error: (err) => {
-        this.receitasMensal = [];
-        this.loading = false;
-        this.erroCarregar = err?.error?.error || 'Erro ao carregar receitas.';
-        this.cdr.markForCheck();
-      },
-    });
+    this.log('ngOnInit');
+    this.carregar();
   }
 
   mesAnterior(): void {
-    const d = new Date(this.mesAtual);
-    d.setMonth(d.getMonth() - 1);
-    this.mesAtual = d;
-    this.carregarReceitasDoMes();
+    const r = new Date(this.mesAtual);
+    r.setMonth(r.getMonth() - 1);
+    this.mesAtual = r;
+    this.log('mesAnterior', { ano: this.anoRef, mes: this.mesRef });
+    this.carregar();
   }
 
   proximoMes(): void {
-    const d = new Date(this.mesAtual);
-    d.setMonth(d.getMonth() + 1);
-    this.mesAtual = d;
-    this.carregarReceitasDoMes();
+    const r = new Date(this.mesAtual);
+    r.setMonth(r.getMonth() + 1);
+    this.mesAtual = r;
+    this.log('proximoMes', { ano: this.anoRef, mes: this.mesRef });
+    this.carregar();
   }
 
-  onDateChange(event: { value?: Date }): void {
-    if (event?.value) {
-      this.mesAtual = event.value;
-      this.carregarReceitasDoMes();
-    }
+  selecionarVisao(visao: 'lista' | 'exemplos' | 'usuario'): void {
+    this.visaoReceitas = visao;
+    this.log('selecionarVisao', { visao });
+    this.cdr.markForCheck();
   }
 
-  editarReceita(receita: ReceitaMensal): void {
-    if (receita.id == null) return;
-    this.receitasService.openForEdit({
-      id: receita.id,
-      pessoa: receita.pessoa,
-      valor: receita.valor,
-      tipo: receita.tipo,
-      categoria: receita.categoria,
-      ano: receita.ano,
-      mes: receita.mes,
+  abrirModalAdicionarReceita(): void {
+    this.log('abrirModalAdicionarReceita');
+    this.abrirDialogReceita(null);
+  }
+
+  editar(r: Receita): void {
+    this.log('editar', r);
+    this.abrirDialogReceita(r);
+  }
+
+  private abrirDialogReceita(receita: Receita | null): void {
+    this.log('abrirDialogReceita', receita);
+    const ref = this.abrirDialog(receita);
+    ref.afterClosed().subscribe((saved) => {
+      this.log('dialogFechado', { saved });
+      if (saved) {
+        this.porSalvarReceita(receita);
+      }
     });
   }
 
-  atualizarReceita(
-    receitaId: number,
-    nomeUsuario: string,
-    valorSalario: number,
-    tipo: TipoReceita,
-    categoria: CategoriaReceita,
-  ): void {
+  private abrirDialog(receita: Receita | null) {
+    const data: AdicionarReceitaDialogData = {
+      receita,
+      ano: this.anoRef,
+      mes: this.mesRef,
+    };
+    this.log('abrirDialog payload', data);
+    return this.dialog.open(AdicionarReceitaDialogComponent, {
+      width: 'min(520px, 96vw)',
+      maxHeight: '90vh',
+      data,
+      autoFocus: 'dialog',
+      restoreFocus: true,
+    });
+  }
+
+  private porSalvarReceita(receita: Receita | null): void {
+    this.log('porSalvarReceita', receita);
+    this.carregar();
+
+    const isEdicao = receita != null;
+
+    this.abrirModalSucesso(isEdicao);
+
+    this.cdr.markForCheck();
+  }
+
+  private abrirModalSucesso(isEdicao: boolean): void {
+    this.log('abrirModalSucesso', { isEdicao });
+    this.dialog.open(SuccessModalComponent, {
+      width: 'min(520px, 96vw)',
+      maxHeight: '90vh',
+      data: {
+        title: isEdicao ? 'Receita atualizada!' : 'Receita adicionada!',
+        message: isEdicao
+          ? 'A receita foi atualizada com sucesso.'
+          : 'A receita foi adicionada com sucesso.',
+        confirmText: 'OK',
+      },
+    });
+  }
+
+  carregar(): void {
+    this.log('carregar inicio', { ano: this.anoRef, mes: this.mesRef });
     this.loading = true;
     this.erroCarregar = null;
     this.cdr.markForCheck();
+
     this.receitasService
-      .update(receitaId, {
-        pessoa: nomeUsuario.trim(),
-        valor: valorSalario,
-        tipo,
-        categoria,
-      })
+      .getReceitas({ ano: this.anoRef, mes: this.mesRef })
       .subscribe({
-        next: () => {
+        next: (rows) => {
+          this.log('carregar sucesso', { total: rows.length, rows });
+          this.receitas = [...rows];
           this.loading = false;
-          this.erroCarregar = null;
-          this.receitasService.loadPessoasDistintas().subscribe();
-          this.carregarReceitasDoMes();
           this.cdr.markForCheck();
         },
-        error: (err) => {
+        error: (e) => {
+          this.log('carregar erro', e);
+          this.receitas = [];
           this.loading = false;
-          this.erroCarregar = err?.error?.error || 'Erro ao atualizar.';
+          this.erroCarregar =
+            e?.error?.error ||
+            e?.message ||
+            'Não foi possível carregar receitas.';
           this.cdr.markForCheck();
         },
       });
   }
 
-  excluirReceita(receita: ReceitaMensal): void {
-    if (!receita.id) return;
-    this.receitasService.openConfirm(receita);
-  }
-
-  /**
-   * Agrupa as receitas de uma pessoa por tipo (ex.: Freela, Salário).
-   * Cada tipo vira um bloco com uma ou mais linhas (Fixa / Variável, valor, ações).
-   */
-  receitasAgrupadasPorTipo(
-    receitas: ReceitaMensal[],
-  ): { tipo: string; itens: ReceitaMensal[] }[] {
-    const map = new Map<string, ReceitaMensal[]>();
-    for (const r of receitas) {
-      const t = (r.tipo || '').trim() || '—';
-      if (!map.has(t)) map.set(t, []);
-      map.get(t)!.push(r);
-    }
-    const tipos = [...map.keys()].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-    return tipos.map((tipo) => {
-      const itens = [...(map.get(tipo) || [])].sort((a, b) => {
-        const ord = (c: CategoriaReceita) => (c === 'Fixa' ? 0 : 1);
-        const d = ord(a.categoria) - ord(b.categoria);
-        if (d !== 0) return d;
-        return (a.id ?? 0) - (b.id ?? 0);
-      });
-      return { tipo, itens };
+  abrirConfirmExcluir(r: Receita): void {
+    this.log('abrirConfirmExcluir', r);
+    const ref = this.dialog.open(ConfirmModalComponent, {
+      width: 'min(520px, 96vw)',
+      maxHeight: '90vh',
+      data: {
+        title: 'Excluir receita',
+        message: `Tem certeza que deseja excluir "${r.categoria}" no valor de ${this.formatarValor(r.valor)}?`,
+        confirmText: 'Sim, excluir',
+        cancelText: 'Cancelar',
+      },
     });
+
+    ref.afterClosed().subscribe((confirmed) => {
+      this.log('confirmExcluir resultado', { confirmed, id: r.id });
+      if (confirmed) {
+        this.receitasService.deleteReceita(r.id).subscribe({
+          next: () => {
+            this.log('excluir sucesso', { id: r.id });
+            this.carregar();
+            this.dialog.open(SuccessModalComponent, {
+              width: 'min(520px, 96vw)',
+              maxHeight: '90vh',
+              data: {
+                title: 'Receita excluída',
+                message: 'A receita foi excluída com sucesso.',
+                confirmText: 'OK',
+              },
+            });
+            this.cdr.markForCheck();
+          },
+          error: (e) => {
+            this.log('excluir erro', e);
+            this.erroCarregar =
+              e?.error?.error || e?.message || 'Erro ao excluir.';
+            this.cdr.markForCheck();
+          },
+        });
+      }
+    });
+  }
+
+  private formatarValor(valor: number): string {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(valor);
+  }
+
+  labelPessoa(r: Receita): string {
+    const p = r.pessoa?.trim();
+    return p || '—';
+  }
+
+  labelNatureza(n: NaturezaReceita): string {
+    return n === 'fixa' ? 'Fixa' : 'Variável';
   }
 }

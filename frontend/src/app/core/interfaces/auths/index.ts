@@ -1,1 +1,1 @@
-export * from './auth';
+export { Usuario, LoginRequest, RegisterRequest, AuthResponse } from './auth';

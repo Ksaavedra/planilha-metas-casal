@@ -1,4 +1,4 @@
-import { NaturezaDespesa } from 'app/core/services/despesas/despesas.service';
+import { NaturezaDespesa } from '@app/core/interfaces/despesas/despesas';
 
 export const CATEGORIAS_FORM_FIXA: readonly string[] = [
   'Aluguel',

@@ -1,5 +1,4 @@
 import {
-  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   ElementRef,
@@ -10,30 +9,24 @@ import {
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { merge, Observable, Subject, Subscription } from 'rxjs';
-import { map, startWith } from 'rxjs/operators';
-import { DespesasService } from 'app/core/services/despesas/despesas.service';
-import {
-  Despesa,
-  NaturezaDespesa,
-} from '@app/core/interfaces/despesas/despesas';
-import { listaCategoriasSugestao } from '../../despesas-categorias.suggestions';
+import { NaturezaReceita, Receita, ReceitasService } from '@app/core';
 import { UsuariosService } from '@app/core/services/usuarios/usuarios.service';
+import { listaCategoriasSugestao } from '../../../receitas/receitas-categorias.suggestions';
+import { map, merge, Observable, startWith, Subject, Subscription } from 'rxjs';
 
-export interface AdicionarDespesaDialogData {
-  despesa: Despesa | null;
+export interface AdicionarReceitaDialogData {
+  receita: Receita | null;
   ano: number;
   mes: number;
 }
 
 @Component({
-  selector: 'app-adicionar-despesa-dialog',
-  templateUrl: './adicionar-despesa-dialog.component.html',
-  styleUrls: ['./adicionar-despesa-dialog.component.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'app-adicionar-receita-dialog',
+  templateUrl: './adicionar-receita-dialog.component.html',
+  styleUrl: './adicionar-receita-dialog.component.scss',
   standalone: false,
 })
-export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
+export class AdicionarReceitaDialogComponent implements OnInit, OnDestroy {
   @ViewChild('pessoaInput')
   pessoasAutocompleteOptions: string[] = [];
   filteredPessoas$!: Observable<string[]>;
@@ -50,13 +43,13 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
   erro: string | null = null;
 
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: AdicionarDespesaDialogData,
+    @Inject(MAT_DIALOG_DATA) public data: AdicionarReceitaDialogData,
     private dialogRef: MatDialogRef<
-      AdicionarDespesaDialogComponent,
+      AdicionarReceitaDialogComponent,
       boolean | undefined
     >,
     private fb: FormBuilder,
-    private despesasService: DespesasService,
+    private receitasService: ReceitasService,
     private usuariosService: UsuariosService,
     private cdr: ChangeDetectorRef,
   ) {
@@ -64,7 +57,6 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
       pessoa: ['', [Validators.required, Validators.minLength(2)]],
       natureza: ['', Validators.required],
       categoria: ['', Validators.required],
-      descricao: ['', [Validators.required, Validators.maxLength(200)]],
       valor: [
         null as number | null,
         [Validators.required, Validators.min(0.01)],
@@ -88,17 +80,16 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
   }
 
   private inicializarFormulario(): void {
-    const d = this.data.despesa;
+    const r = this.data.receita;
 
-    if (d) {
+    if (r) {
       this.form.patchValue(
         {
-          pessoa: d.pessoa ?? '',
-          natureza: d.natureza,
-          categoria: d.categoria,
-          descricao: d.descricao,
-          valor: d.valor,
-          data: d.data ?? '',
+          pessoa: r.pessoa ?? '',
+          natureza: r.natureza,
+          categoria: r.categoria,
+          valor: r.valor,
+          data: r.data ?? '',
         },
         { emitEvent: false },
       );
@@ -110,7 +101,6 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
         pessoa: '',
         natureza: '',
         categoria: '',
-        descricao: '',
         valor: null,
         data: this.dataDefaultIso(),
       },
@@ -152,22 +142,21 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const lista = listaCategoriasSugestao(raw as NaturezaDespesa);
+    const lista = listaCategoriasSugestao(raw as NaturezaReceita);
     const cur = String(this.form.get('categoria')?.value || '').trim();
 
     if (cur && !lista.includes(cur)) {
       this.form.patchValue({ categoria: '' }, { emitEvent: false });
     }
-
     this.atualizarCategoriasOpcoes();
   }
 
   get isEdicao(): boolean {
-    return this.data.despesa != null;
+    return this.data.receita != null;
   }
 
   get tituloDialog(): string {
-    return this.isEdicao ? 'Editar despesa' : 'Incluir despesa';
+    return this.isEdicao ? 'Editar receita' : 'Incluir receita';
   }
 
   private toTitleCase(value: string): string {
@@ -220,6 +209,7 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
         this.pessoasAutocompleteOptions = this.normalizarListaNomes(
           usuarios.map((u) => u.nome),
         );
+
         this.pessoasOpcoesAtualizadas$.next();
         this.cdr.markForCheck();
       });
@@ -250,14 +240,14 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
       this.categoriasOpcoes = cur ? [cur] : [];
       return;
     }
-    const lista = listaCategoriasSugestao(raw as NaturezaDespesa);
+    const lista = listaCategoriasSugestao(raw as NaturezaReceita);
     const cur = String(this.form.get('categoria')?.value || '').trim();
     this.categoriasOpcoes =
       cur && !lista.includes(cur) ? [cur, ...lista] : [...lista];
   }
 
   fechar(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(false);
   }
 
   salvar(): void {
@@ -276,9 +266,8 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
       v.data && String(v.data).trim() !== '' ? String(v.data).trim() : null;
     const payload = {
       pessoa: pessoaTrim,
-      natureza: v.natureza as NaturezaDespesa,
+      natureza: v.natureza as NaturezaReceita,
       categoria: String(v.categoria).trim(),
-      descricao: String(v.descricao).trim(),
       valor: Number(v.valor),
       data: dataStr,
       ano: this.data.ano,
@@ -296,20 +285,20 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
     };
     const request$ = this.isEdicao
-      ? this.despesasService.updateDespesa(this.data.despesa!.id, payload)
-      : this.despesasService.createDespesa(payload);
+      ? this.receitasService.updateReceita(this.data.receita!.id, payload)
+      : this.receitasService.createReceita(payload);
 
-    const salvarDespesa = (): void => {
+    const salvarReceita = (): void => {
       request$.subscribe({ next: onOk, error: onErr });
     };
 
     if (pessoaTrim) {
       this.usuariosService.createUsuario(pessoaTrim).subscribe({
-        next: salvarDespesa,
-        error: () => salvarDespesa(),
+        next: salvarReceita,
+        error: () => salvarReceita(),
       });
     } else {
-      salvarDespesa();
+      salvarReceita();
     }
   }
 

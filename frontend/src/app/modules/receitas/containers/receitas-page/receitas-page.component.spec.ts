@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
 import { fakeAsync, tick } from '@angular/core/testing';
 import { Subject } from 'rxjs';
-import { ReceitaMensal } from '../../../../core/interfaces/receitas';
+import { ReceitaMensal } from '../../../../core/interfaces/receitas/receitas';
 import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
 import { ReceitasPageComponent } from './receitas-page.component';
 

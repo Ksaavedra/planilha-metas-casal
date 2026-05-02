@@ -1,5 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { Despesa } from 'app/core/services/despesas/despesas.service';
+import { Despesa } from '@app/core/interfaces/despesas/despesas';
 
 export interface LinhaUsuarioDespesasMes {
   usuario: string;

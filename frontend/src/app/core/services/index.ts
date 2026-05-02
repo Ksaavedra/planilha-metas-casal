@@ -1,13 +1,7 @@
 export * from './api/api.service';
 export * from './auth/auth.service';
 export * from './categorias/categorias.service';
-export {
-  CreateDespesaRequest,
-  Despesa,
-  DespesasService,
-  NaturezaDespesa,
-  UpdateDespesaRequest,
-} from './despesas/despesas.service';
+export * from './despesas/despesas.service';
 export * from './loader/loader.service';
 export * from './meses/meses.service';
 export * from './metas/metas.service';

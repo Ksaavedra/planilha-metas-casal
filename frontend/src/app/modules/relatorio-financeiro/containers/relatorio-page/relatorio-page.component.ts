@@ -7,16 +7,11 @@ import {
 } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import {
-  CategoriaReceita,
-  ReceitaMensal,
-} from '../../../../core/interfaces/receitas';
 import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
-import {
-  Despesa,
-  DespesasService,
-} from '../../../../core/services/despesas/despesas.service';
+import { DespesasService } from '../../../../core/services/despesas/despesas.service';
+import { Despesa } from '@app/core/interfaces/despesas/despesas';
 import * as echarts from 'echarts';
+import { Receita } from '@app/core';
 
 type EChartsOption = Record<string, unknown>;
 
@@ -68,8 +63,11 @@ export class RelatorioPageComponent implements AfterViewInit {
   }[] = [];
 
   /** Uma linha por tipo de receita (Salário, Freela, etc.). */
-  receitasPorTipoLinhas: { tipo: string; valores: number[]; total: number }[] =
-    [];
+  receitasPorTipoLinhas: {
+    categoria: string;
+    valores: number[];
+    total: number;
+  }[] = [];
 
   /** Fixa e variável, despesas por mês (12 posições). */
   naturezaDespesaLinhas: {
@@ -759,8 +757,8 @@ export class RelatorioPageComponent implements AfterViewInit {
   private carregarReceitasAno(ano: number): void {
     if (!this.dadosPorAno[ano]) return;
     const porMes$ = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((mes) =>
-      this.receitasService.getPorMesAno(ano, mes).pipe(
-        catchError(() => of([] as ReceitaMensal[])),
+      this.receitasService.getReceitas({ ano, mes }).pipe(
+        catchError(() => of([] as Receita[])),
         map((lista) => lista || []),
       ),
     );
@@ -796,30 +794,21 @@ export class RelatorioPageComponent implements AfterViewInit {
     });
   }
 
-  private normalizarCategoriaReceita(
-    c: CategoriaReceita | string | undefined,
-  ): 'fixa' | 'variavel' {
-    if (c === 'Variável') return 'variavel';
-    if (typeof c === 'string' && /variável|variavel/i.test(c))
-      return 'variavel';
-    return 'fixa';
-  }
-
-  private agregarReceitasPorCategorias(listasPorMes: ReceitaMensal[][]): void {
+  private agregarReceitasPorCategorias(listasPorMes: Receita[][]): void {
     const fixa = new Array(12).fill(0) as number[];
     const variavel = new Array(12).fill(0) as number[];
-    const porTipo = new Map<string, number[]>();
+    const porCategoria = new Map<string, number[]>();
 
     for (let m = 0; m < 12; m++) {
       for (const r of listasPorMes[m] || []) {
         const v = Number(r.valor) || 0;
         if (v === 0) continue;
-        const nat = this.normalizarCategoriaReceita(r.categoria);
-        if (nat === 'variavel') variavel[m] += v;
+        if (r.natureza === 'variavel') variavel[m] += v;
         else fixa[m] += v;
-        const tipo = String(r.tipo || 'Outras').trim() || 'Outras';
-        if (!porTipo.has(tipo)) porTipo.set(tipo, new Array(12).fill(0));
-        porTipo.get(tipo)![m] += v;
+        const cat = String(r.categoria || 'Outras').trim() || 'Outras';
+        if (!porCategoria.has(cat))
+          porCategoria.set(cat, new Array(12).fill(0));
+        porCategoria.get(cat)![m] += v;
       }
     }
 
@@ -838,14 +827,18 @@ export class RelatorioPageComponent implements AfterViewInit {
         total: sum(variavel),
       },
     ];
-    this.receitasPorTipoLinhas = Array.from(porTipo.entries())
-      .map(([tipo, valores]) => ({
-        tipo,
+    this.receitasPorTipoLinhas = Array.from(porCategoria.entries())
+      .map(([categoria, valores]) => ({
+        categoria,
         valores,
         total: sum(valores),
       }))
       .filter((l) => l.total > 0)
-      .sort((a, b) => a.tipo.localeCompare(b.tipo, 'pt-BR'));
+      .sort((a, b) =>
+        a.categoria.localeCompare(b.categoria, 'pt-BR', {
+          sensitivity: 'base',
+        }),
+      );
   }
 
   private agregarDespesasPorCategorias(listasPorMes: Despesa[][]): void {

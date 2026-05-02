@@ -4,7 +4,7 @@ import {
   CategoriaReceita,
   ReceitaMensal,
   TipoReceita,
-} from '../../interfaces/receitas';
+} from '../../interfaces/receitas/receitas';
 import { ApiService } from '../api/api.service';
 import { ReceitasService } from './receitas.service';
 
@@ -32,10 +32,7 @@ describe('ReceitasService', () => {
       delete: jest.fn().mockReturnValue(of(undefined)),
     };
     TestBed.configureTestingModule({
-      providers: [
-        ReceitasService,
-        { provide: ApiService, useValue: api },
-      ],
+      providers: [ReceitasService, { provide: ApiService, useValue: api }],
     });
     service = TestBed.inject(ReceitasService);
   });
@@ -103,7 +100,9 @@ describe('ReceitasService', () => {
     });
 
     it('em erro deve retornar [] e não quebrar', (done) => {
-      (api.get as jest.Mock).mockReturnValue(throwError(() => new Error('API')));
+      (api.get as jest.Mock).mockReturnValue(
+        throwError(() => new Error('API')),
+      );
       service.loadPessoasDistintas().subscribe((pessoas) => {
         expect(pessoas).toEqual([]);
         done();
@@ -153,13 +152,36 @@ describe('ReceitasService', () => {
 
   describe('createReceitasParaUsuario', () => {
     it('deve fazer post para cada mês e retornar forkJoin', (done) => {
-      const created1 = { id: 1, pessoa: 'Maria', tipo: 'Salário', categoria: 'Fixa', valor: 1500, ano: 2026, mes: 1 };
-      const created2 = { id: 2, pessoa: 'Maria', tipo: 'Salário', categoria: 'Fixa', valor: 1500, ano: 2026, mes: 2 };
+      const created1 = {
+        id: 1,
+        pessoa: 'Maria',
+        tipo: 'Salário',
+        categoria: 'Fixa',
+        valor: 1500,
+        ano: 2026,
+        mes: 1,
+      };
+      const created2 = {
+        id: 2,
+        pessoa: 'Maria',
+        tipo: 'Salário',
+        categoria: 'Fixa',
+        valor: 1500,
+        ano: 2026,
+        mes: 2,
+      };
       (api.post as jest.Mock)
         .mockReturnValueOnce(of(created1))
         .mockReturnValueOnce(of(created2));
       service
-        .createReceitasParaUsuario('Maria', 1500, 'Salário', 'Fixa', [1, 2], 2026)
+        .createReceitasParaUsuario(
+          'Maria',
+          1500,
+          'Salário',
+          'Fixa',
+          [1, 2],
+          2026,
+        )
         .subscribe((result) => {
           expect(api.post).toHaveBeenCalledTimes(2);
           expect(api.post).toHaveBeenNthCalledWith(1, '/receitas', {
@@ -405,7 +427,10 @@ describe('ReceitasService', () => {
     it('onConfirm fecha o modal (confirmState isOpen false)', () => {
       service.openConfirm({ id: 10, pessoa: 'X', valor: 100 });
       service.onConfirm();
-      let state: { isOpen: boolean; receitaId: number | null } = { isOpen: true, receitaId: 10 };
+      let state: { isOpen: boolean; receitaId: number | null } = {
+        isOpen: true,
+        receitaId: 10,
+      };
       service.confirmState$.subscribe((s) => {
         state = { isOpen: s.isOpen, receitaId: s.receitaId };
       });

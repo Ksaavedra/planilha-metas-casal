@@ -10,11 +10,11 @@ import {
   AdicionarDespesaDialogData,
 } from '../../components/adicionar-despesa-dialog/adicionar-despesa-dialog.component';
 import { ConfirmModalComponent } from 'app/shared/components/confirm-modal/confirm-modal.component';
+import { DespesasService } from 'app/core/services/despesas/despesas.service';
 import {
   Despesa,
-  DespesasService,
   NaturezaDespesa,
-} from 'app/core/services/despesas/despesas.service';
+} from '@app/core/interfaces/despesas/despesas';
 import { SuccessModalComponent } from '@app/shared/components/success-modal/success-modal.component';
 
 @Component({
@@ -237,32 +237,6 @@ export class DespesasPageComponent implements OnInit {
       style: 'currency',
       currency: 'BRL',
     }).format(valor);
-  }
-
-  cancelarExcluir(): void {
-    this.confirmExcluirOpen = false;
-    this.despesaParaExcluir = null;
-    this.cdr.markForCheck();
-  }
-
-  confirmarExcluir(): void {
-    if (!this.despesaParaExcluir) return;
-
-    const id = this.despesaParaExcluir.id;
-
-    this.despesasService.deleteDespesa(id).subscribe({
-      next: () => {
-        this.confirmExcluirOpen = false;
-        this.despesaParaExcluir = null;
-        this.carregar();
-        this.cdr.markForCheck();
-      },
-      error: (e) => {
-        this.confirmExcluirOpen = false;
-        this.erroCarregar = e?.error?.error || e?.message || 'Erro ao excluir.';
-        this.cdr.markForCheck();
-      },
-    });
   }
 
   labelPessoa(d: Despesa): string {
