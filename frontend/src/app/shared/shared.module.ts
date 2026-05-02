@@ -10,7 +10,7 @@ import { ParabensModalComponent } from './components/parabens-modal/parabens-mod
 import { SuccessModalComponent } from './components/success-modal/success-modal.component';
 import { AdicionarMetaModalComponent } from './components/adicionar-meta-modal/adicionar-meta-modal.component';
 import { EditarValorModalComponent } from './components/editar-valor-modal/editar-valor-modal.component';
-import { AdicionarUsuarioModalComponent } from './components/adicionar-usuario-modal/adicionar-usuario-modal.component';
+// import { AdicionarUsuarioModalComponent } from './components/adicionar-usuario-modal/adicionar-usuario-modal.component';
 import { SeletorMesDialogComponent } from './components/seletor-mes-dialog/seletor-mes-dialog.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
@@ -21,7 +21,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     ParabensModalComponent,
     AdicionarMetaModalComponent,
     EditarValorModalComponent,
-    AdicionarUsuarioModalComponent,
+    // AdicionarUsuarioModalComponent,
     SeletorMesDialogComponent,
   ],
   imports: [CommonModule, DSModule, FormsModule, ReactiveFormsModule],
@@ -31,7 +31,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     ParabensModalComponent,
     AdicionarMetaModalComponent,
     EditarValorModalComponent,
-    AdicionarUsuarioModalComponent,
+    // AdicionarUsuarioModalComponent,
     SeletorMesDialogComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
