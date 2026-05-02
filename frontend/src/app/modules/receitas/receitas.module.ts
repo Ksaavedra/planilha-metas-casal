@@ -6,9 +6,15 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { ReceitasRoutingModule } from './receitas.routing';
 import { ReceitasPageComponent } from './containers/receitas-page/receitas-page.component';
 import { SharedModule } from '../../shared/shared.module';
+import { ReceitasExemplosComponent } from './components/receitas-exemplos/receitas-exemplos.component';
+import { AdicionarReceitaDialogComponent } from './components/adicionar-receita-dialog/adicionar-receita-dialog.component';
 
 @NgModule({
-  declarations: [ReceitasPageComponent],
+  declarations: [
+    ReceitasPageComponent,
+    ReceitasExemplosComponent,
+    AdicionarReceitaDialogComponent,
+  ],
   imports: [
     CommonModule,
     RouterModule,

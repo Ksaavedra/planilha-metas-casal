@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { MetasService } from './core/services/metas/metas.service';
-import { ReceitasService } from './core/services/receitas/receitas.service';
 
 @Component({
   selector: 'app-root',
@@ -61,20 +60,18 @@ export class AppComponent implements OnInit, OnDestroy {
   private confirmarExcluirReceitaSubscription?: Subscription;
   private sucessoExcluirReceitaSubscription?: Subscription;
 
-  constructor(
-    private metasService: MetasService,
-    private receitasService: ReceitasService,
-  ) {}
+  constructor(private metasService: MetasService) {}
 
   ngOnInit(): void {
     this.subscription = this.metasService.state$.subscribe((state) => {
       this.modalState = { ...state };
     });
 
-    this.sucessoSubscription =
-      this.metasService.sucessoState$.subscribe((state) => {
+    this.sucessoSubscription = this.metasService.sucessoState$.subscribe(
+      (state) => {
         this.sucessoState = { ...state };
-      });
+      },
+    );
 
     this.confirmarDeleteSubscription =
       this.metasService.confirmarDeleteState$.subscribe((state) => {
@@ -90,21 +87,6 @@ export class AppComponent implements OnInit, OnDestroy {
       this.metasService.editarValorState$.subscribe((state) => {
         this.editarValorState = { ...state };
       });
-
-    this.confirmarExcluirReceitaSubscription =
-      this.receitasService.confirmState$.subscribe((state) => {
-        this.confirmarExcluirReceitaState = {
-          isOpen: state.isOpen,
-          message: state.message,
-        };
-      });
-
-    this.sucessoExcluirReceitaSubscription =
-      this.receitasService.successState$.subscribe((state) => {
-        this.sucessoExcluirReceitaState = { isOpen: state.isOpen };
-      });
-
-    // O elaborando-metas já está escutando confirmDelete$ diretamente
   }
 
   ngOnDestroy(): void {
@@ -189,17 +171,5 @@ export class AppComponent implements OnInit, OnDestroy {
   onCancelEditarValor(): void {
     this.metasService.closeEditarValor();
     this.metasService.resetEditarValor();
-  }
-
-  onConfirmExcluirReceita(): void {
-    this.receitasService.onConfirm();
-  }
-
-  onCancelExcluirReceita(): void {
-    this.receitasService.onCancel();
-  }
-
-  onCloseSucessoExcluirReceita(): void {
-    this.receitasService.closeSuccess();
   }
 }

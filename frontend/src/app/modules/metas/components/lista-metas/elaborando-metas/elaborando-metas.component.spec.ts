@@ -10,7 +10,10 @@ import { ElaborandoMetasComponent } from './elaborando-metas.component';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { MetaExtended } from '../../../../../core/interfaces/metas/mes-meta';
 import { of, throwError } from 'rxjs';
-import { ModalStateSalvar, ValoresSalvarMetaModal } from '@app/core';
+import {
+  ModalStateSalvar,
+  ValoresSalvarMetaModal,
+} from '@app/core/interfaces/metas/metas-modais';
 
 describe('ElaborandoMetasComponent', () => {
   let component: ElaborandoMetasComponent;

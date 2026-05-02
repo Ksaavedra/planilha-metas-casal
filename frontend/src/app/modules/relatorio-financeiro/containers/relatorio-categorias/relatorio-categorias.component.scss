@@ -1,0 +1,139 @@
+:host {
+  display: block;
+}
+
+.relatorio-categorias {
+  margin-bottom: 2.5rem;
+  animation: relatorio-cat-fade 0.25s ease;
+}
+
+@keyframes relatorio-cat-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.relatorio-categorias__intro {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #64748b;
+
+  &--bloco-despesas {
+    margin-top: 2.25rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e2e8f0;
+  }
+}
+
+.relatorio-categorias__h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+
+  &--sec {
+    margin-top: 0;
+  }
+
+  & + .data-table {
+    margin-bottom: 2rem;
+  }
+}
+
+.relatorio-categorias__vazio {
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 10px;
+}
+
+.data-table--categorias {
+  table {
+    font-size: 0.68rem;
+  }
+
+  th,
+  td {
+    font-size: 0.68rem;
+  }
+}
+
+tr.natureza-receita--fixa {
+  background: rgba(34, 197, 94, 0.08);
+  color: #15803d;
+  font-weight: 500;
+}
+
+tr.natureza-receita--variavel {
+  background: rgba(245, 158, 11, 0.1);
+  color: #b45309;
+  font-weight: 500;
+}
+
+tr.natureza-despesa--fixa {
+  background: rgba(220, 38, 38, 0.07);
+  color: #991b1b;
+  font-weight: 500;
+}
+
+tr.natureza-despesa--variavel {
+  background: rgba(234, 88, 12, 0.1);
+  color: #9a3412;
+  font-weight: 500;
+}
+
+tr.tipo-receita-linha:nth-child(odd) {
+  background: rgba(139, 92, 246, 0.05);
+}
+
+tr.tipo-despesa-linha:nth-child(odd) {
+  background: rgba(220, 38, 38, 0.04);
+}
+
+.data-table {
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+  width: 100%;
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  min-width: 500px;
+  border-collapse: collapse;
+  background: #f9fafb;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.1);
+  font-size: 0.7rem;
+  border: 1px solid #e5e7eb;
+}
+
+th,
+td {
+  padding: 0.3rem;
+  text-align: center;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  white-space: nowrap;
+  font-size: 0.7rem;
+}
+
+th {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  font-weight: 700;
+  color: #ffffff;
+  font-size: 0.8rem;
+  text-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+}

@@ -1,84 +1,175 @@
 <div class="receitas-container">
-  <!-- Header -->
-  <div class="header-receitas">
-    <h1>
-      <span class="material-icons">payments</span>
-      RECEITAS DO CASAL
-    </h1>
-    <p>Cada conquista começa com o que entra. Aqui vocês acompanham tudo que constroem juntos.</p>
-  </div>
-
-  <!-- Botão Adicionar Receita -->
-  <div class="add-receita-container">
-    <button class="btn-add-receita" (click)="abrirModalAdicionarUsuario()">
-      <span class="material-icons">add</span>
-      Adicionar Receita
-    </button>
-  </div>
-
-  <!-- Seletor de Mês -->
-  <div class="mes-selector">
-    <button class="btn-nav" (click)="mesAnterior()">
-      <span class="material-icons">chevron_left</span>
-    </button>
-    <div class="mes-atual">
-      <span class="material-icons">calendar_month</span>
-      <span>{{ nomeMesAtual }}</span>
-    </div>
-    <button class="btn-nav" (click)="proximoMes()">
-      <span class="material-icons">chevron_right</span>
-    </button>
-  </div>
-
-  <!-- Loading / Erro -->
-  <div *ngIf="loading" class="receitas-loading">Carregando receitas...</div>
-  <div *ngIf="erroCarregar && !loading" class="receitas-erro">{{ erroCarregar }}</div>
-
-  <div class="receitas-mes" *ngIf="!loading">
-    <div class="secao-receitas" *ngFor="let card of cardsPorPessoa; let i = index" [ngClass]="'secao-cor-' + (i % 4)">
-      <div class="secao-header">
-        <span class="material-icons">person</span>
-        <h2>{{ card.nome }}</h2>
-      </div>
-      <div class="receitas-list">
-        <div class="receita-grupo-tipo" *ngFor="let grupo of receitasAgrupadasPorTipo(card.receitas)">
-          <h3 class="receita-titulo-tipo">{{ grupo.tipo }}</h3>
-          <ul class="receita-detalhes">
-            <li class="receita-linha" *ngFor="let receita of grupo.itens">
-              <span class="categoria-badge" [class.fixa]="receita.categoria === 'Fixa'"
-                [class.variavel]="receita.categoria === 'Variável'">
-                {{ receita.categoria }}
-              </span>
-              <div class="receita-valor-acoes">
-                <div class="receita-valor">{{ receita.valor | currency:'BRL' }}</div>
-                <div class="receita-actions" role="group" aria-label="Ações da receita">
-                  <button type="button" class="btn-icon" (click)="editarReceita(receita)" title="Editar"
-                    aria-label="Editar">
-                    <span class="material-icons">edit</span>
-                  </button>
-                  <button type="button" class="btn-icon btn-icon-delete" (click)="excluirReceita(receita)"
-                    title="Excluir" aria-label="Excluir">
-                    <span class="material-icons">delete</span>
-                  </button>
-                </div>
-              </div>
-            </li>
-          </ul>
+  <header class="receitas-hero" role="banner" aria-label="Cabeçalho de receitas">
+    <div class="receitas-hero__accent" aria-hidden="true"></div>
+    <div class="receitas-hero__inner">
+      <div class="receitas-hero__brand">
+        <div class="receitas-hero__icon-wrap" aria-hidden="true">
+          <span class="material-icons receitas-hero__icon">receipt_long</span>
+        </div>
+        <div class="receitas-hero__text">
+          <h1 class="receitas-hero__title">
+            Receitas do casal
+          </h1>
+          <p class="receitas-hero__subtitle">{{ tituloSecundario }}</p>
         </div>
       </div>
-      <div class="secao-total">
-        <div class="total-label">Total</div>
-        <div class="total-valor">{{ card.total | currency:'BRL' }}</div>
+      <div class="receitas-hero__field" aria-label="Mês de referência">
+        <p class="receitas-hero__label">Mês de referência</p>
+        <div class="receitas-hero__mes-nav">
+          <button type="button" class="receitas-hero__nav-btn" (click)="mesAnterior()" title="Mês anterior"
+            aria-label="Mês anterior">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <div class="receitas-hero__mes-atual">
+            <span class="material-icons" aria-hidden="true">calendar_month</span>
+            <span>{{ nomeMesAtual }}</span>
+          </div>
+          <button type="button" class="receitas-hero__nav-btn" (click)="proximoMes()" title="Próximo mês"
+            aria-label="Próximo mês">
+            <span class="material-icons">chevron_right</span>
+          </button>
+        </div>
       </div>
     </div>
+
+    <div class="receitas-hero__toolbar" aria-label="Visão e ações de receitas">
+      <div class="receitas-hero__chips" role="tablist"
+        aria-label="Alternar entre lista do mês e exemplos de categorias">
+        <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'lista'"
+          (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoReceitas === 'lista'">
+          Minhas receitas
+        </button>
+        <!-- <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'usuario'"
+          (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoReceitas === 'usuario'">
+          Por pesssoa
+        </button> -->
+        <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'exemplos'"
+          (click)="selecionarVisao('exemplos')" role="tab" [attr.aria-selected]="visaoReceitas === 'exemplos'">
+          Exemplos
+        </button>
+      </div>
+      <div class="receitas-hero__actions">
+        <button type="button" class="btn-add-receita" (click)="abrirModalAdicionarReceita()"
+          *ngIf="visaoReceitas === 'lista'">
+          <span class="material-icons" aria-hidden="true">add</span>
+          Adicionar receita
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div *ngIf="visaoReceitas === 'lista' && loading" class="estado estado-loading">
+    Carregando receitas…
+  </div>
+  <div *ngIf="visaoReceitas === 'lista' && erroCarregar && !loading" class="estado estado-erro">
+    {{ erroCarregar }}
   </div>
 
-  <!-- Total Geral do Mês -->
-  <div class="total-geral" *ngIf="!loading">
-    <div class="total-geral-header">
-      <span class="material-icons">favorite</span>
-      <span>Total Geral do Mês</span>
+  <ng-container *ngIf="visaoReceitas === 'lista' && !loading">
+    <div class="tabelas-mes">
+      <section class="bloco-tabela" aria-labelledby="h-fixas">
+        <h2 id="h-fixas" class="bloco-titulo bloco-titulo--fixa">
+          <span class="material-icons">account_balance</span>
+          Receitas fixas
+        </h2>
+        <p class="bloco-sub">Mais estáveis, costumam repetir mês a mês.</p>
+        <div class="table-wrap" *ngIf="receitasFixas.length; else vazioFixas">
+          <table class="receitas-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Usuário</th>
+                <th>Categoria</th>
+                <th>Valor</th>
+                <th>Data</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of receitasFixas">
+                <td>
+                  <span class="badge badge-fixa">{{ labelNatureza(r.natureza) }}</span>
+                </td>
+                <td class="cell-pessoa">{{ labelPessoa(r) }}</td>
+                <td>{{ r.categoria }}</td>
+                <td class="num">{{ r.valor | currency : 'BRL' }}</td>
+                <td>{{ r.data ? (r.data | date : 'dd/MM/yyyy') : '—' }}</td>
+                <td class="acoes">
+                  <button type="button" class="btn-icone" (click)="editar(r)" title="Editar">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button type="button" class="btn-icone btn-icone-excluir" (click)="abrirConfirmExcluir(r)"
+                    title="Excluir">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="subtotal">Subtotal fixas: <strong>{{ totalFixas | currency : 'BRL' }}</strong></p>
+        <ng-template #vazioFixas>
+          <p class="vazio">Nenhuma receita fixa neste mês.</p>
+        </ng-template>
+      </section>
+
+      <section class="bloco-tabela" aria-labelledby="h-var">
+        <h2 id="h-var" class="bloco-titulo bloco-titulo--var">
+          <span class="material-icons">account_balance_wallet</span>
+          Receitas variáveis
+        </h2>
+        <p class="bloco-sub">Cambiam de valor ou frequência (bônus, freela, rendas extras, etc.).</p>
+        <div class="table-wrap" *ngIf="receitasVariaveis.length; else vazioVar">
+          <table class="receitas-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Usuário</th>
+                <th>Categoria</th>
+                <th>Valor</th>
+                <th>Data</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of receitasVariaveis">
+                <td>
+                  <span class="badge badge-var">{{ labelNatureza(r.natureza) }}</span>
+                </td>
+                <td class="cell-pessoa">{{ labelPessoa(r) }}</td>
+                <td>{{ r.categoria }}</td>
+                <td class="num">{{ r.valor | currency : 'BRL' }}</td>
+                <td>{{ r.data ? (r.data | date : 'dd/MM/yyyy') : '—' }}</td>
+                <td class="acoes">
+                  <button type="button" class="btn-icone" (click)="editar(r)" title="Editar">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button type="button" class="btn-icone btn-icone-excluir" (click)="abrirConfirmExcluir(r)"
+                    title="Excluir">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="subtotal">
+          Subtotal variáveis: <strong>{{ totalVariaveis | currency : 'BRL' }}</strong>
+        </p>
+        <ng-template #vazioVar>
+          <p class="vazio">Nenhuma receita variável neste mês.</p>
+        </ng-template>
+      </section>
     </div>
-    <div class="total-geral-valor">{{ totalMensal | currency:'BRL' }}</div>
-  </div>
+
+    <div class="total-geral" *ngIf="receitas.length">
+      <div class="total-geral-header">
+        <span class="material-icons">account_balance_wallet</span>
+        <span>Total Geral do Mês</span>
+      </div>
+      <div class="total-geral-valor">{{ totalGeral | currency : 'BRL' }}</div>
+    </div>
+  </ng-container>
+
+  <app-receitas-exemplos *ngIf="visaoReceitas === 'exemplos'"></app-receitas-exemplos>
 </div>

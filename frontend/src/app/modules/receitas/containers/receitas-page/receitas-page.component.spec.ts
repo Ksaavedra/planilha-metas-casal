@@ -1,601 +1,356 @@
-import { ChangeDetectorRef } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CommonModule } from '@angular/common';
-import { fakeAsync, tick } from '@angular/core/testing';
-import { Subject } from 'rxjs';
-import { ReceitaMensal } from '../../../../core/interfaces/receitas';
-import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
+import { MatDialog } from '@angular/material/dialog';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { of, throwError } from 'rxjs';
+
 import { ReceitasPageComponent } from './receitas-page.component';
+import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
+import { Receita } from '@app/core/interfaces/receitas/receitas';
 
 describe('ReceitasPageComponent', () => {
   let component: ReceitasPageComponent;
   let fixture: ComponentFixture<ReceitasPageComponent>;
-  let receitasService: jest.Mocked<
-    Pick<ReceitasService, keyof ReceitasService>
-  >;
-  let cdr: { markForCheck: jest.Mock };
-  let saveSubject: Subject<{
-    nomeUsuario: string;
-    valorSalario: number;
-    tipo: string;
-    categoria: string;
-    meses: number[];
-    ano: number;
-    receitaId?: number;
-  }>;
-  let confirmDeleteSubject: Subject<number>;
 
-  const mockReceitas: ReceitaMensal[] = [
-    {
-      id: 1,
-      pessoa: 'Kelly',
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      valor: 2000,
-      ano: 2026,
-      mes: 1,
-    },
-    {
-      id: 2,
-      pessoa: 'kelly',
-      tipo: 'Freela',
-      categoria: 'Variável',
-      valor: 500,
-      ano: 2026,
-      mes: 1,
-    },
-  ];
+  const mockReceita: Receita = {
+    id: 1,
+    pessoa: 'Kelly',
+    natureza: 'fixa',
+    categoria: 'Fixa',
+    valor: 2000,
+    data: '2026-01-01',
+    ano: 2026,
+    mes: 1,
+  };
+
+  const receitasServiceMock = {
+    getReceitas: jest.fn(),
+    deleteReceita: jest.fn(),
+    calcularTotalReceitas: jest.fn(),
+  };
+
+  const dialogMock = {
+    open: jest.fn(),
+  };
 
   beforeEach(async () => {
-    saveSubject = new Subject();
-    confirmDeleteSubject = new Subject();
+    jest.clearAllMocks();
 
-    receitasService = {
-      getPorMesAno: jest.fn().mockReturnValue({
-        subscribe: (handlers: { next?: (lista: ReceitaMensal[]) => void }) => {
-          handlers.next?.(mockReceitas);
-        },
-      }),
-      save$: saveSubject.asObservable(),
-      confirmDelete$: confirmDeleteSubject.asObservable(),
-      open: jest.fn(),
-      openForEdit: jest.fn(),
-      openConfirm: jest.fn(),
-      delete: jest.fn().mockReturnValue({
-        subscribe: (handlers: {
-          next?: () => void;
-          error?: (e: unknown) => void;
-        }) => {
-          handlers.next?.();
-        },
-      }),
-      createReceitasParaUsuario: jest.fn().mockReturnValue({
-        subscribe: (handlers: {
-          next?: () => void;
-          error?: (e: unknown) => void;
-        }) => {
-          handlers.next?.();
-        },
-      }),
-      update: jest.fn().mockReturnValue({
-        subscribe: (handlers: {
-          next?: () => void;
-          error?: (e: unknown) => void;
-        }) => {
-          handlers.next?.();
-        },
-      }),
-      addPessoaToCache: jest.fn(),
-      loadPessoasDistintas: jest.fn().mockReturnValue({
-        subscribe: (observerOrNext?: (() => void) | { next?: () => void }) => {
-          if (typeof observerOrNext === 'function') observerOrNext();
-          else observerOrNext?.next?.();
-        },
-      }),
-      openSuccess: jest.fn(),
-    } as unknown as jest.Mocked<ReceitasService>;
+    receitasServiceMock.getReceitas.mockReturnValue(of([mockReceita]));
+    receitasServiceMock.deleteReceita.mockReturnValue(of(void 0));
+    receitasServiceMock.calcularTotalReceitas.mockImplementation(
+      (receitas: Receita[]) =>
+        receitas.reduce((total, item) => total + Number(item.valor || 0), 0),
+    );
 
-    cdr = { markForCheck: jest.fn() };
+    dialogMock.open.mockReturnValue({
+      afterClosed: () => of(false),
+    });
 
     await TestBed.configureTestingModule({
       declarations: [ReceitasPageComponent],
-      imports: [CommonModule],
+      imports: [NoopAnimationsModule],
       providers: [
-        { provide: ReceitasService, useValue: receitasService },
-        { provide: ChangeDetectorRef, useValue: cdr },
+        { provide: ReceitasService, useValue: receitasServiceMock },
+        { provide: MatDialog, useValue: dialogMock },
       ],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ReceitasPageComponent);
     component = fixture.componentInstance;
-    fixture.detectChanges();
   });
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
-
-  it('deve exibir nome do mês atual no getter nomeMesAtual', () => {
-    const mes = component.mesAtual.getMonth();
-    const ano = component.mesAtual.getFullYear();
-    const meses = [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
-    ];
-    expect(component.nomeMesAtual).toBe(`${meses[mes]} ${ano}`);
-  });
-
-  it('cardsPorPessoa deve agrupar por pessoa (case insensitive) e ordenar alfabeticamente', () => {
-    component.receitasMensal = mockReceitas;
-    const cards = component.cardsPorPessoa;
-    expect(cards.length).toBe(1);
-    expect(cards[0].nome).toBe('Kelly');
-    expect(cards[0].receitas.length).toBe(2);
-    expect(cards[0].total).toBe(2500);
-  });
-
-  it('cardsPorPessoa aplica toTitleCase no nome (cobre retorno de toTitleCase)', () => {
-    component.receitasMensal = [
-      {
-        id: 1,
-        pessoa: 'maria silva',
-        tipo: 'Salário',
-        categoria: 'Fixa',
-        valor: 1000,
-      } as ReceitaMensal,
-    ];
-    const cards = component.cardsPorPessoa;
-    expect(cards.length).toBe(1);
-    expect(cards[0].nome).toBe('Maria Silva');
-  });
-
-  it('toTitleCase deve retornar o próprio valor quando value é string vazia', () => {
-    const result = (component as any).toTitleCase('');
-    expect(result).toBe('');
-  });
-
-  it('toTitleCase deve retornar o próprio valor quando value é só espaços', () => {
-    const result = (component as any).toTitleCase('   ');
-    expect(result).toBe('   ');
-  });
-
-  it('toTitleCase deve retornar o próprio valor quando value é undefined', () => {
-    const result = (component as any).toTitleCase(undefined);
-    expect(result).toBeUndefined();
-  });
-
-  it('toTitleCase deve retornar o próprio valor quando value é null', () => {
-    const result = (component as any).toTitleCase(null);
-    expect(result).toBeNull();
-  });
-
-  it('toTitleCase deve normalizar espaços internos', () => {
-    const result = (component as any).toTitleCase('  kElLy   sIlVa  ');
-    expect(result).toBe('Kelly Silva');
-  });
-
-  it('cardsPorPessoa deve retornar array vazio quando receitasMensal está vazio', () => {
-    component.receitasMensal = [];
-    expect(component.cardsPorPessoa).toEqual([]);
-  });
-
-  it('cardsPorPessoa deve ignorar receitas com pessoa vazia ou só espaços (if (!pessoa) continue)', () => {
-    component.receitasMensal = [
-      {
-        id: 1,
-        pessoa: 'Kelly',
-        tipo: 'Salário',
-        categoria: 'Fixa',
-        valor: 1000,
-      },
-      { id: 2, pessoa: '', tipo: 'Salário', categoria: 'Fixa', valor: 500 },
-      {
-        id: 3,
-        pessoa: '   ',
-        tipo: 'Freela',
-        categoria: 'Variável',
-        valor: 300,
-      },
-    ] as ReceitaMensal[];
-    const cards = component.cardsPorPessoa;
-    expect(cards.length).toBe(1);
-    expect(cards[0].nome).toBe('Kelly');
-    expect(cards[0].receitas.length).toBe(1);
-    expect(cards[0].total).toBe(1000);
-  });
-
-  it('cardsPorPessoa deve ordenar nomes alfabeticamente (localeCompare)', () => {
-    component.receitasMensal = [
-      {
-        id: 1,
-        pessoa: 'Kelly',
-        tipo: 'Salário',
-        categoria: 'Fixa',
-        valor: 1000,
-      },
-      { id: 2, pessoa: 'Ana', tipo: 'Salário', categoria: 'Fixa', valor: 500 },
-      {
-        id: 3,
-        pessoa: 'Bruno',
-        tipo: 'Freela',
-        categoria: 'Variável',
-        valor: 300,
-      },
-    ] as ReceitaMensal[];
-    const cards = component.cardsPorPessoa;
-    expect(cards.length).toBe(3);
-    expect(cards[0].nome).toBe('Ana');
-    expect(cards[1].nome).toBe('Bruno');
-    expect(cards[2].nome).toBe('Kelly');
-  });
-
-  it('totalMensal deve somar valor de todas as receitas', () => {
-    component.receitasMensal = mockReceitas;
-    expect(component.totalMensal).toBe(2500);
-  });
-
-  it('totalMensal deve ser 0 quando não há receitas', () => {
-    component.receitasMensal = [];
-    expect(component.totalMensal).toBe(0);
-  });
-
-  it('abrirModalAdicionarUsuario deve chamar receitasService.open()', () => {
-    component.abrirModalAdicionarUsuario();
-    expect(receitasService.open).toHaveBeenCalled();
-  });
-
-  it('mesAnterior deve alterar mesAtual e chamar carregarReceitasDoMes', () => {
-    const getPorMesAno = receitasService.getPorMesAno as jest.Mock;
-    getPorMesAno.mockClear();
-    component.mesAtual = new Date(2026, 5, 1); // junho 2026
-    component.mesAnterior();
-    expect(component.mesAtual.getMonth()).toBe(4);
-    expect(component.mesAtual.getFullYear()).toBe(2026);
-    expect(getPorMesAno).toHaveBeenCalledWith(2026, 5);
-  });
-
-  it('proximoMes deve alterar mesAtual e chamar carregarReceitasDoMes', () => {
-    const getPorMesAno = receitasService.getPorMesAno as jest.Mock;
-    getPorMesAno.mockClear();
-    component.mesAtual = new Date(2026, 0, 1); // janeiro 2026
-    component.proximoMes();
-    expect(component.mesAtual.getMonth()).toBe(1);
-    expect(component.mesAtual.getFullYear()).toBe(2026);
-    expect(getPorMesAno).toHaveBeenCalledWith(2026, 2);
-  });
-
-  it('editarReceita deve chamar receitasService.openForEdit com a receita', () => {
-    const receita: ReceitaMensal = {
-      id: 10,
-      pessoa: 'David',
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      valor: 3000,
-      ano: 2026,
-      mes: 2,
-    };
-    component.editarReceita(receita);
-    expect(receitasService.openForEdit).toHaveBeenCalledWith({
-      id: 10,
-      pessoa: 'David',
-      valor: 3000,
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      ano: 2026,
-      mes: 2,
+  describe('Inicialização', () => {
+    it('should create', () => {
+      expect(component).toBeTruthy();
     });
   });
 
-  it('editarReceita não deve chamar openForEdit quando receita.id é null', () => {
-    component.editarReceita({
-      pessoa: 'X',
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      valor: 100,
-    } as ReceitaMensal);
-    expect(receitasService.openForEdit).not.toHaveBeenCalled();
+  describe('ngOnInit', () => {
+    it('ngOnInit deve carregar receitas', () => {
+      component.ngOnInit();
+
+      expect(receitasServiceMock.getReceitas).toHaveBeenCalledWith({
+        ano: component.anoRef,
+        mes: component.mesRef,
+      });
+    });
+
+    it('deve retornar nomeMesAtual', () => {
+      component.mesAtual = new Date(2025, 0, 1);
+
+      expect(component.nomeMesAtual).toBe('Janeiro 2025');
+    });
   });
 
-  it('excluirReceita deve chamar receitasService.openConfirm', () => {
-    const receita: ReceitaMensal = {
-      id: 5,
-      pessoa: 'Kelly',
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      valor: 1000,
-    };
-    component.excluirReceita(receita);
-    expect(receitasService.openConfirm).toHaveBeenCalledWith(receita);
+  describe('Getters de receitas', () => {
+    it('deve filtrar receitas fixas e variáveis', () => {
+      component.receitas = [
+        mockReceita,
+        { ...mockReceita, id: 2, natureza: 'variavel' },
+      ];
+      expect(component.receitasFixas.length).toBe(1);
+      expect(component.receitasVariaveis.length).toBe(1);
+    });
+
+    it('deve calcular totais', () => {
+      component.receitas = [
+        mockReceita,
+        { ...mockReceita, id: 2, natureza: 'variavel', valor: 20 },
+        { ...mockReceita, id: 3, natureza: 'variavel', valor: 30 },
+      ];
+      expect(component.totalFixas).toBe(2000);
+      expect(component.totalVariaveis).toBe(50);
+      expect(component.totalGeral).toBe(2050);
+    });
+
+    it('deve retornar anoRef e mesRef', () => {
+      component.mesAtual = new Date(2025, 4, 1);
+
+      expect(component.anoRef).toBe(2025);
+      expect(component.mesRef).toBe(5);
+    });
+
+    it('deve chamar calcularTotalReceitas para totalVariaveis e totalGeral', () => {
+      const receitaFixa = mockReceita;
+      const receitaVariavel = {
+        ...mockReceita,
+        id: 2,
+        natureza: 'variavel' as const,
+        valor: 50,
+      };
+
+      component.receitas = [receitaFixa, receitaVariavel];
+
+      const totalVariaveis = component.totalVariaveis;
+      const totalGeral = component.totalGeral;
+
+      expect(totalVariaveis).toBe(50);
+      expect(totalGeral).toBe(2050);
+
+      expect(receitasServiceMock.calcularTotalReceitas).toHaveBeenCalledWith([
+        receitaVariavel,
+      ]);
+
+      expect(receitasServiceMock.calcularTotalReceitas).toHaveBeenCalledWith([
+        receitaFixa,
+        receitaVariavel,
+      ]);
+      expect(receitasServiceMock.calcularTotalReceitas).toHaveBeenCalledWith([
+        receitaFixa,
+        receitaVariavel,
+      ]);
+    });
   });
 
-  it('excluirReceita não deve chamar openConfirm quando receita.id não existe', () => {
-    component.excluirReceita({
-      pessoa: 'X',
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      valor: 100,
-    } as ReceitaMensal);
-    expect(receitasService.openConfirm).not.toHaveBeenCalled();
+  describe('Carregar receitas', () => {
+    it('deve carregar receitas com sucesso', () => {
+      receitasServiceMock.getReceitas.mockReturnValue(of([mockReceita]));
+
+      component.carregar();
+
+      expect(component.loading).toBe(false);
+      expect(component.erroCarregar).toBeNull();
+      expect(component.receitas).toEqual([mockReceita]);
+    });
+
+    it('carregar deve tratar erro da API com error.error', () => {
+      receitasServiceMock.getReceitas.mockReturnValue(
+        throwError(() => ({ error: { error: 'Erro Message' } })),
+      );
+
+      component.carregar();
+
+      expect(component.loading).toBe(false);
+      expect(component.receitas).toEqual([]);
+      expect(component.erroCarregar).toBe('Erro Message');
+    });
+
+    it('deve tratar erro da API com message', () => {
+      receitasServiceMock.getReceitas.mockReturnValue(
+        throwError(() => ({ error: { error: 'Erro Message' } })),
+      );
+
+      component.carregar();
+
+      expect(component.erroCarregar).toBe('Erro Message');
+    });
+
+    it('deve usar mensagem padrão quando erro não tiver mensagem', () => {
+      receitasServiceMock.getReceitas.mockReturnValue(throwError(() => ({})));
+
+      component.carregar();
+
+      expect(component.erroCarregar).toBe(
+        'Não foi possível carregar receitas.',
+      );
+    });
   });
 
-  it('ao emitir save$ sem receitaId (salvarUsuario) deve chamar createReceitasParaUsuario, loading=false e carregarReceitasDoMes', fakeAsync(() => {
-    const createReceitas =
-      receitasService.createReceitasParaUsuario as jest.Mock;
-    const getPorMesAno = receitasService.getPorMesAno as jest.Mock;
-    createReceitas.mockClear();
-    getPorMesAno.mockClear();
-    getPorMesAno.mockReturnValue({
-      subscribe: (handlers: { next?: (lista: ReceitaMensal[]) => void }) => {
-        handlers.next?.(mockReceitas);
-      },
-    });
-    saveSubject.next({
-      nomeUsuario: 'Maria',
-      valorSalario: 1500,
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      meses: [1, 2],
-      ano: 2026,
-    });
-    tick();
-    expect(createReceitas).toHaveBeenCalledWith(
-      'Maria',
-      1500,
-      'Salário',
-      'Fixa',
-      [1, 2],
-      2026,
-    );
-    expect(receitasService.addPessoaToCache).toHaveBeenCalledWith('Maria');
-    expect(component.loading).toBe(false);
-    expect(getPorMesAno).toHaveBeenCalled();
-  }));
+  describe('Navegação de mês', () => {
+    it('mesAnterior deve voltar um mês e carregar', () => {
+      const carregarSpy = jest.spyOn(component, 'carregar');
+      component.mesAtual = new Date(2025, 1, 1);
 
-  it('ao emitir save$ sem receitaId quando createReceitasParaUsuario falha deve setar erroCarregar e markForCheck', () => {
-    const createReceitas =
-      receitasService.createReceitasParaUsuario as jest.Mock;
-    createReceitas.mockReturnValue({
-      subscribe: (handlers: {
-        next?: () => void;
-        error?: (e: unknown) => void;
-      }) => {
-        handlers.error?.({ error: { error: 'API indisponível' } });
-      },
+      component.mesAnterior();
+
+      expect(component.mesAtual.getMonth()).toBe(0);
+      expect(carregarSpy).toHaveBeenCalled();
     });
-    saveSubject.next({
-      nomeUsuario: 'Maria',
-      valorSalario: 1500,
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      meses: [1, 2],
-      ano: 2026,
+
+    it('proximoMes deve avançar um mês e carregar', () => {
+      const carregarSpy = jest.spyOn(component, 'carregar');
+      component.mesAtual = new Date(2025, 0, 1);
+
+      component.proximoMes();
+
+      expect(component.mesAtual.getMonth()).toBe(1);
+      expect(carregarSpy).toHaveBeenCalled();
     });
-    expect(component.loading).toBe(false);
-    expect(component.erroCarregar).toBe('API indisponível');
   });
 
-  it('ao falhar createReceitasParaUsuario sem error.error usa mensagem padrão', () => {
-    const createReceitas =
-      receitasService.createReceitasParaUsuario as jest.Mock;
-    createReceitas.mockReturnValue({
-      subscribe: (handlers: {
-        next?: () => void;
-        error?: (e: unknown) => void;
-      }) => {
-        handlers.error?.({});
-      },
+  describe('Visão', () => {
+    it('selecionarVisao deve alternar visão', () => {
+      expect(component.visaoReceitas).toBe('lista');
+
+      component.selecionarVisao('exemplos');
+      expect(component.visaoReceitas).toBe('exemplos');
+
+      component.selecionarVisao('lista');
+      expect(component.visaoReceitas).toBe('lista');
     });
-    saveSubject.next({
-      nomeUsuario: 'X',
-      valorSalario: 100,
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      meses: [1],
-      ano: 2026,
-    });
-    expect(component.erroCarregar).toBe('Erro ao salvar receitas.');
   });
 
-  it('ao emitir save$ com receitaId (atualizarReceita) deve chamar update, carregarReceitasDoMes e loadPessoasDistintas', fakeAsync(() => {
-    const update = receitasService.update as jest.Mock;
-    const getPorMesAno = receitasService.getPorMesAno as jest.Mock;
-    const loadPessoas = receitasService.loadPessoasDistintas as jest.Mock;
-    update.mockClear();
-    getPorMesAno.mockClear();
-    loadPessoas.mockClear();
-    getPorMesAno.mockReturnValue({
-      subscribe: (handlers: { next?: (lista: ReceitaMensal[]) => void }) => {
-        handlers.next?.(mockReceitas);
-      },
-    });
-    loadPessoas.mockReturnValue({
-      subscribe: (observerOrNext?: (() => void) | { next?: () => void }) => {
-        if (typeof observerOrNext === 'function') observerOrNext();
-        else observerOrNext?.next?.();
-      },
-    });
-    saveSubject.next({
-      nomeUsuario: 'Kelly',
-      valorSalario: 2200,
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      meses: [],
-      ano: 2026,
-      receitaId: 7,
-    });
-    tick();
-    expect(update).toHaveBeenCalledWith(7, {
-      pessoa: 'Kelly',
-      valor: 2200,
-      tipo: 'Salário',
-      categoria: 'Fixa',
-    });
-    expect(component.loading).toBe(false);
-    expect(getPorMesAno).toHaveBeenCalled();
-    expect(loadPessoas).toHaveBeenCalled();
-  }));
+  describe('Dialog de adicionar/editar', () => {
+    it('abrirModalAdicionarReceita deve abrir dialog', () => {
+      component.abrirModalAdicionarReceita();
 
-  it('ao emitir save$ com receitaId quando update falha deve setar erroCarregar e markForCheck', () => {
-    const update = receitasService.update as jest.Mock;
-    update.mockReturnValue({
-      subscribe: (handlers: {
-        next?: () => void;
-        error?: (e: unknown) => void;
-      }) => {
-        handlers.error?.({ error: { error: 'Conflito' } });
-      },
+      expect(dialogMock.open).toHaveBeenCalled();
     });
-    saveSubject.next({
-      nomeUsuario: 'Kelly',
-      valorSalario: 2200,
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      meses: [],
-      ano: 2026,
-      receitaId: 7,
+
+    it('editar deve abrir dialog com receita', () => {
+      component.editar(mockReceita);
+
+      expect(dialogMock.open).toHaveBeenCalled();
     });
-    expect(component.loading).toBe(false);
-    expect(component.erroCarregar).toBe('Conflito');
+
+    it('deve carregar quando dialog fechar com saved true', () => {
+      dialogMock.open.mockReturnValue({
+        afterClosed: () => of(true),
+      });
+
+      const carregarSpy = jest.spyOn(component, 'carregar');
+
+      component.abrirModalAdicionarReceita();
+
+      expect(carregarSpy).toHaveBeenCalled();
+    });
   });
 
-  it('ao falhar update sem error.error usa mensagem padrão', () => {
-    const update = receitasService.update as jest.Mock;
-    update.mockReturnValue({
-      subscribe: (handlers: {
-        next?: () => void;
-        error?: (e: unknown) => void;
-      }) => {
-        handlers.error?.({});
-      },
+  describe('abrirModalSucesso', () => {
+    it('deve abrir modal com mensagem de edição', () => {
+      component['abrirModalSucesso'](true);
+
+      expect(dialogMock.open).toHaveBeenCalled();
+
+      const call = dialogMock.open.mock.calls[0][1];
+
+      expect(call.data.title).toBe('Receita atualizada!');
+      expect(call.data.message).toBe('A receita foi atualizada com sucesso.');
     });
-    saveSubject.next({
-      nomeUsuario: 'K',
-      valorSalario: 1,
-      tipo: 'Salário',
-      categoria: 'Fixa',
-      meses: [],
-      ano: 2026,
-      receitaId: 1,
+
+    it('deve abrir modal com mensagem de criação', () => {
+      component['abrirModalSucesso'](false);
+
+      expect(dialogMock.open).toHaveBeenCalled();
+
+      const call = dialogMock.open.mock.calls[0][1];
+
+      expect(call.data.title).toBe('Receita adicionada!');
+      expect(call.data.message).toBe('A receita foi adicionada com sucesso.');
     });
-    expect(component.erroCarregar).toBe('Erro ao atualizar.');
   });
 
-  it('ao emitir confirmDelete$ deve chamar delete, openSuccess e carregarReceitasDoMes', () => {
-    const deleteMeta = receitasService.delete as jest.Mock;
-    deleteMeta.mockClear();
-    (receitasService.loadPessoasDistintas as jest.Mock).mockClear();
-    confirmDeleteSubject.next(3);
-    expect(deleteMeta).toHaveBeenCalledWith(3);
-    expect(receitasService.openSuccess).toHaveBeenCalled();
-    expect(receitasService.loadPessoasDistintas).toHaveBeenCalled();
-    expect(component.erroCarregar).toBeNull();
-  });
+  describe('Excluir com MatDialog', () => {
+    it('abrirConfirmExcluir deve abrir modal de confirmação', () => {
+      component.abrirConfirmExcluir(mockReceita);
 
-  it('ao emitir confirmDelete$ quando delete falha deve setar erroCarregar e chamar markForCheck', () => {
-    const deleteMeta = receitasService.delete as jest.Mock;
-    deleteMeta.mockReturnValue({
-      subscribe: (handlers: {
-        next?: () => void;
-        error?: (e: unknown) => void;
-      }) => {
-        handlers.error?.({ error: { error: 'Falha na rede' } });
-      },
+      expect(dialogMock.open).toHaveBeenCalled();
     });
-    confirmDeleteSubject.next(1);
-    expect(component.erroCarregar).toBe('Falha na rede');
-  });
 
-  it('ao emitir confirmDelete$ quando delete falha sem error.error usa mensagem padrão', () => {
-    const deleteMeta = receitasService.delete as jest.Mock;
-    deleteMeta.mockReturnValue({
-      subscribe: (handlers: {
-        next?: () => void;
-        error?: (e: unknown) => void;
-      }) => {
-        handlers.error?.({ message: 'Unknown' });
-      },
+    it('deve excluir quando confirmado', () => {
+      dialogMock.open.mockReturnValueOnce({
+        afterClosed: () => of(true),
+      });
+
+      const carregarSpy = jest.spyOn(component, 'carregar');
+
+      component.abrirConfirmExcluir(mockReceita);
+
+      expect(receitasServiceMock.deleteReceita).toHaveBeenCalledWith(1);
+      expect(carregarSpy).toHaveBeenCalled();
+      expect(dialogMock.open).toHaveBeenCalledTimes(2);
     });
-    confirmDeleteSubject.next(1);
-    expect(component.erroCarregar).toBe('Erro ao excluir.');
-  });
 
-  it('onDateChange deve atualizar mesAtual e carregar receitas quando value existe', () => {
-    const getPorMesAno = receitasService.getPorMesAno as jest.Mock;
-    getPorMesAno.mockClear();
-    const novaData = new Date(2025, 11, 1);
-    component.onDateChange({ value: novaData });
-    expect(component.mesAtual).toBe(novaData);
-    expect(getPorMesAno).toHaveBeenCalledWith(2025, 12);
-  });
+    it('não deve excluir quando não confirmado', () => {
+      dialogMock.open.mockReturnValue({
+        afterClosed: () => of(false),
+      });
 
-  it('onDateChange não deve alterar nada quando value é undefined', () => {
-    const dataAnterior = component.mesAtual;
-    component.onDateChange({});
-    expect(component.mesAtual).toBe(dataAnterior);
-  });
+      component.abrirConfirmExcluir(mockReceita);
 
-  it('ngOnInit deve chamar getPorMesAno e ao sucesso preencher receitasMensal (cobre carregarReceitasDoMes e markForCheck no init)', () => {
-    const getPorMesAno = receitasService.getPorMesAno as jest.Mock;
-    expect(getPorMesAno).toHaveBeenCalled();
-    const [ano, mes] = getPorMesAno.mock.calls[0];
-    expect(ano).toBe(new Date().getFullYear());
-    expect(mes).toBe(new Date().getMonth() + 1);
-    expect(component.receitasMensal).toEqual(mockReceitas);
-    expect(component.loading).toBe(false);
-    expect(component.erroCarregar).toBeNull();
-  });
-
-  it('carregarReceitasDoMes quando getPorMesAno falha deve setar receitasMensal=[], loading=false, erroCarregar e markForCheck', () => {
-    const getPorMesAno = receitasService.getPorMesAno as jest.Mock;
-    getPorMesAno.mockReturnValue({
-      subscribe: (handlers: {
-        next?: (lista: ReceitaMensal[]) => void;
-        error?: (e: unknown) => void;
-      }) => {
-        handlers.error?.({ error: { error: 'Serviço indisponível' } });
-      },
+      expect(receitasServiceMock.deleteReceita).not.toHaveBeenCalled();
     });
-    component.receitasMensal = mockReceitas;
-    component.carregarReceitasDoMes();
-    expect(component.receitasMensal).toEqual([]);
-    expect(component.loading).toBe(false);
-    expect(component.erroCarregar).toBe('Serviço indisponível');
+
+    it('deve tratar erro ao excluir', () => {
+      dialogMock.open.mockReturnValueOnce({
+        afterClosed: () => of(true),
+      });
+
+      receitasServiceMock.deleteReceita.mockReturnValue(
+        throwError(() => ({ error: { error: 'Erro excluir' } })),
+      );
+
+      component.abrirConfirmExcluir(mockReceita);
+
+      expect(component.erroCarregar).toBe('Erro excluir');
+    });
+
+    it('deve usar mensagem padrão ao excluir (abrirConfirmExcluir)', () => {
+      dialogMock.open.mockReturnValueOnce({
+        afterClosed: () => of(true),
+      });
+
+      receitasServiceMock.deleteReceita.mockReturnValue(throwError(() => ({})));
+
+      component.abrirConfirmExcluir(mockReceita);
+
+      expect(component.erroCarregar).toBe('Erro ao excluir.');
+    });
   });
 
-  it('carregarReceitasDoMes quando getPorMesAno falha sem error.error usa mensagem padrão', () => {
-    const getPorMesAno = receitasService.getPorMesAno as jest.Mock;
-    getPorMesAno.mockReturnValue({
-      subscribe: (handlers: {
-        next?: (lista: ReceitaMensal[]) => void;
-        error?: (e: unknown) => void;
-      }) => {
-        handlers.error?.({});
-      },
+  describe('Labels', () => {
+    it('deve retornar pessoa preenchida', () => {
+      expect(component.labelPessoa(mockReceita)).toBe('Kelly');
     });
-    component.carregarReceitasDoMes();
-    expect(component.erroCarregar).toBe('Erro ao carregar receitas.');
-  });
 
-  it('carregarReceitasDoMes em sucesso deve atualizar receitasMensal e loading', () => {
-    const getPorMesAno = receitasService.getPorMesAno as jest.Mock;
-    getPorMesAno.mockReturnValue({
-      subscribe: (handlers: { next?: (lista: ReceitaMensal[]) => void }) => {
-        handlers.next?.(mockReceitas);
-      },
+    it('deve retornar traço quando pessoa vazia', () => {
+      expect(component.labelPessoa({ ...mockReceita, pessoa: '  ' })).toBe('—');
     });
-    component.carregarReceitasDoMes();
-    expect(component.receitasMensal).toEqual(mockReceitas);
-    expect(component.loading).toBe(false);
-    expect(component.erroCarregar).toBeNull();
+
+    it('deve retornar traço quando pessoa undefined', () => {
+      expect(component.labelPessoa({ ...mockReceita, pessoa: undefined })).toBe(
+        '—',
+      );
+    });
+
+    it('deve retornar Fixa', () => {
+      expect(component.labelNatureza('fixa')).toBe('Fixa');
+    });
+
+    it('deve retornar Variável', () => {
+      expect(component.labelNatureza('variavel')).toBe('Variável');
+    });
   });
 });

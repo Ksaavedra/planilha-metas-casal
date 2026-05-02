@@ -1,0 +1,74 @@
+<div class="adicionar-despesa-dialog">
+  <h2 mat-dialog-title class="dialog-titulo">
+    <span class="material-icons dialog-titulo-icone" aria-hidden="true">receipt_long</span>
+    {{ tituloDialog }}
+  </h2>
+
+  <mat-dialog-content class="dialog-body">
+    <form id="form-despesa-dialog" [formGroup]="form" (ngSubmit)="salvar()" class="despesas-form" novalidate>
+      <div class="form-grid">
+        <div class="field field-pessoa">
+          <div class="modal-input-group" [class.has-error]="form.get('pessoa')?.invalid && form.get('pessoa')?.touched">
+            <span class="field-label">Quem comprou: <span class="required" aria-hidden="true">*</span></span>
+            <mat-form-field class="despesa-pessoa-field" appearance="outline" subscriptSizing="fixed"
+              floatLabel="never">
+              <input #pessoaInput id="despesa-pessoa" type="text" matInput formControlName="pessoa"
+                placeholder="Digite ou escolha da lista" autocomplete="off" [matAutocomplete]="autoPessoa"
+                (focus)="onPessoaFieldFocus()" (blur)="onPessoaBlur()" />
+              <mat-autocomplete autoActiveFirstOption panelClass="despesa-pessoa-autocomplete-panel"
+                #autoPessoa="matAutocomplete">
+                @for (option of (filteredPessoas$ | async) ?? []; track option) {
+                <mat-option [value]="option">{{ option }}</mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+            @if (form.get('pessoa')?.hasError('required') && form.get('pessoa')?.touched) {
+            <span class="error-message">Quem comprou é <strong>obrigatório</strong></span>
+            }
+            @if (form.get('pessoa')?.hasError('minlength') && form.get('pessoa')?.touched) {
+            <span class="error-message">Nome deve ter pelo menos <strong>2 caracteres</strong></span>
+            }
+          </div>
+        </div>
+        <label class="field">
+          <span class="field-label">Tipo</span>
+          <select formControlName="natureza" class="input-select">
+            <option value="" disabled>Selecione…</option>
+            <option value="fixa">Fixa (recorrente)</option>
+            <option value="variavel">Variável</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field-label">Categoria</span>
+          <select formControlName="categoria" class="input-select">
+            <option value="" disabled>Selecione…</option>
+            <option *ngFor="let c of categoriasOpcoes" [value]="c">{{ c }}</option>
+          </select>
+        </label>
+        <label class="field field-wide">
+          <span class="field-label">Descrição</span>
+          <input type="text" formControlName="descricao" class="input-text" placeholder="Ex.: Condomínio, supermercado…"
+            autocomplete="off" />
+        </label>
+        <label class="field">
+          <span class="field-label">Valor (R$)</span>
+          <input type="number" formControlName="valor" class="input-text" min="0.01" step="0.01" />
+        </label>
+        <label class="field">
+          <span class="field-label">Data</span>
+          <input type="date" formControlName="data" class="input-text" />
+        </label>
+      </div>
+      <p class="erro-form" *ngIf="erro" role="alert">{{ erro }}</p>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-acoes">
+    <button type="button" mat-stroked-button (click)="fechar()">Cancelar</button>
+    <button type="submit" mat-flat-button color="primary" form="form-despesa-dialog"
+      [disabled]="saving || form.invalid">
+      <span *ngIf="!saving">{{ isEdicao ? 'Atualizar' : 'Adicionar' }}</span>
+      <span *ngIf="saving">Salvando…</span>
+    </button>
+  </mat-dialog-actions>
+</div>

@@ -5,9 +5,10 @@ import { DSModule } from '../../@ds/ds.module';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RelatorioFinanceiroRoutingModule } from './relatorio-financeiro.routing';
 import { RelatorioPageComponent } from './containers/relatorio-page/relatorio-page.component';
+import { RelatorioCategoriasComponent } from './containers/relatorio-categorias/relatorio-categorias.component';
 
 @NgModule({
-  declarations: [RelatorioPageComponent],
+  declarations: [RelatorioPageComponent, RelatorioCategoriasComponent],
   imports: [
     CommonModule,
     RouterModule,

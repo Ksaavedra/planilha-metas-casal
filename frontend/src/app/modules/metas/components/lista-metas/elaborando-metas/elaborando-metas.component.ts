@@ -13,11 +13,11 @@ import {
 } from '../../../../../core/interfaces/metas/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { Subscription } from 'rxjs';
+import { CreateMetaRequest } from '@app/core/interfaces/metas/metas-modais';
 import {
-  CreateMetaRequest,
   ModalStateSalvar,
   ValoresSalvarMetaModal,
-} from '@app/core';
+} from '@app/core/interfaces/metas/metas-modais';
 
 @Component({
   selector: 'app-elaborando-metas',

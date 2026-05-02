@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { RelatorioPageComponent } from './relatorio-page.component';
 import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
+import { DespesasService } from '../../../../core/services/despesas/despesas.service';
 import * as echarts from 'echarts';
 
 jest.mock('echarts', () => ({
@@ -20,7 +21,8 @@ const TEMPLATE_GRAFICOS = `
 describe('RelatorioPageComponent', () => {
   let component: RelatorioPageComponent;
   let fixture: ComponentFixture<RelatorioPageComponent>;
-  let receitasStub: { getPorMesAno: jest.Mock };
+  let receitasStub: { getReceitas: jest.Mock };
+  let despesasStub: { getDespesas: jest.Mock };
 
   const echartsInitMock = echarts.init as jest.Mock;
   const echartsGetInstanceMock = echarts.getInstanceByDom as jest.Mock;
@@ -38,12 +40,18 @@ describe('RelatorioPageComponent', () => {
     echartsGetInstanceMock.mockReturnValue(null);
 
     receitasStub = {
-      getPorMesAno: jest.fn().mockReturnValue(of([])),
+      getReceitas: jest.fn().mockReturnValue(of([])),
+    };
+    despesasStub = {
+      getDespesas: jest.fn().mockReturnValue(of([])),
     };
 
     await TestBed.configureTestingModule({
       declarations: [RelatorioPageComponent],
-      providers: [{ provide: ReceitasService, useValue: receitasStub }],
+      providers: [
+        { provide: ReceitasService, useValue: receitasStub },
+        { provide: DespesasService, useValue: despesasStub },
+      ],
     })
       .overrideComponent(RelatorioPageComponent, {
         set: { template: TEMPLATE_GRAFICOS },
@@ -483,12 +491,17 @@ describe('RelatorioPageComponent', () => {
     expect(component.dadosInvestimentos).toEqual(investimentosAtuais);
   });
 
-  it('getPorMesAno é chamado 12 vezes ao carregar o ano (forkJoin por mês)', (done) => {
-    const callsAntes = receitasStub.getPorMesAno.mock.calls.length;
+  it('getReceitas e getDespesas são chamados 12 vezes ao carregar o ano (forkJoin por mês)', (done) => {
+    const callsReceitas = receitasStub.getReceitas.mock.calls.length;
+    const callsDespesas = despesasStub.getDespesas.mock.calls.length;
     component['carregarReceitasAno']?.(2026);
+    component['carregarDespesasAno']?.(2026);
     setTimeout(() => {
       expect(
-        receitasStub.getPorMesAno.mock.calls.length - callsAntes,
+        receitasStub.getReceitas.mock.calls.length - callsReceitas,
+      ).toBeGreaterThanOrEqual(12);
+      expect(
+        despesasStub.getDespesas.mock.calls.length - callsDespesas,
       ).toBeGreaterThanOrEqual(12);
       done();
     }, 0);
@@ -642,50 +655,14 @@ describe('RelatorioPageComponent', () => {
     expect(intanciaEl3.setOption).toHaveBeenCalled();
   });
 
-  it('normalizarCategoriaReceita deve retornar variavel quando categoria for Variável', () => {
-    const result = (
-      component as unknown as {
-        normalizarCategoriaReceita: (
-          c: string | undefined,
-        ) => 'fixa' | 'variavel';
-      }
-    ).normalizarCategoriaReceita('Variável');
-
-    expect(result).toBe('variavel');
-  });
-
-  it('normalizarCategoriaReceita deve retornar variavel quando texto for variavel sem acento', () => {
-    const result = (
-      component as unknown as {
-        normalizarCategoriaReceita: (
-          c: string | undefined,
-        ) => 'fixa' | 'variavel';
-      }
-    ).normalizarCategoriaReceita('variavel');
-
-    expect(result).toBe('variavel');
-  });
-
-  it('normalizarCategoriaReceita deve retornar fixa quando categoria vier undefined', () => {
-    const result = (
-      component as unknown as {
-        normalizarCategoriaReceita: (
-          c: string | undefined,
-        ) => 'fixa' | 'variavel';
-      }
-    ).normalizarCategoriaReceita(undefined);
-
-    expect(result).toBe('fixa');
-  });
-
-  it('agregarReceitasPorCategorias deve ignorar valor zero e agrupar por tipo', () => {
+  it('agregarReceitasPorCategorias deve ignorar valor zero e agrupar por categoria', () => {
     const listas = Array.from({ length: 12 }, () => []);
 
     listas[0] = [
-      { valor: 1000, categoria: 'Fixa', tipo: 'Salário' },
-      { valor: 500, categoria: 'Variável', tipo: 'Freela' },
-      { valor: 0, categoria: 'Variável', tipo: 'Ignorar' },
-      { valor: 200, categoria: 'variavel', tipo: '' },
+      { valor: 1000, natureza: 'fixa', categoria: 'Salário' },
+      { valor: 500, natureza: 'variavel', categoria: 'Freela' },
+      { valor: 0, natureza: 'variavel', categoria: 'Ignorar' },
+      { valor: 200, natureza: 'variavel', categoria: '' },
     ] as never[];
 
     (
@@ -697,20 +674,59 @@ describe('RelatorioPageComponent', () => {
     expect(component.naturezaReceitaLinhas[0].total).toBe(1000);
     expect(component.naturezaReceitaLinhas[1].total).toBe(700);
 
-    const tipos = component.receitasPorTipoLinhas;
+    const categorias = component.receitasPorTipoLinhas;
     expect(
-      tipos.find((t) => t.tipo === 'Freela' && t.total === 500),
+      categorias.find((c) => c.categoria === 'Freela' && c.total === 500),
     ).toBeTruthy();
     expect(
-      tipos.find((t) => t.tipo === 'Outras' && t.total === 200),
+      categorias.find((c) => c.categoria === 'Outras' && c.total === 200),
     ).toBeTruthy();
     expect(
-      tipos.find((t) => t.tipo === 'Salário' && t.total === 1000),
+      categorias.find((c) => c.categoria === 'Salário' && c.total === 1000),
+    ).toBeTruthy();
+  });
+
+  it('agregarDespesasPorCategorias deve ignorar valor zero e agrupar por categoria', () => {
+    const listas = Array.from({ length: 12 }, () => [] as unknown[]);
+
+    listas[0] = [
+      {
+        valor: 300,
+        natureza: 'fixa',
+        categoria: 'Moradia',
+      },
+      {
+        valor: 150,
+        natureza: 'variavel',
+        categoria: 'Alimentação',
+      },
+      { valor: 0, natureza: 'variavel', categoria: 'Ignorar' },
+      { valor: 50, natureza: 'variavel', categoria: '' },
+    ];
+
+    (
+      component as unknown as {
+        agregarDespesasPorCategorias: (listas: unknown[][]) => void;
+      }
+    ).agregarDespesasPorCategorias(listas as never[][]);
+
+    expect(component.naturezaDespesaLinhas[0].total).toBe(300);
+    expect(component.naturezaDespesaLinhas[1].total).toBe(200);
+
+    const categorias = component.despesasPorCategoriaLinhas;
+    expect(
+      categorias.find((c) => c.categoria === 'Moradia' && c.total === 300),
+    ).toBeTruthy();
+    expect(
+      categorias.find((c) => c.categoria === 'Alimentação' && c.total === 150),
+    ).toBeTruthy();
+    expect(
+      categorias.find((c) => c.categoria === 'Outras' && c.total === 50),
     ).toBeTruthy();
   });
 
   it('carregarReceitasAno deve retornar quando ano não existe', () => {
-    const callsAntes = receitasStub.getPorMesAno.mock.calls.length;
+    const callsAntes = receitasStub.getReceitas.mock.calls.length;
 
     (
       component as unknown as {
@@ -718,11 +734,23 @@ describe('RelatorioPageComponent', () => {
       }
     ).carregarReceitasAno(1999);
 
-    expect(receitasStub.getPorMesAno.mock.calls.length).toBe(callsAntes);
+    expect(receitasStub.getReceitas.mock.calls.length).toBe(callsAntes);
+  });
+
+  it('carregarDespesasAno deve retornar quando ano não existe', () => {
+    const callsAntes = despesasStub.getDespesas.mock.calls.length;
+
+    (
+      component as unknown as {
+        carregarDespesasAno: (ano: number) => void;
+      }
+    ).carregarDespesasAno(1999);
+
+    expect(despesasStub.getDespesas.mock.calls.length).toBe(callsAntes);
   });
 
   it('carregarReceitasAno deve tratar erro da API e usar lista vazia', (done) => {
-    receitasStub.getPorMesAno.mockReturnValueOnce(
+    receitasStub.getReceitas.mockReturnValueOnce(
       throwError(() => new Error('erro')),
     );
 
@@ -734,6 +762,25 @@ describe('RelatorioPageComponent', () => {
 
     setTimeout(() => {
       expect(component.dadosPorAno[2026].receitas.length).toBe(12);
+      done();
+    }, 0);
+  });
+
+  it('carregarDespesasAno deve tratar erro da API e usar lista vazia', (done) => {
+    despesasStub.getDespesas.mockReturnValueOnce(
+      throwError(() => new Error('erro')),
+    );
+
+    (
+      component as unknown as {
+        carregarDespesasAno: (ano: number) => void;
+      }
+    ).carregarDespesasAno(2026);
+
+    setTimeout(() => {
+      expect(component.dadosPorAno[2026].despesas.every((v) => v === 0)).toBe(
+        true,
+      );
       done();
     }, 0);
   });

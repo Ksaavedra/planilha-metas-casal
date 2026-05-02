@@ -1,8 +1,181 @@
 <div class="despesas-container">
-  <h1>Despesas</h1>
-  <p>Gestão de despesas e gastos</p>
-  <div class="placeholder">
-    <span class="material-icons">remove_circle</span>
-    <p>Funcionalidade em desenvolvimento</p>
+  <header class="despesas-hero" role="banner" aria-label="Cabeçalho de despesas">
+    <div class="despesas-hero__accent" aria-hidden="true"></div>
+    <div class="despesas-hero__inner">
+      <div class="despesas-hero__brand">
+        <div class="despesas-hero__icon-wrap" aria-hidden="true">
+          <span class="material-icons despesas-hero__icon">receipt_long</span>
+        </div>
+        <div class="despesas-hero__text">
+          <h1 class="despesas-hero__title">
+            Despesas do casal
+          </h1>
+          <p class="despesas-hero__subtitle">{{ tituloSecundario }}</p>
+        </div>
+      </div>
+      <div class="despesas-hero__field" aria-label="Mês de referência">
+        <p class="despesas-hero__label">Mês de referência</p>
+        <div class="despesas-hero__mes-nav">
+          <button type="button" class="despesas-hero__nav-btn" (click)="mesAnterior()" title="Mês anterior"
+            aria-label="Mês anterior">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <div class="despesas-hero__mes-atual">
+            <span class="material-icons" aria-hidden="true">calendar_month</span>
+            <span>{{ nomeMesAtual }}</span>
+          </div>
+          <button type="button" class="despesas-hero__nav-btn" (click)="proximoMes()" title="Próximo mês"
+            aria-label="Próximo mês">
+            <span class="material-icons">chevron_right</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="despesas-hero__toolbar" aria-label="Visão e ações de despesas">
+      <div class="despesas-hero__chips" role="tablist"
+        aria-label="Alternar entre lista do mês e exemplos de categorias">
+        <button type="button" class="despesas-hero__chip" [class.is-active]="visaoDespesas === 'lista'"
+          (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoDespesas === 'lista'">
+          Minhas despesas
+        </button>
+        <button type="button" class="despesas-hero__chip" [class.is-active]="visaoDespesas === 'usuario'"
+          (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoDespesas === 'usuario'">
+          Por pesssoa
+        </button>
+        <button type="button" class="despesas-hero__chip" [class.is-active]="visaoDespesas === 'exemplos'"
+          (click)="selecionarVisao('exemplos')" role="tab" [attr.aria-selected]="visaoDespesas === 'exemplos'">
+          Exemplos
+        </button>
+      </div>
+      <div class="despesas-hero__actions">
+        <button type="button" class="btn-add-despesa" (click)="abrirModalAdicionarDespesa()"
+          *ngIf="visaoDespesas === 'lista'">
+          <span class="material-icons" aria-hidden="true">add</span>
+          Adicionar despesa
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div *ngIf="visaoDespesas === 'lista' && loading" class="estado estado-loading">
+    Carregando despesas…
   </div>
+  <div *ngIf="visaoDespesas === 'lista' && erroCarregar && !loading" class="estado estado-erro">
+    {{ erroCarregar }}
+  </div>
+
+  <ng-container *ngIf="visaoDespesas === 'lista' && !loading">
+    <div class="tabelas-mes">
+      <section class="bloco-tabela" aria-labelledby="h-fixas">
+        <h2 id="h-fixas" class="bloco-titulo bloco-titulo--fixa">
+          <span class="material-icons">lock</span>
+          Despesas fixas
+        </h2>
+        <p class="bloco-sub">Mais estáveis, costumam repetir mês a mês.</p>
+        <div class="table-wrap" *ngIf="despesasFixas.length; else vazioFixas">
+          <table class="despesas-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Usuário</th>
+                <th>Categoria</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Data</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of despesasFixas">
+                <td>
+                  <span class="badge badge-fixa">{{ labelNatureza(d.natureza) }}</span>
+                </td>
+                <td class="cell-pessoa">{{ labelPessoa(d) }}</td>
+                <td>{{ d.categoria }}</td>
+                <td>{{ d.descricao }}</td>
+                <td class="num">{{ d.valor | currency : 'BRL' }}</td>
+                <td>{{ d.data ? (d.data | date : 'dd/MM/yyyy') : '—' }}</td>
+                <td class="acoes">
+                  <button type="button" class="btn-icone" (click)="editar(d)" title="Editar">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button type="button" class="btn-icone btn-icone-excluir" (click)="abrirConfirmExcluir(d)"
+                    title="Excluir">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="subtotal">Subtotal fixas: <strong>{{ totalFixas | currency : 'BRL' }}</strong></p>
+        <ng-template #vazioFixas>
+          <p class="vazio">Nenhuma despesa fixa neste mês.</p>
+        </ng-template>
+      </section>
+
+      <section class="bloco-tabela" aria-labelledby="h-var">
+        <h2 id="h-var" class="bloco-titulo bloco-titulo--var">
+          <span class="material-icons">payments</span>
+          Despesas variáveis
+        </h2>
+        <p class="bloco-sub">Cambiam de valor ou frequência (mercado, lazer, etc.).</p>
+        <div class="table-wrap" *ngIf="despesasVariaveis.length; else vazioVar">
+          <table class="despesas-table">
+            <thead>
+              <tr>
+                <th>Tipo</th>
+                <th>Usuário</th>
+                <th>Categoria</th>
+                <th>Descrição</th>
+                <th>Valor</th>
+                <th>Data</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of despesasVariaveis">
+                <td>
+                  <span class="badge badge-var">{{ labelNatureza(d.natureza) }}</span>
+                </td>
+                <td class="cell-pessoa">{{ labelPessoa(d) }}</td>
+                <td>{{ d.categoria }}</td>
+                <td>{{ d.descricao }}</td>
+                <td class="num">{{ d.valor | currency : 'BRL' }}</td>
+                <td>{{ d.data ? (d.data | date : 'dd/MM/yyyy') : '—' }}</td>
+                <td class="acoes">
+                  <button type="button" class="btn-icone" (click)="editar(d)" title="Editar">
+                    <span class="material-icons">edit</span>
+                  </button>
+                  <button type="button" class="btn-icone btn-icone-excluir" (click)="abrirConfirmExcluir(d)"
+                    title="Excluir">
+                    <span class="material-icons">delete</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="subtotal">
+          Subtotal variáveis: <strong>{{ totalVariaveis | currency : 'BRL' }}</strong>
+        </p>
+        <ng-template #vazioVar>
+          <p class="vazio">Nenhuma despesa variável neste mês.</p>
+        </ng-template>
+      </section>
+    </div>
+
+    <div class="total-geral" *ngIf="despesas.length">
+      <div class="total-geral-header">
+        <span class="material-icons">account_balance_wallet</span>
+        <span>Total Geral do Mês</span>
+      </div>
+      <div class="total-geral-valor">{{ totalGeral | currency : 'BRL' }}</div>
+    </div>
+  </ng-container>
+
+  <app-despesas-usuario *ngIf="visaoDespesas === 'usuario'" [despesas]="despesas" [nomeMesReferencia]="nomeMesAtual">
+  </app-despesas-usuario>
+  <app-despesas-exemplos *ngIf="visaoDespesas === 'exemplos'"></app-despesas-exemplos>
 </div>

@@ -1,419 +1,164 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import {
-  DespesasService,
-  Despesa,
-  CreateDespesaRequest,
-  UpdateDespesaRequest,
-  Categoria,
-  Mes,
-} from './despesas.service';
+import { DespesasService } from './despesas.service';
+import { Despesa } from '@app/core/interfaces/despesas/despesas';
 import { ApiService } from '../api/api.service';
 
 describe('DespesasService', () => {
   let service: DespesasService;
-  let apiService: any;
-
-  const mockCategoria: Categoria = {
-    id: 1,
-    nome: 'Alimentação',
-    tipo: 'despesa',
-    descricao: 'Gastos com alimentação',
-    ativo: true,
-  };
-
-  const mockMes: Mes = {
-    id: 1,
-    nome: 'Janeiro',
-    numero: 1,
-  };
+  let apiService: jest.Mocked<
+    Pick<ApiService, 'get' | 'post' | 'patch' | 'delete'>
+  >;
 
   const mockDespesa: Despesa = {
     id: 1,
-    mes_id: 1,
-    categoriaId: 1,
-    descricao: 'Supermercado',
-    valor: 500,
-    status: 'Pago',
-    data: '2024-01-15',
-    observacao: 'Compras do mês',
-    categoria: mockCategoria,
-    mes: mockMes,
+    pessoa: 'Kelly',
+    natureza: 'fixa',
+    categoria: 'Casa',
+    descricao: 'Aluguel',
+    valor: 1500,
+    data: '2025-01-10',
+    ano: 2025,
+    mes: 1,
   };
 
-  const mockCreateRequest: CreateDespesaRequest = {
-    mes_id: 1,
-    categoriaId: 1,
-    descricao: 'Farmácia',
-    valor: 100,
-    status: 'Programado',
-    data: '2024-01-20',
-    observacao: 'Medicamentos',
-  };
-
-  const mockUpdateRequest: UpdateDespesaRequest = {
-    descricao: 'Farmácia Atualizada',
-    valor: 150,
+  const mockCreate = {
+    pessoa: 'Casal',
+    natureza: 'fixa' as const,
+    categoria: 'Casa',
+    descricao: 'Condomínio',
+    valor: 400,
+    data: null as string | null,
+    ano: 2025,
+    mes: 1,
   };
 
   beforeEach(() => {
-    const apiServiceSpy = {
+    apiService = {
       get: jest.fn(),
       post: jest.fn(),
       patch: jest.fn(),
       delete: jest.fn(),
     };
-
     TestBed.configureTestingModule({
       providers: [
         DespesasService,
-        { provide: ApiService, useValue: apiServiceSpy },
+        { provide: ApiService, useValue: apiService },
       ],
     });
-
     service = TestBed.inject(DespesasService);
-    apiService = TestBed.inject(ApiService);
   });
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
+  describe('Inicialização', () => {
+    it('deve instanciar', () => {
+      expect(service).toBeTruthy();
+    });
   });
 
   describe('getDespesas', () => {
-    it('should return observable of despesas array', () => {
-      const mockDespesas = [mockDespesa];
-      apiService.get.mockReturnValue(of(mockDespesas));
-
-      service.getDespesas().subscribe((result) => {
-        expect(result).toEqual(mockDespesas);
+    it('chama API com ano e mês', () => {
+      const rows = [mockDespesa];
+      apiService.get.mockReturnValue(of(rows));
+      service.getDespesas({ ano: 2025, mes: 3 }).subscribe((r) => {
+        expect(r).toEqual(rows);
       });
-
-      expect(apiService.get).toHaveBeenCalledWith('/despesas', undefined);
+      expect(apiService.get).toHaveBeenCalledWith('/despesas', {
+        ano: 2025,
+        mes: 3,
+      });
     });
 
-    it('should return observable of despesas array with params', () => {
-      const mockDespesas = [mockDespesa];
-      const params = { mes_id: 1, categoriaId: 1 };
-      apiService.get.mockReturnValue(of(mockDespesas));
-
-      service.getDespesas(params).subscribe((result) => {
-        expect(result).toEqual(mockDespesas);
+    it('propaga erro', () => {
+      apiService.get.mockReturnValue(throwError(() => new Error('falha')));
+      service.getDespesas({ ano: 2025, mes: 1 }).subscribe({
+        error: (e) => {
+          expect(e).toBeTruthy();
+        },
       });
-
-      expect(apiService.get).toHaveBeenCalledWith('/despesas', params);
-    });
-
-    it('should handle error when getting despesas', () => {
-      const error = new Error('Failed to fetch despesas');
-      apiService.get.mockReturnValue(throwError(() => error));
-
-      service.getDespesas().subscribe({
-        next: () => fail('Should have failed'),
-        error: (err) => expect(err).toBe(error),
-      });
-
-      expect(apiService.get).toHaveBeenCalledWith('/despesas', undefined);
     });
   });
 
   describe('getDespesa', () => {
-    it('should return observable of single despesa', () => {
+    it('chama /despesas/:id', () => {
       apiService.get.mockReturnValue(of(mockDespesa));
-
-      service.getDespesa(1).subscribe((result) => {
-        expect(result).toEqual(mockDespesa);
-      });
-
+      service.getDespesa(1).subscribe((r) => expect(r).toEqual(mockDespesa));
       expect(apiService.get).toHaveBeenCalledWith('/despesas/1');
-    });
-
-    it('should handle error when getting despesa by id', () => {
-      const error = new Error('Despesa not found');
-      apiService.get.mockReturnValue(throwError(() => error));
-
-      service.getDespesa(999).subscribe({
-        next: () => fail('Should have failed'),
-        error: (err) => expect(err).toBe(error),
-      });
-
-      expect(apiService.get).toHaveBeenCalledWith('/despesas/999');
     });
   });
 
   describe('createDespesa', () => {
-    it('should create new despesa successfully', () => {
-      const createdDespesa = { ...mockDespesa, ...mockCreateRequest };
-      apiService.post.mockReturnValue(of(createdDespesa));
-
-      service.createDespesa(mockCreateRequest).subscribe((result) => {
-        expect(result).toEqual(createdDespesa);
-      });
-
-      expect(apiService.post).toHaveBeenCalledWith(
-        '/despesas',
-        mockCreateRequest
-      );
-    });
-
-    it('should handle error when creating despesa', () => {
-      const error = new Error('Failed to create despesa');
-      apiService.post.mockReturnValue(throwError(() => error));
-
-      service.createDespesa(mockCreateRequest).subscribe({
-        next: () => fail('Should have failed'),
-        error: (err) => expect(err).toBe(error),
-      });
-
-      expect(apiService.post).toHaveBeenCalledWith(
-        '/despesas',
-        mockCreateRequest
-      );
-    });
-
-    it('should create despesa with minimal required fields', () => {
-      const minimalRequest: CreateDespesaRequest = {
-        mes_id: 1,
-        categoriaId: 1,
-        descricao: 'Minimal Despesa',
-        valor: 50,
-      };
-      const createdDespesa = { ...mockDespesa, ...minimalRequest };
-      apiService.post.mockReturnValue(of(createdDespesa));
-
-      service.createDespesa(minimalRequest).subscribe((result) => {
-        expect(result).toEqual(createdDespesa);
-      });
-
-      expect(apiService.post).toHaveBeenCalledWith('/despesas', minimalRequest);
+    it('faz POST', () => {
+      const created = { ...mockDespesa, id: 2, descricao: 'Novo' };
+      apiService.post.mockReturnValue(of(created));
+      service
+        .createDespesa(mockCreate)
+        .subscribe((r) => expect(r).toEqual(created));
+      expect(apiService.post).toHaveBeenCalledWith('/despesas', mockCreate);
     });
   });
 
   describe('updateDespesa', () => {
-    it('should update despesa successfully', () => {
-      const updatedDespesa = { ...mockDespesa, ...mockUpdateRequest };
-      apiService.patch.mockReturnValue(of(updatedDespesa));
-
-      service.updateDespesa(1, mockUpdateRequest).subscribe((result) => {
-        expect(result).toEqual(updatedDespesa);
-      });
-
-      expect(apiService.patch).toHaveBeenCalledWith(
-        '/despesas/1',
-        mockUpdateRequest
-      );
-    });
-
-    it('should handle error when updating despesa', () => {
-      const error = new Error('Failed to update despesa');
-      apiService.patch.mockReturnValue(throwError(() => error));
-
-      service.updateDespesa(1, mockUpdateRequest).subscribe({
-        next: () => fail('Should have failed'),
-        error: (err) => expect(err).toBe(error),
-      });
-
-      expect(apiService.patch).toHaveBeenCalledWith(
-        '/despesas/1',
-        mockUpdateRequest
-      );
-    });
-
-    it('should update despesa with partial data', () => {
-      const partialUpdate: UpdateDespesaRequest = {
-        valor: 200,
-      };
-      const updatedDespesa = { ...mockDespesa, ...partialUpdate };
-      apiService.patch.mockReturnValue(of(updatedDespesa));
-
-      service.updateDespesa(1, partialUpdate).subscribe((result) => {
-        expect(result).toEqual(updatedDespesa);
-      });
-
-      expect(apiService.patch).toHaveBeenCalledWith(
-        '/despesas/1',
-        partialUpdate
-      );
+    it('faz PATCH', () => {
+      const up = { valor: 100 };
+      apiService.patch.mockReturnValue(of({ ...mockDespesa, ...up }));
+      service.updateDespesa(1, up).subscribe();
+      expect(apiService.patch).toHaveBeenCalledWith('/despesas/1', up);
     });
   });
 
   describe('deleteDespesa', () => {
-    it('should delete despesa successfully', () => {
-      apiService.delete.mockReturnValue(of(undefined));
-
-      service.deleteDespesa(1).subscribe((result) => {
-        expect(result).toBeUndefined();
-      });
-
+    it('faz DELETE', () => {
+      apiService.delete.mockReturnValue(of(void 0 as never));
+      service.deleteDespesa(1).subscribe();
       expect(apiService.delete).toHaveBeenCalledWith('/despesas/1');
-    });
-
-    it('should handle error when deleting despesa', () => {
-      const error = new Error('Failed to delete despesa');
-      apiService.delete.mockReturnValue(throwError(() => error));
-
-      service.deleteDespesa(1).subscribe({
-        next: () => fail('Should have failed'),
-        error: (err) => expect(err).toBe(error),
-      });
-
-      expect(apiService.delete).toHaveBeenCalledWith('/despesas/1');
-    });
-  });
-
-  describe('getDespesasPorMes', () => {
-    it('should return despesas for specific month', () => {
-      const mockDespesas = [mockDespesa];
-      apiService.get.mockReturnValue(of(mockDespesas));
-
-      service.getDespesasPorMes(1).subscribe((result) => {
-        expect(result).toEqual(mockDespesas);
-      });
-
-      expect(apiService.get).toHaveBeenCalledWith('/despesas', { mes_id: 1 });
-    });
-  });
-
-  describe('getDespesasPorCategoria', () => {
-    it('should return despesas for specific category', () => {
-      const mockDespesas = [mockDespesa];
-      apiService.get.mockReturnValue(of(mockDespesas));
-
-      service.getDespesasPorCategoria(1).subscribe((result) => {
-        expect(result).toEqual(mockDespesas);
-      });
-
-      expect(apiService.get).toHaveBeenCalledWith('/despesas', {
-        categoriaId: 1,
-      });
     });
   });
 
   describe('calcularTotalDespesas', () => {
-    it('should calculate total correctly', () => {
-      const despesas = [
-        { ...mockDespesa, valor: 100 },
+    it('soma valores', () => {
+      const total = service.calcularTotalDespesas([
+        mockDespesa,
         { ...mockDespesa, id: 2, valor: 200 },
-        { ...mockDespesa, id: 3, valor: 300 },
-      ];
-
-      const total = service.calcularTotalDespesas(despesas);
-      expect(total).toBe(600);
+      ]);
+      expect(total).toBe(1700);
     });
 
-    it('should return 0 for empty array', () => {
-      const total = service.calcularTotalDespesas([]);
+    it('retorna 0 para array vazio', () => {
+      expect(service.calcularTotalDespesas([])).toBe(0);
+    });
+
+    it('deve considerar valor null como 0', () => {
+      const total = service.calcularTotalDespesas([
+        { ...mockDespesa, valor: null as any },
+      ]);
+
       expect(total).toBe(0);
     });
 
-    it('should handle single despesa', () => {
-      const despesas = [{ ...mockDespesa, valor: 150 }];
-      const total = service.calcularTotalDespesas(despesas);
-      expect(total).toBe(150);
+    it('deve considerar valor undefined como 0', () => {
+      const total = service.calcularTotalDespesas([
+        { ...mockDespesa, valor: undefined as any },
+      ]);
+
+      expect(total).toBe(0);
     });
 
-    it('should handle despesas with zero values', () => {
-      const despesas = [
-        { ...mockDespesa, valor: 0 },
-        { ...mockDespesa, id: 2, valor: 100 },
-        { ...mockDespesa, id: 3, valor: 0 },
-      ];
+    it('deve considerar valor inválido como 0', () => {
+      const total = service.calcularTotalDespesas([
+        { ...mockDespesa, valor: 'abc' as any },
+      ]);
 
-      const total = service.calcularTotalDespesas(despesas);
+      expect(total).toBe(0);
+    });
+
+    it('deve somar ignorando valores inválidos', () => {
+      const total = service.calcularTotalDespesas([
+        mockDespesa,
+        { ...mockDespesa, id: 2, valor: 'abc' as any },
+        { ...mockDespesa, id: 3, valor: 100 },
+      ]);
+
       expect(total).toBe(100);
-    });
-  });
-
-  describe('agruparPorCategoria', () => {
-    it('should group despesas by category correctly', () => {
-      const despesas = [
-        {
-          ...mockDespesa,
-          categoria: { ...mockCategoria, nome: 'Alimentação' },
-          valor: 100,
-        },
-        {
-          ...mockDespesa,
-          id: 2,
-          categoria: { ...mockCategoria, nome: 'Transporte' },
-          valor: 200,
-        },
-        {
-          ...mockDespesa,
-          id: 3,
-          categoria: { ...mockCategoria, nome: 'Alimentação' },
-          valor: 150,
-        },
-      ];
-
-      const grouped = service.agruparPorCategoria(despesas);
-      expect(grouped).toEqual({
-        Alimentação: 250,
-        Transporte: 200,
-      });
-    });
-
-    it('should return empty object for empty array', () => {
-      const grouped = service.agruparPorCategoria([]);
-      expect(grouped).toEqual({});
-    });
-
-    it('should handle single despesa', () => {
-      const despesas = [
-        {
-          ...mockDespesa,
-          categoria: { ...mockCategoria, nome: 'Alimentação' },
-          valor: 100,
-        },
-      ];
-      const grouped = service.agruparPorCategoria(despesas);
-      expect(grouped).toEqual({ Alimentação: 100 });
-    });
-
-    it('should handle despesas with same category', () => {
-      const despesas = [
-        {
-          ...mockDespesa,
-          categoria: { ...mockCategoria, nome: 'Alimentação' },
-          valor: 100,
-        },
-        {
-          ...mockDespesa,
-          id: 2,
-          categoria: { ...mockCategoria, nome: 'Alimentação' },
-          valor: 200,
-        },
-        {
-          ...mockDespesa,
-          id: 3,
-          categoria: { ...mockCategoria, nome: 'Alimentação' },
-          valor: 300,
-        },
-      ];
-
-      const grouped = service.agruparPorCategoria(despesas);
-      expect(grouped).toEqual({ Alimentação: 600 });
-    });
-
-    it('should handle despesas with zero values', () => {
-      const despesas = [
-        {
-          ...mockDespesa,
-          categoria: { ...mockCategoria, nome: 'Alimentação' },
-          valor: 0,
-        },
-        {
-          ...mockDespesa,
-          id: 2,
-          categoria: { ...mockCategoria, nome: 'Transporte' },
-          valor: 100,
-        },
-      ];
-
-      const grouped = service.agruparPorCategoria(despesas);
-      expect(grouped).toEqual({
-        Alimentação: 0,
-        Transporte: 100,
-      });
     });
   });
 });

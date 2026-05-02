@@ -45,8 +45,7 @@ Thumbs.db
 *.db
 metas.db
 
-# Server files (não versionar)
-server.js
+# O Express da API fica em server.js (versionado).
 
 # Scripts de migração (opcional - pode versionar ou não)
 # scripts/
