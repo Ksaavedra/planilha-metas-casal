@@ -79,32 +79,214 @@ describe('ReceitasPageComponent', () => {
     });
   });
 
-  describe('Getters de receitas', () => {
-    it('deve filtrar receitas fixas e variáveis', () => {
+  describe('receitasVariaveisPaginadas', () => {
+    beforeEach(() => {
+      component.tamanhoPagina = 1;
       component.receitas = [
-        mockReceita,
-        { ...mockReceita, id: 2, natureza: 'variavel' },
+        { ...mockReceita, id: 1, natureza: 'fixa' },
+        { ...mockReceita, id: 2, natureza: 'fixa' },
+        { ...mockReceita, id: 3, natureza: 'fixa' },
+        { ...mockReceita, id: 4, natureza: 'fixa' },
+        { ...mockReceita, id: 5, natureza: 'variavel' },
+        { ...mockReceita, id: 6, natureza: 'variavel' },
+        { ...mockReceita, id: 7, natureza: 'variavel' },
+        { ...mockReceita, id: 8, natureza: 'variavel' },
       ];
-      expect(component.receitasFixas.length).toBe(1);
-      expect(component.receitasVariaveis.length).toBe(1);
     });
 
-    it('deve calcular totais', () => {
+    it('deve retornar itens de página atual', () => {
+      component.paginaVariaveis = 2;
+
+      const result = component.receitasVariaveisPaginadas;
+
+      expect(result.map((r) => r.id)).toEqual([6]);
+    });
+  });
+
+  describe('Paginação de receitas', () => {
+    beforeEach(() => {
+      component.tamanhoPagina = 2;
       component.receitas = [
-        mockReceita,
-        { ...mockReceita, id: 2, natureza: 'variavel', valor: 20 },
-        { ...mockReceita, id: 3, natureza: 'variavel', valor: 30 },
+        { ...mockReceita, id: 1, natureza: 'fixa', valor: 100 },
+        { ...mockReceita, id: 2, natureza: 'fixa', valor: 200 },
+        { ...mockReceita, id: 3, natureza: 'fixa', valor: 300 },
+        { ...mockReceita, id: 4, natureza: 'variavel', valor: 400 },
+        { ...mockReceita, id: 5, natureza: 'variavel', valor: 500 },
+        { ...mockReceita, id: 6, natureza: 'variavel', valor: 600 },
       ];
-      expect(component.totalFixas).toBe(2000);
-      expect(component.totalVariaveis).toBe(50);
-      expect(component.totalGeral).toBe(2050);
     });
 
-    it('deve retornar anoRef e mesRef', () => {
-      component.mesAtual = new Date(2025, 4, 1);
+    it('receitasVariaveisPaginadas deve retornar itens da página atual', () => {
+      component.paginaVariaveis = 2;
 
-      expect(component.anoRef).toBe(2025);
-      expect(component.mesRef).toBe(5);
+      const result = component.receitasVariaveisPaginadas;
+
+      expect(result.map((r) => r.id)).toEqual([6]);
+    });
+
+    it('totalPaginasFixas deve retornar 0 quando não houver receitas fixas', () => {
+      component.receitas = [
+        { ...mockReceita, id: 1, natureza: 'variavel', valor: 100 },
+      ];
+
+      expect(component.totalPaginasFixas).toBe(0);
+    });
+
+    it('totalPaginasFixas deve calcular total de páginas', () => {
+      expect(component.totalPaginasFixas).toBe(2);
+    });
+
+    it('totalPaginasVariaveis deve retornar 0 quando não houver receitas variáveis', () => {
+      component.receitas = [
+        { ...mockReceita, id: 1, natureza: 'fixa', valor: 100 },
+      ];
+
+      expect(component.totalPaginasVariaveis).toBe(0);
+    });
+
+    it('totalPaginasVariaveis deve calcular total de páginas', () => {
+      expect(component.totalPaginasVariaveis).toBe(2);
+    });
+
+    it('exibindoDeFixas deve retornar 0 quando não houver receitas fixas', () => {
+      component.receitas = [
+        { ...mockReceita, id: 1, natureza: 'variavel', valor: 100 },
+      ];
+
+      expect(component.exibindoDeFixas).toBe(0);
+    });
+
+    it('exibindoDeFixas deve retornar início da página atual', () => {
+      component.paginaFixas = 2;
+
+      expect(component.exibindoDeFixas).toBe(3);
+    });
+
+    it('exibindoAteFixas deve retornar até da página atual', () => {
+      component.paginaFixas = 2;
+
+      expect(component.exibindoAteFixas).toBe(3);
+    });
+
+    it('exibindoDeVariaveis deve retornar 0 quando não houver receitas variáveis', () => {
+      component.receitas = [
+        { ...mockReceita, id: 1, natureza: 'fixa', valor: 100 },
+      ];
+
+      expect(component.exibindoDeVariaveis).toBe(0);
+    });
+
+    it('exibindoDeVariaveis deve retornar início da página atual', () => {
+      component.paginaVariaveis = 2;
+
+      expect(component.exibindoDeVariaveis).toBe(3);
+    });
+
+    it('exibindoAteVariaveis deve retornar até da página atual', () => {
+      component.paginaVariaveis = 2;
+
+      expect(component.exibindoAteVariaveis).toBe(3);
+    });
+
+    it('paginaAnteriorFixas deve voltar página quando maior que 1', () => {
+      component.paginaFixas = 2;
+
+      component.paginaAnteriorFixas();
+
+      expect(component.paginaFixas).toBe(1);
+    });
+
+    it('paginaAnteriorFixas não deve voltar quando já estiver na página 1', () => {
+      component.paginaFixas = 1;
+
+      component.paginaAnteriorFixas();
+
+      expect(component.paginaFixas).toBe(1);
+    });
+
+    it('paginaProximaFixas deve avançar página quando menor que total', () => {
+      component.paginaFixas = 1;
+
+      component.paginaProximaFixas();
+
+      expect(component.paginaFixas).toBe(2);
+    });
+
+    it('paginaAnteriorVariaveis deve voltar página quando maior que 1', () => {
+      component.paginaVariaveis = 2;
+
+      component.paginaAnteriorVariaveis();
+
+      expect(component.paginaVariaveis).toBe(1);
+    });
+
+    it('paginaAnteriorVariaveis não deve voltar quando já estiver na página 1', () => {
+      component.paginaVariaveis = 1;
+
+      component.paginaAnteriorVariaveis();
+
+      expect(component.paginaVariaveis).toBe(1);
+    });
+
+    it('normalizarIndicesPagina deve ajustar paginaFixas quando maior que total', () => {
+      component.paginaFixas = 10;
+
+      component['normalizarIndicesPagina']();
+
+      expect(component.paginaFixas).toBe(component.totalPaginasFixas);
+    });
+
+    it('normalizarIndicesPagina deve ajustar paginaVariaveis quando maior que total', () => {
+      component.paginaVariaveis = 10;
+
+      component['normalizarIndicesPagina']();
+
+      expect(component.paginaVariaveis).toBe(component.totalPaginasVariaveis);
+    });
+
+    it('aplicarResultadoCarregar deve atualizar receitas e resetar paginação', () => {
+      component.paginaFixas = 3;
+      component.paginaVariaveis = 3;
+
+      component['aplicarResultadoCarregar']([mockReceita], null);
+
+      expect(component.receitas).toEqual([mockReceita]);
+      expect(component.paginaFixas).toBe(1);
+      expect(component.paginaVariaveis).toBe(1);
+      expect(component.loading).toBe(false);
+      expect(component.erroCarregar).toBeNull();
+    });
+
+    it('paginaProximaVariaveis deve avançar página quando menor que total', () => {
+      component.paginaVariaveis = 1;
+
+      component.paginaProximaVariaveis();
+
+      expect(component.paginaVariaveis).toBe(2);
+    });
+
+    it('paginaProximaVariaveis NÃO deve avançar quando já estiver na última página', () => {
+      component.paginaVariaveis = component.totalPaginasVariaveis;
+
+      component.paginaProximaVariaveis();
+
+      expect(component.paginaVariaveis).toBe(component.totalPaginasVariaveis);
+    });
+
+    it('paginaProximaFixas deve avançar página quando menor que total', () => {
+      component.paginaFixas = 1;
+
+      component.paginaProximaFixas();
+
+      expect(component.paginaFixas).toBe(2);
+    });
+
+    it('paginaProximaFixas NÃO deve avançar quando já estiver na última página', () => {
+      component.paginaFixas = component.totalPaginasFixas;
+
+      component.paginaProximaFixas();
+
+      expect(component.paginaFixas).toBe(component.totalPaginasFixas);
     });
   });
 

@@ -217,6 +217,12 @@ describe('ReceitasUsuarioComponent', () => {
   });
 
   describe('receitasDetalhesFiltradas', () => {
+    it('deve retornar vazio quando usuarioFiltro não estiver preenchido', () => {
+      component.usuarioFiltro = '';
+
+      expect(component.receitasDetalhesFiltradas).toEqual([]);
+    });
+
     it('deve listar só do usuário selecionado', () => {
       fixture.componentRef.setInput('receitas', [
         receita({ id: 1, pessoa: 'Kelly', natureza: 'fixa', valor: 10 }),
@@ -226,41 +232,10 @@ describe('ReceitasUsuarioComponent', () => {
 
       component.usuarioFiltro = 'Kelly';
 
-      expect(component.receitasDetalhesFiltradas.length).toBe(1);
-      expect(component.receitasDetalhesFiltradas[0].pessoa).toBe('Kelly');
-    });
-
-    it('deve retornar vazio quando usuarioFiltro não estiver preenchido', () => {
-      component.usuarioFiltro = '';
-
-      expect(component.receitasDetalhesFiltradas).toEqual([]);
-    });
-
-    it('deve ordenar por categoria quando categorias forem diferentes', () => {
-      fixture.componentRef.setInput('receitas', [
-        receita({
-          id: 1,
-          pessoa: 'Kelly',
-          natureza: 'fixa',
-          valor: 10,
-          categoria: 'A',
-        }),
-        receita({
-          id: 2,
-          pessoa: 'Kelly',
-          natureza: 'fixa',
-          valor: 20,
-          categoria: 'B',
-        }),
-      ]);
-      fixture.detectChanges();
-
-      component.usuarioFiltro = 'Kelly';
-
       const result = component.receitasDetalhesFiltradas;
 
-      expect(result[0].id).toBe(1);
-      expect(result[1].id).toBe(2);
+      expect(result.length).toBe(1);
+      expect(result[0].pessoa).toBe('Kelly');
     });
 
     it('deve ordenar por data quando datas forem diferentes', () => {
@@ -270,6 +245,7 @@ describe('ReceitasUsuarioComponent', () => {
           pessoa: 'Kelly',
           natureza: 'fixa',
           valor: 10,
+          categoria: 'B',
           data: '2026-04-20',
         }),
         receita({
@@ -277,12 +253,17 @@ describe('ReceitasUsuarioComponent', () => {
           pessoa: 'Kelly',
           natureza: 'fixa',
           valor: 20,
+          categoria: 'A',
           data: '2026-04-10',
         }),
       ]);
       fixture.detectChanges();
 
       component.usuarioFiltro = 'Kelly';
+
+      const result = component.receitasDetalhesFiltradas;
+
+      expect(result.map((r) => r.id)).toEqual([2, 1]);
     });
 
     it('deve ordenar por categoria quando datas forem iguais', () => {
@@ -292,7 +273,7 @@ describe('ReceitasUsuarioComponent', () => {
           pessoa: 'Kelly',
           natureza: 'fixa',
           valor: 10,
-          categoria: 'A',
+          categoria: 'Zebra',
           data: '2026-04-20',
         }),
         receita({
@@ -300,11 +281,25 @@ describe('ReceitasUsuarioComponent', () => {
           pessoa: 'Kelly',
           natureza: 'fixa',
           valor: 20,
-          categoria: 'B',
+          categoria: '',
+          data: '2026-04-20',
+        }),
+        receita({
+          id: 3,
+          pessoa: 'Kelly',
+          natureza: 'fixa',
+          valor: 30,
+          categoria: 'Abacaxi',
           data: '2026-04-20',
         }),
       ]);
       fixture.detectChanges();
+
+      component.usuarioFiltro = 'Kelly';
+
+      const result = component.receitasDetalhesFiltradas;
+
+      expect(result.map((r) => r.id)).toEqual([2, 3, 1]);
     });
 
     it('deve ordenar por categoria quando datas forem vazias', () => {
@@ -314,7 +309,7 @@ describe('ReceitasUsuarioComponent', () => {
           pessoa: 'Kelly',
           natureza: 'fixa',
           valor: 10,
-          categoria: 'A',
+          categoria: 'Zebra',
           data: null,
         }),
         receita({
@@ -322,80 +317,27 @@ describe('ReceitasUsuarioComponent', () => {
           pessoa: 'Kelly',
           natureza: 'fixa',
           valor: 20,
-          categoria: 'B',
+          categoria: '',
+          data: null,
+        }),
+        receita({
+          id: 3,
+          pessoa: 'Kelly',
+          natureza: 'fixa',
+          valor: 30,
+          categoria: 'Abacaxi',
           data: null,
         }),
       ]);
       fixture.detectChanges();
-    });
 
-    it('deve ordenar por categoria quando categorias forem iguais', () => {
-      fixture.componentRef.setInput('receitas', [
-        receita({
-          id: 1,
-          pessoa: 'Kelly',
-          natureza: 'fixa',
-          valor: 10,
-          categoria: 'A',
-          data: null,
-        }),
-        receita({
-          id: 2,
-          pessoa: 'Kelly',
-          natureza: 'fixa',
-          valor: 20,
-          categoria: 'A',
-          data: null,
-        }),
-      ]);
-      fixture.detectChanges();
-    });
+      component.usuarioFiltro = 'Kelly';
 
-    it('deve ordenar por categoria quando categorias forem vazias', () => {
-      fixture.componentRef.setInput('receitas', [
-        receita({
-          id: 1,
-          pessoa: 'Kelly',
-          natureza: 'fixa',
-          valor: 10,
-          categoria: '',
-          data: null,
-        }),
-        receita({
-          id: 2,
-          pessoa: 'Kelly',
-          natureza: 'fixa',
-          valor: 20,
-          categoria: '',
-          data: null,
-        }),
-      ]);
-      fixture.detectChanges();
-    });
+      const result = component.receitasDetalhesFiltradas;
 
-    it('deve ordenar por categoria quando categorias forem vazias', () => {
-      fixture.componentRef.setInput('receitas', [
-        receita({
-          id: 1,
-          pessoa: 'Kelly',
-          natureza: 'fixa',
-          valor: 10,
-          categoria: '',
-          data: null,
-        }),
-        receita({
-          id: 2,
-          pessoa: 'Kelly',
-          natureza: 'fixa',
-          valor: 20,
-          categoria: '',
-          data: null,
-        }),
-      ]);
-      fixture.detectChanges();
+      expect(result.map((r) => r.id)).toEqual([2, 3, 1]);
     });
   });
-
   describe('receitasFixasUsuario e receitasVariaveisUsuario', () => {
     it('deve separar receitas por natureza', () => {
       fixture.componentRef.setInput('receitas', [

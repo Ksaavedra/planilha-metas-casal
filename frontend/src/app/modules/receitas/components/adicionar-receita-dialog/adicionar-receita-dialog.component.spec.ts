@@ -453,6 +453,39 @@ describe('AdicionarReceitaDialogComponent', () => {
 
       expect(result).toEqual(['David', 'Kelly']);
     });
+
+    it('deve ignorar strings vazias', () => {
+      const result = component['normalizarListaNomes'](['', '   ', 'Kelly']);
+
+      expect(result).toEqual(['Kelly']);
+    });
+
+    it('deve tratar null e undefined como vazio', () => {
+      const result = component['normalizarListaNomes']([
+        null,
+        undefined,
+        'David',
+      ] as any);
+
+      expect(result).toEqual(['David']);
+    });
+
+    it('deve retornar vazio quando todos forem inválidos', () => {
+      const result = component['normalizarListaNomes']([
+        '',
+        '   ',
+        null,
+        undefined,
+      ] as any);
+
+      expect(result).toEqual([]);
+    });
+
+    it('deve aplicar trim antes do toTitleCase', () => {
+      const result = component['normalizarListaNomes'](['   kelly   ']);
+
+      expect(result).toEqual(['Kelly']);
+    });
   });
 
   describe('carregarPessoasOpcoes', () => {
@@ -611,6 +644,8 @@ describe('AdicionarReceitaDialogComponent', () => {
   describe('Salvar inclusão', () => {
     beforeEach(() => {
       component.ngOnInit();
+      usuariosServiceMock.createUsuario.mockReturnValue(of({}));
+      receitasServiceMock.createReceita.mockReturnValue(of({}));
     });
 
     it('deve marcar form como touched quando inválido', () => {
@@ -713,6 +748,58 @@ describe('AdicionarReceitaDialogComponent', () => {
       component.salvar();
 
       expect(component.erro).toBe('Não foi possível salvar.');
+    });
+
+    it('deve salvar receita mesmo quando createUsuario der erro', () => {
+      usuariosServiceMock.createUsuario.mockReturnValue(throwError(() => ({})));
+
+      component.form.patchValue({
+        pessoa: 'Kelly',
+        natureza: 'fixa',
+        categoria: 'Casa',
+        valor: 100,
+        data: '2026-01-01',
+      });
+
+      component.salvar();
+
+      expect(usuariosServiceMock.createUsuario).toHaveBeenCalledWith('Kelly');
+      expect(receitasServiceMock.createReceita).toHaveBeenCalled();
+      expect(dialogRefMock.close).toHaveBeenCalledWith(true);
+    });
+
+    it('deve cair no else e salvar receita quando pessoaTrim for vazio', () => {
+      jest.spyOn(component as any, 'pessoaTextoParaSalvar').mockReturnValue('');
+      jest.spyOn(component.form, 'invalid', 'get').mockReturnValue(false);
+
+      component.form.patchValue({
+        pessoa: '',
+        natureza: 'fixa',
+        categoria: 'Casa',
+        valor: 100,
+        data: '2026-01-01',
+      });
+
+      component.salvar();
+
+      expect(usuariosServiceMock.createUsuario).not.toHaveBeenCalled();
+      expect(receitasServiceMock.createReceita).toHaveBeenCalled();
+    });
+
+    it('deve cair no else forçando pessoaTextoParaSalvar vazio', () => {
+      jest.spyOn(component as any, 'pessoaTextoParaSalvar').mockReturnValue('');
+
+      component.form.patchValue({
+        pessoa: '',
+        natureza: 'fixa',
+        categoria: 'Casa',
+        valor: 100,
+        data: '2026-01-01',
+      });
+
+      component.salvar();
+
+      expect(usuariosServiceMock.createUsuario).not.toHaveBeenCalled();
     });
   });
 

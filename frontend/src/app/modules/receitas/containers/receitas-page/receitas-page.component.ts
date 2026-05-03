@@ -35,7 +35,7 @@ export class ReceitasPageComponent implements OnInit {
   confirmExcluirOpen = false;
   receitaParaExcluir: Receita | null = null;
 
-  readonly tamanhoPagina = 5;
+  tamanhoPagina = 5;
   paginaFixas = 1;
   paginaVariaveis = 1;
 
