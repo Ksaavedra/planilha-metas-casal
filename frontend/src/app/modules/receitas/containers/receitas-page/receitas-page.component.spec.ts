@@ -26,7 +26,6 @@ describe('ReceitasPageComponent', () => {
   const receitasServiceMock = {
     getReceitas: jest.fn(),
     deleteReceita: jest.fn(),
-    calcularTotalReceitas: jest.fn(),
   };
 
   const dialogMock = {
@@ -38,10 +37,6 @@ describe('ReceitasPageComponent', () => {
 
     receitasServiceMock.getReceitas.mockReturnValue(of([mockReceita]));
     receitasServiceMock.deleteReceita.mockReturnValue(of(void 0));
-    receitasServiceMock.calcularTotalReceitas.mockImplementation(
-      (receitas: Receita[]) =>
-        receitas.reduce((total, item) => total + Number(item.valor || 0), 0),
-    );
 
     dialogMock.open.mockReturnValue({
       afterClosed: () => of(false),
@@ -110,37 +105,6 @@ describe('ReceitasPageComponent', () => {
 
       expect(component.anoRef).toBe(2025);
       expect(component.mesRef).toBe(5);
-    });
-
-    it('deve chamar calcularTotalReceitas para totalVariaveis e totalGeral', () => {
-      const receitaFixa = mockReceita;
-      const receitaVariavel = {
-        ...mockReceita,
-        id: 2,
-        natureza: 'variavel' as const,
-        valor: 50,
-      };
-
-      component.receitas = [receitaFixa, receitaVariavel];
-
-      const totalVariaveis = component.totalVariaveis;
-      const totalGeral = component.totalGeral;
-
-      expect(totalVariaveis).toBe(50);
-      expect(totalGeral).toBe(2050);
-
-      expect(receitasServiceMock.calcularTotalReceitas).toHaveBeenCalledWith([
-        receitaVariavel,
-      ]);
-
-      expect(receitasServiceMock.calcularTotalReceitas).toHaveBeenCalledWith([
-        receitaFixa,
-        receitaVariavel,
-      ]);
-      expect(receitasServiceMock.calcularTotalReceitas).toHaveBeenCalledWith([
-        receitaFixa,
-        receitaVariavel,
-      ]);
     });
   });
 
@@ -351,6 +315,50 @@ describe('ReceitasPageComponent', () => {
 
     it('deve retornar Variável', () => {
       expect(component.labelNatureza('variavel')).toBe('Variável');
+    });
+  });
+
+  describe('calcularTotalReceitas', () => {
+    it('soma valores', () => {
+      const total = component.calcularTotalReceitas([
+        mockReceita,
+        { ...mockReceita, id: 2, valor: 200 },
+      ]);
+      expect(total).toBe(2200);
+    });
+
+    it('retorna 0 para array vazio', () => {
+      expect(component.calcularTotalReceitas([])).toBe(0);
+    });
+
+    it('deve considerar valor null como 0', () => {
+      const total = component.calcularTotalReceitas([
+        { ...mockReceita, valor: null as any },
+      ]);
+      expect(total).toBe(0);
+    });
+
+    it('deve considerar valor undefined como 0', () => {
+      const total = component.calcularTotalReceitas([
+        { ...mockReceita, valor: undefined as any },
+      ]);
+      expect(total).toBe(0);
+    });
+
+    it('deve considerar valor inválido como 0', () => {
+      const total = component.calcularTotalReceitas([
+        { ...mockReceita, valor: 'abc' as any },
+      ]);
+      expect(total).toBe(0);
+    });
+
+    it('deve somar ignorando valores inválidos', () => {
+      const total = component.calcularTotalReceitas([
+        mockReceita,
+        { ...mockReceita, id: 2, valor: 'abc' as any },
+        { ...mockReceita, id: 3, valor: 100 },
+      ]);
+      expect(total).toBe(100);
     });
   });
 });

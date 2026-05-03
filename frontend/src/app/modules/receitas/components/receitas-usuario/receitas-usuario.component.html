@@ -18,7 +18,7 @@
       <label class="receitas-usuario__filtro-inline-label" for="receitasUsuarioSelect">Quem recebeu:</label>
       <select id="receitasUsuarioSelect" class="receitas-usuario__filtro-select" [(ngModel)]="usuarioFiltro"
         [attr.aria-label]="'Quem recebeu no mês ' + (nomeMesReferencia || 'atual')">
-        <option [ngValue]="''">Selecione uma pessoa</option>
+        <option [ngValue]="''" *ngIf="!usuarioFiltro">Selecione uma pessoa</option>
         <option *ngFor="let row of linhasPorUsuario" [ngValue]="row.usuario">{{ row.usuario }}</option>
       </select>
     </div>
