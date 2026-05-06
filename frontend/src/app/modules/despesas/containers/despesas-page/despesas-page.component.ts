@@ -35,6 +35,10 @@ export class DespesasPageComponent implements OnInit {
   confirmExcluirOpen = false;
   despesaParaExcluir: Despesa | null = null;
 
+  tamanhoPagina = 5;
+  paginaFixas = 1;
+  paginaVariaveis = 1;
+
   meses = [
     'Janeiro',
     'Fevereiro',
@@ -68,6 +72,107 @@ export class DespesasPageComponent implements OnInit {
 
   get despesasVariaveis(): Despesa[] {
     return this.despesas.filter((d) => d.natureza === 'variavel');
+  }
+
+  get despesasFixasPaginadas(): Despesa[] {
+    const all = this.despesasFixas;
+    const start = (this.paginaFixas - 1) * this.tamanhoPagina;
+    return all.slice(start, start + this.tamanhoPagina);
+  }
+
+  get despesasVariaveisPaginadas(): Despesa[] {
+    const all = this.despesasVariaveis;
+    const start = (this.paginaVariaveis - 1) * this.tamanhoPagina;
+    return all.slice(start, start + this.tamanhoPagina);
+  }
+
+  get totalPaginasFixas(): number {
+    const n = this.despesasFixas.length;
+    return n === 0 ? 0 : Math.ceil(n / this.tamanhoPagina);
+  }
+
+  get totalPaginasVariaveis(): number {
+    const n = this.despesasVariaveis.length;
+    return n === 0 ? 0 : Math.ceil(n / this.tamanhoPagina);
+  }
+
+  get exibindoDeFixas(): number {
+    if (!this.despesasFixas.length) return 0;
+    return (this.paginaFixas - 1) * this.tamanhoPagina + 1;
+  }
+
+  get exibindoAteFixas(): number {
+    return (
+      (this.paginaFixas - 1) * this.tamanhoPagina +
+      this.despesasFixasPaginadas.length
+    );
+  }
+
+  get exibindoDeVariaveis(): number {
+    if (!this.despesasVariaveis.length) return 0;
+    return (this.paginaVariaveis - 1) * this.tamanhoPagina + 1;
+  }
+
+  get exibindoAteVariaveis(): number {
+    return (
+      (this.paginaVariaveis - 1) * this.tamanhoPagina +
+      this.despesasVariaveisPaginadas.length
+    );
+  }
+
+  paginaAnteriorFixas(): void {
+    if (this.paginaFixas > 1) {
+      this.paginaFixas--;
+      this.cdr.markForCheck();
+    }
+  }
+
+  paginaProximaFixas(): void {
+    if (this.paginaFixas < this.totalPaginasFixas) {
+      this.paginaFixas++;
+      this.cdr.markForCheck();
+    }
+  }
+
+  paginaAnteriorVariaveis(): void {
+    if (this.paginaVariaveis > 1) {
+      this.paginaVariaveis--;
+      this.cdr.markForCheck();
+    }
+  }
+
+  paginaProximaVariaveis(): void {
+    if (this.paginaVariaveis < this.totalPaginasVariaveis) {
+      this.paginaVariaveis++;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private normalizarIndicesPagina(): void {
+    const pf = this.totalPaginasFixas;
+    if (pf === 0) {
+      this.paginaFixas = 1;
+    } else if (this.paginaFixas > pf) {
+      this.paginaFixas = pf;
+    }
+
+    const pv = this.totalPaginasVariaveis;
+    if (pv === 0) {
+      this.paginaVariaveis = 1;
+    } else if (this.paginaVariaveis > pv) {
+      this.paginaVariaveis = pv;
+    }
+  }
+
+  private aplicarResultadoCarregar(rows: Despesa[], erro: string | null): void {
+    this.despesas = [...rows];
+    this.paginaFixas = 1;
+    this.paginaVariaveis = 1;
+    this.normalizarIndicesPagina();
+    this.loading = false;
+    this.erroCarregar = erro;
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
   }
 
   get totalFixas(): number {
@@ -178,18 +283,15 @@ export class DespesasPageComponent implements OnInit {
       .getDespesas({ ano: this.anoRef, mes: this.mesRef })
       .subscribe({
         next: (rows) => {
-          this.despesas = [...rows];
-          this.loading = false;
-          this.cdr.markForCheck();
+          this.aplicarResultadoCarregar(rows, null);
         },
         error: (e) => {
-          this.despesas = [];
-          this.loading = false;
-          this.erroCarregar =
+          this.aplicarResultadoCarregar(
+            [],
             e?.error?.error ||
-            e?.message ||
-            'Não foi possível carregar despesas.';
-          this.cdr.markForCheck();
+              e?.message ||
+              'Não foi possível carregar despesas.',
+          );
         },
       });
   }
