@@ -2,7 +2,7 @@ const Database = require("better-sqlite3");
 const path = require("path");
 const fs = require("fs");
 
-const DB_PATH = path.join(__dirname, "../../metas.db");
+const DB_PATH = path.join(__dirname, "../../../metas.db");
 
 // Remove banco antigo se existir (para recriar do zero)
 if (fs.existsSync(DB_PATH)) {

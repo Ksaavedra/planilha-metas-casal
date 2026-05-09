@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const db = require("./db");
+const db = require("./scripts/db");
 
 const usuariosRoutes = require("./routes/usuarios.routes");
 const receitasRoutes = require("./routes/receitas.routes");
@@ -13,7 +13,7 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
-app.get("/api/health", (res) => {
+app.get("/api/health", (req, res) => {
   res.json({ ok: true });
 });
 

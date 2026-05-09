@@ -9,7 +9,7 @@ dist/
 out-tsc/
 .angular/
 
-# JSON server legado (o API real é versionado em frontend/server.js)
+# JSON server legado (API em backend/server.js)
 db.json
 start-json-server.bat
 start-server.bat
