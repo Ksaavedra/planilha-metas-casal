@@ -1,7 +1,7 @@
 const Database = require("better-sqlite3");
 const path = require("path");
 
-const DB_PATH = path.join(__dirname, "../../metas.db");
+const DB_PATH = path.join(__dirname, "../../../metas.db");
 
 console.log("🔧 Atualizando ícones das metas baseado no nome...");
 

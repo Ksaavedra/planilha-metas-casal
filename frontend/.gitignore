@@ -45,7 +45,7 @@ Thumbs.db
 *.db
 metas.db
 
-# O Express da API fica em server.js (versionado).
+# API Express em ../backend/server.js.
 
 # Scripts de migração (opcional - pode versionar ou não)
 # scripts/

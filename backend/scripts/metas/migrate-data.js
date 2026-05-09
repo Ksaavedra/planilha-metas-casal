@@ -2,8 +2,8 @@ const Database = require("better-sqlite3");
 const fs = require("fs");
 const path = require("path");
 
-const DB_PATH = path.join(__dirname, "../../metas.db");
-const JSON_PATH = path.join(__dirname, "../../db.json");
+const DB_PATH = path.join(__dirname, "../../../metas.db");
+const JSON_PATH = path.join(__dirname, "../../../db.json");
 
 // Verificar se o banco existe
 if (!fs.existsSync(DB_PATH)) {

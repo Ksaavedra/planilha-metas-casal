@@ -10,12 +10,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "jest",
     "test:cov": "jest --coverage",
-    "test:ci": "jest --coverage --runInBand",
-    "server": "node server.js",
-    "db:create": "node scripts/create-database.js",
-    "db:migrate": "node scripts/migrate-data.js",
-    "db:receitas": "node scripts/add-receitas-table.js",
-    "db:despesas": "node scripts/add-despesas-table.js"
+    "test:ci": "jest --coverage --runInBand"
   },
   "dependencies": {
     "@angular/animations": "~19.2.7",
@@ -28,14 +23,10 @@
     "@angular/platform-browser": "~19.2.7",
     "@angular/platform-browser-dynamic": "~19.2.7",
     "@angular/router": "~19.2.7",
-    "better-sqlite3": "^12.5.0",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
-    "cors": "^2.8.5",
     "echarts": "^6.0.0",
-    "express": "^5.1.0",
     "ngx-bootstrap": "^19.0.2",
-    "nodemon": "^3.1.10",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"

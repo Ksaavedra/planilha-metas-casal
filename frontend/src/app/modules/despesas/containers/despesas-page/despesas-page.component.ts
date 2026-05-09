@@ -176,15 +176,15 @@ export class DespesasPageComponent implements OnInit {
   }
 
   get totalFixas(): number {
-    return this.despesasService.calcularTotalDespesas(this.despesasFixas);
+    return this.calcularTotalDespesas(this.despesasFixas);
   }
 
   get totalVariaveis(): number {
-    return this.despesasService.calcularTotalDespesas(this.despesasVariaveis);
+    return this.calcularTotalDespesas(this.despesasVariaveis);
   }
 
   get totalGeral(): number {
-    return this.despesasService.calcularTotalDespesas(this.despesas);
+    return this.calcularTotalDespesas(this.despesas);
   }
 
   get anoRef(): number {
@@ -348,5 +348,9 @@ export class DespesasPageComponent implements OnInit {
 
   labelNatureza(n: NaturezaDespesa): string {
     return n === 'fixa' ? 'Fixa' : 'Variável';
+  }
+
+  calcularTotalDespesas(despesas: Despesa[]): number {
+    return despesas.reduce((total, d) => total + Number(d.valor) || 0, 0);
   }
 }

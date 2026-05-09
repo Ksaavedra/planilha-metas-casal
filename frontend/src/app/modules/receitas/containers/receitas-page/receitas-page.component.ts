@@ -35,6 +35,10 @@ export class ReceitasPageComponent implements OnInit {
   confirmExcluirOpen = false;
   receitaParaExcluir: Receita | null = null;
 
+  tamanhoPagina = 5;
+  paginaFixas = 1;
+  paginaVariaveis = 1;
+
   meses = [
     'Janeiro',
     'Fevereiro',
@@ -78,16 +82,121 @@ export class ReceitasPageComponent implements OnInit {
     return this.receitas.filter((r) => r.natureza === 'variavel');
   }
 
+  get receitasFixasPaginadas(): Receita[] {
+    const all = this.receitasFixas;
+    const start = (this.paginaFixas - 1) * this.tamanhoPagina;
+    return all.slice(start, start + this.tamanhoPagina);
+  }
+
+  get receitasVariaveisPaginadas(): Receita[] {
+    const all = this.receitasVariaveis;
+    const start = (this.paginaVariaveis - 1) * this.tamanhoPagina;
+    return all.slice(start, start + this.tamanhoPagina);
+  }
+
+  get totalPaginasFixas(): number {
+    const n = this.receitasFixas.length;
+    return n === 0 ? 0 : Math.ceil(n / this.tamanhoPagina);
+  }
+
+  get totalPaginasVariaveis(): number {
+    const n = this.receitasVariaveis.length;
+    return n === 0 ? 0 : Math.ceil(n / this.tamanhoPagina);
+  }
+
+  get exibindoDeFixas(): number {
+    if (!this.receitasFixas.length) return 0;
+    return (this.paginaFixas - 1) * this.tamanhoPagina + 1;
+  }
+
+  get exibindoAteFixas(): number {
+    return (
+      (this.paginaFixas - 1) * this.tamanhoPagina +
+      this.receitasFixasPaginadas.length
+    );
+  }
+
+  get exibindoDeVariaveis(): number {
+    if (!this.receitasVariaveis.length) return 0;
+    return (this.paginaVariaveis - 1) * this.tamanhoPagina + 1;
+  }
+
+  get exibindoAteVariaveis(): number {
+    return (
+      (this.paginaVariaveis - 1) * this.tamanhoPagina +
+      this.receitasVariaveisPaginadas.length
+    );
+  }
+
+  paginaAnteriorFixas(): void {
+    if (this.paginaFixas > 1) {
+      this.paginaFixas--;
+      this.cdr.markForCheck();
+    }
+  }
+
+  paginaProximaFixas(): void {
+    if (this.paginaFixas < this.totalPaginasFixas) {
+      this.paginaFixas++;
+      this.cdr.markForCheck();
+    }
+  }
+
+  paginaAnteriorVariaveis(): void {
+    if (this.paginaVariaveis > 1) {
+      this.paginaVariaveis--;
+      this.cdr.markForCheck();
+    }
+  }
+
+  paginaProximaVariaveis(): void {
+    if (this.paginaVariaveis < this.totalPaginasVariaveis) {
+      this.paginaVariaveis++;
+      this.cdr.markForCheck();
+    }
+  }
+
+  /** Garante página atual válida após mudar quantidade de linhas (ex.: excluir na última página). */
+  private normalizarIndicesPagina(): void {
+    const pf = this.totalPaginasFixas;
+    if (pf === 0) {
+      this.paginaFixas = 1;
+    } else if (this.paginaFixas > pf) {
+      this.paginaFixas = pf;
+    }
+
+    const pv = this.totalPaginasVariaveis;
+    if (pv === 0) {
+      this.paginaVariaveis = 1;
+    } else if (this.paginaVariaveis > pv) {
+      this.paginaVariaveis = pv;
+    }
+  }
+
+  /**
+   * Atualiza lista e paginação após GET; OnPush + subscribe async precisa marcar CD explicitamente.
+   */
+  private aplicarResultadoCarregar(rows: Receita[], erro: string | null): void {
+    this.receitas = [...rows];
+    this.paginaFixas = 1;
+    this.paginaVariaveis = 1;
+    this.normalizarIndicesPagina();
+    this.loading = false;
+    this.erroCarregar = erro;
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
+  }
+
   get totalFixas(): number {
-    return this.receitasService.calcularTotalReceitas(this.receitasFixas);
+    return this.calcularTotalReceitas(this.receitasFixas);
   }
 
   get totalVariaveis(): number {
-    return this.receitasService.calcularTotalReceitas(this.receitasVariaveis);
+    return this.calcularTotalReceitas(this.receitasVariaveis);
   }
 
   get totalGeral(): number {
-    return this.receitasService.calcularTotalReceitas(this.receitas);
+    return this.calcularTotalReceitas(this.receitas);
   }
 
   get anoRef(): number {
@@ -199,19 +308,16 @@ export class ReceitasPageComponent implements OnInit {
       .subscribe({
         next: (rows) => {
           this.log('carregar sucesso', { total: rows.length, rows });
-          this.receitas = [...rows];
-          this.loading = false;
-          this.cdr.markForCheck();
+          this.aplicarResultadoCarregar(rows, null);
         },
         error: (e) => {
           this.log('carregar erro', e);
-          this.receitas = [];
-          this.loading = false;
-          this.erroCarregar =
+          this.aplicarResultadoCarregar(
+            [],
             e?.error?.error ||
-            e?.message ||
-            'Não foi possível carregar receitas.';
-          this.cdr.markForCheck();
+              e?.message ||
+              'Não foi possível carregar receitas.',
+          );
         },
       });
   }
@@ -272,5 +378,9 @@ export class ReceitasPageComponent implements OnInit {
 
   labelNatureza(n: NaturezaReceita): string {
     return n === 'fixa' ? 'Fixa' : 'Variável';
+  }
+
+  calcularTotalReceitas(receitas: Receita[]): number {
+    return receitas.reduce((total, r) => total + Number(r.valor) || 0, 0);
   }
 }

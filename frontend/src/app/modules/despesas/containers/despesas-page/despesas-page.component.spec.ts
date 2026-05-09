@@ -27,7 +27,6 @@ describe('DespesasPageComponent', () => {
   const despesasServiceMock = {
     getDespesas: jest.fn(),
     deleteDespesa: jest.fn(),
-    calcularTotalDespesas: jest.fn(),
   };
 
   const dialogMock = {
@@ -39,10 +38,6 @@ describe('DespesasPageComponent', () => {
 
     despesasServiceMock.getDespesas.mockReturnValue(of([]));
     despesasServiceMock.deleteDespesa.mockReturnValue(of(void 0));
-    despesasServiceMock.calcularTotalDespesas.mockImplementation(
-      (despesas: Despesa[]) =>
-        despesas.reduce((total, item) => total + Number(item.valor || 0), 0),
-    );
 
     dialogMock.open.mockReturnValue({
       afterClosed: () => of(false),
@@ -112,33 +107,6 @@ describe('DespesasPageComponent', () => {
 
       expect(component.anoRef).toBe(2025);
       expect(component.mesRef).toBe(5);
-    });
-
-    it('deve chamar calcularTotalDespesas para totalVariaveis e totalGeral', () => {
-      const despesaFixa = mockDespesa;
-      const despesaVariavel = {
-        ...mockDespesa,
-        id: 2,
-        natureza: 'variavel' as const,
-        valor: 50,
-      };
-
-      component.despesas = [despesaFixa, despesaVariavel];
-
-      const totalVariaveis = component.totalVariaveis;
-      const totalGeral = component.totalGeral;
-
-      expect(totalVariaveis).toBe(50);
-      expect(totalGeral).toBe(150);
-
-      expect(despesasServiceMock.calcularTotalDespesas).toHaveBeenCalledWith([
-        despesaVariavel,
-      ]);
-
-      expect(despesasServiceMock.calcularTotalDespesas).toHaveBeenCalledWith([
-        despesaFixa,
-        despesaVariavel,
-      ]);
     });
   });
 
@@ -546,6 +514,54 @@ describe('DespesasPageComponent', () => {
 
     it('deve retornar Variável', () => {
       expect(component.labelNatureza('variavel')).toBe('Variável');
+    });
+  });
+
+  describe('calcularTotalDespesas', () => {
+    it('soma valores', () => {
+      const total = component.calcularTotalDespesas([
+        mockDespesa,
+        { ...mockDespesa, id: 2, valor: 200 },
+      ]);
+      expect(total).toBe(300);
+    });
+
+    it('retorna 0 para array vazio', () => {
+      expect(component.calcularTotalDespesas([])).toBe(0);
+    });
+
+    it('deve considerar valor null como 0', () => {
+      const total = component.calcularTotalDespesas([
+        { ...mockDespesa, valor: null as any },
+      ]);
+
+      expect(total).toBe(0);
+    });
+
+    it('deve considerar valor undefined como 0', () => {
+      const total = component.calcularTotalDespesas([
+        { ...mockDespesa, valor: undefined as any },
+      ]);
+
+      expect(total).toBe(0);
+    });
+
+    it('deve considerar valor inválido como 0', () => {
+      const total = component.calcularTotalDespesas([
+        { ...mockDespesa, valor: 'abc' as any },
+      ]);
+
+      expect(total).toBe(0);
+    });
+
+    it('deve somar ignorando valores inválidos', () => {
+      const total = component.calcularTotalDespesas([
+        mockDespesa,
+        { ...mockDespesa, id: 2, valor: 'abc' as any },
+        { ...mockDespesa, id: 3, valor: 100 },
+      ]);
+
+      expect(total).toBe(100);
     });
   });
 });

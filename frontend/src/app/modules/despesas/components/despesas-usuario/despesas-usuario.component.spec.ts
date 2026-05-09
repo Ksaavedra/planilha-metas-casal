@@ -286,24 +286,27 @@ describe('DespesasUsuarioComponent', () => {
           id: 1,
           pessoa: 'Kelly',
           natureza: 'fixa',
+          categoria: 'Outras',
+          descricao: 'qualquer',
           valor: 10,
-          descricao: 'Zebra',
           data: null,
         }),
         despesa({
           id: 2,
           pessoa: 'Kelly',
           natureza: 'fixa',
+          categoria: '',
+          descricao: 'qualquer',
           valor: 20,
-          descricao: '',
           data: null,
         }),
         despesa({
           id: 3,
           pessoa: 'Kelly',
           natureza: 'fixa',
-          valor: 30,
+          categoria: 'Teste',
           descricao: 'Abacaxi',
+          valor: 30,
           data: null,
         }),
       ]);
@@ -314,7 +317,7 @@ describe('DespesasUsuarioComponent', () => {
 
       const result = component.despesasDetalhesFiltradas;
 
-      expect(result.map((d) => d.id)).toEqual([2, 3, 1]);
+      expect(result.map((d) => d.id)).toEqual([2, 1, 3]);
     });
   });
 

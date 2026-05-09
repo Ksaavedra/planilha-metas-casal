@@ -4,7 +4,7 @@
     <div class="receitas-hero__inner">
       <div class="receitas-hero__brand">
         <div class="receitas-hero__icon-wrap" aria-hidden="true">
-          <span class="material-icons receitas-hero__icon">receipt_long</span>
+          <span class="material-icons receitas-hero__icon">wallet</span>
         </div>
         <div class="receitas-hero__text">
           <h1 class="receitas-hero__title">
@@ -39,10 +39,10 @@
           (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoReceitas === 'lista'">
           Minhas receitas
         </button>
-        <!-- <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'usuario'"
+        <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'usuario'"
           (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoReceitas === 'usuario'">
-          Por pesssoa
-        </button> -->
+          Por pessoa
+        </button>
         <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'exemplos'"
           (click)="selecionarVisao('exemplos')" role="tab" [attr.aria-selected]="visaoReceitas === 'exemplos'">
           Exemplos
@@ -86,7 +86,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of receitasFixas">
+              <tr *ngFor="let r of receitasFixasPaginadas">
                 <td>
                   <span class="badge badge-fixa">{{ labelNatureza(r.natureza) }}</span>
                 </td>
@@ -106,6 +106,24 @@
               </tr>
             </tbody>
           </table>
+        </div>
+        <div class="receitas-paginacao" *ngIf="receitasFixas.length && totalPaginasFixas > 1">
+          <span class="receitas-paginacao__info">
+            Mostrando {{ exibindoDeFixas }}–{{ exibindoAteFixas }} de {{ receitasFixas.length }}
+          </span>
+          <nav class="receitas-paginacao__nav" aria-label="Paginação da tabela de receitas fixas">
+            <button type="button" class="receitas-paginacao__btn" (click)="paginaAnteriorFixas()"
+              [disabled]="paginaFixas <= 1">
+              <span class="material-icons" aria-hidden="true">chevron_left</span>
+              Anterior
+            </button>
+            <span class="receitas-paginacao__paginas">Página {{ paginaFixas }} de {{ totalPaginasFixas }}</span>
+            <button type="button" class="receitas-paginacao__btn" (click)="paginaProximaFixas()"
+              [disabled]="paginaFixas >= totalPaginasFixas">
+              Próxima
+              <span class="material-icons" aria-hidden="true">chevron_right</span>
+            </button>
+          </nav>
         </div>
         <p class="subtotal">Subtotal fixas: <strong>{{ totalFixas | currency : 'BRL' }}</strong></p>
         <ng-template #vazioFixas>
@@ -132,7 +150,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of receitasVariaveis">
+              <tr *ngFor="let r of receitasVariaveisPaginadas">
                 <td>
                   <span class="badge badge-var">{{ labelNatureza(r.natureza) }}</span>
                 </td>
@@ -153,6 +171,24 @@
             </tbody>
           </table>
         </div>
+        <div class="receitas-paginacao" *ngIf="receitasVariaveis.length && totalPaginasVariaveis > 1">
+          <span class="receitas-paginacao__info">
+            Mostrando {{ exibindoDeVariaveis }}–{{ exibindoAteVariaveis }} de {{ receitasVariaveis.length }}
+          </span>
+          <nav class="receitas-paginacao__nav" aria-label="Paginação da tabela de receitas variáveis">
+            <button type="button" class="receitas-paginacao__btn" (click)="paginaAnteriorVariaveis()"
+              [disabled]="paginaVariaveis <= 1">
+              <span class="material-icons" aria-hidden="true">chevron_left</span>
+              Anterior
+            </button>
+            <span class="receitas-paginacao__paginas">Página {{ paginaVariaveis }} de {{ totalPaginasVariaveis }}</span>
+            <button type="button" class="receitas-paginacao__btn" (click)="paginaProximaVariaveis()"
+              [disabled]="paginaVariaveis >= totalPaginasVariaveis">
+              Próxima
+              <span class="material-icons" aria-hidden="true">chevron_right</span>
+            </button>
+          </nav>
+        </div>
         <p class="subtotal">
           Subtotal variáveis: <strong>{{ totalVariaveis | currency : 'BRL' }}</strong>
         </p>
@@ -172,4 +208,6 @@
   </ng-container>
 
   <app-receitas-exemplos *ngIf="visaoReceitas === 'exemplos'"></app-receitas-exemplos>
+  <app-receitas-usuario *ngIf="visaoReceitas === 'usuario'" [receitas]="receitas" [nomeMesReferencia]="nomeMesAtual">
+  </app-receitas-usuario>
 </div>

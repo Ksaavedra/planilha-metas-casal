@@ -37,7 +37,7 @@ describe('HeaderComponent', () => {
   it('should call onSidebarClick when menu button is clicked', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const menuButton = compiled.querySelector(
-      'button[aria-label="Menu"]'
+      'button[aria-label="Menu"]',
     ) as HTMLButtonElement;
     const spy = jest.spyOn(component, 'onSidebarClick');
 
@@ -56,7 +56,7 @@ describe('HeaderComponent', () => {
   it('should render header title', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const titleElement = compiled.querySelector('h1');
-    expect(titleElement?.textContent).toContain('Planilha Organização');
+    expect(titleElement?.textContent).toContain('Planejamento de Orçamento');
   });
 
   it('should have menu button', () => {
