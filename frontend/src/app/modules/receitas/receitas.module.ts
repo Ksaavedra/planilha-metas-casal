@@ -2,24 +2,27 @@ import { CUSTOM_ELEMENTS_SCHEMA, NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { DSModule } from 'app/@ds';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ReceitasRoutingModule } from './receitas.routing';
 import { ReceitasPageComponent } from './containers/receitas-page/receitas-page.component';
 import { SharedModule } from '../../shared/shared.module';
 import { ReceitasExemplosComponent } from './components/receitas-exemplos/receitas-exemplos.component';
 import { AdicionarReceitaDialogComponent } from './components/adicionar-receita-dialog/adicionar-receita-dialog.component';
+import { ReceitasUsuarioComponent } from './components/receitas-usuario/receitas-usuario.component';
 
 @NgModule({
   declarations: [
     ReceitasPageComponent,
     ReceitasExemplosComponent,
     AdicionarReceitaDialogComponent,
+    ReceitasUsuarioComponent,
   ],
   imports: [
     CommonModule,
     RouterModule,
     DSModule,
     ReactiveFormsModule,
+    FormsModule,
     ReceitasRoutingModule,
     SharedModule,
   ],

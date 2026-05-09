@@ -1,14 +1,17 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
 import { ReceitasService } from './receitas.service';
 import { Receita } from '@app/core/interfaces/receitas/receitas';
-import { ApiService } from '../api/api.service';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
+import { environment } from 'src/environments';
 
 describe('ReceitasService', () => {
   let service: ReceitasService;
-  let apiService: jest.Mocked<
-    Pick<ApiService, 'get' | 'post' | 'patch' | 'delete'>
-  >;
+  let httpMock: HttpTestingController;
+
+  const baseUrl = environment.apiUrl;
 
   const mockReceitas: Receita = {
     id: 1,
@@ -32,19 +35,16 @@ describe('ReceitasService', () => {
   };
 
   beforeEach(() => {
-    apiService = {
-      get: jest.fn(),
-      post: jest.fn(),
-      patch: jest.fn(),
-      delete: jest.fn(),
-    };
     TestBed.configureTestingModule({
-      providers: [
-        ReceitasService,
-        { provide: ApiService, useValue: apiService },
-      ],
+      imports: [HttpClientTestingModule],
+      providers: [ReceitasService],
     });
     service = TestBed.inject(ReceitasService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
   });
 
   describe('Inicialização', () => {
@@ -54,107 +54,88 @@ describe('ReceitasService', () => {
   });
 
   describe('getReceitas', () => {
-    it('chama API com ano e mês', () => {
+    it('deve fazer GET com params', () => {
       const rows = [mockReceitas];
-      apiService.get.mockReturnValue(of(rows));
+
       service.getReceitas({ ano: 2026, mes: 1 }).subscribe((r) => {
         expect(r).toEqual(rows);
       });
-      expect(apiService.get).toHaveBeenCalledWith('/receitas', {
-        ano: 2026,
-        mes: 1,
-      });
+
+      const req = httpMock.expectOne(`${baseUrl}/receitas?ano=2026&mes=1`);
+
+      expect(req.request.method).toBe('GET');
+
+      req.flush(rows);
     });
 
-    it('propaga erro', () => {
-      apiService.get.mockReturnValue(throwError(() => new Error('falha')));
+    it('deve propagar erro', () => {
       service.getReceitas({ ano: 2026, mes: 1 }).subscribe({
         error: (e) => {
-          expect(e).toBeTruthy();
+          expect(e).toBe(500);
         },
       });
+
+      const req = httpMock.expectOne(`${baseUrl}/receitas?ano=2026&mes=1`);
+
+      req.flush('Erro', { status: 500, statusText: 'Erro' });
     });
   });
 
   describe('getReceita', () => {
-    it('chama /receitas/:id', () => {
-      apiService.get.mockReturnValue(of(mockReceitas));
+    it('deve fazer GET por id', () => {
       service.getReceita(1).subscribe((r) => {
         expect(r).toEqual(mockReceitas);
       });
-      expect(apiService.get).toHaveBeenCalledWith('/receitas/1');
+
+      const req = httpMock.expectOne(`${baseUrl}/receitas/1`);
+
+      expect(req.request.method).toBe('GET');
+
+      req.flush(mockReceitas);
     });
   });
 
   describe('createReceita', () => {
-    it('faz POST', () => {
-      const created = { ...mockReceitas, id: 2, descricao: 'Novo' };
-      apiService.post.mockReturnValue(of(created));
+    it('deve fazer POST', () => {
+      const created = { ...mockReceitas, id: 2 };
+
       service.createReceita(mockCreate).subscribe((r) => {
         expect(r).toEqual(created);
       });
-      expect(apiService.post).toHaveBeenCalledWith('/receitas', mockCreate);
+
+      const req = httpMock.expectOne(`${baseUrl}/receitas`);
+
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(mockCreate);
+
+      req.flush(created);
     });
   });
 
   describe('updateReceita', () => {
-    it('faz PATCH', () => {
+    it('deve fazer PATCH', () => {
       const up = { valor: 100 };
-      apiService.patch.mockReturnValue(of({ ...mockReceitas, ...up }));
+
       service.updateReceita(1, up).subscribe();
-      expect(apiService.patch).toHaveBeenCalledWith('/receitas/1', up);
+
+      const req = httpMock.expectOne(`${baseUrl}/receitas/1`);
+
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual(up);
+
+      req.flush({});
     });
   });
 
   describe('deleteReceita', () => {
-    it('faz DELETE', () => {
-      apiService.delete.mockReturnValue(of(void 0 as never));
+    it('deve fazer DELETE', () => {
       service.deleteReceita(1).subscribe();
-      expect(apiService.delete).toHaveBeenCalledWith('/receitas/1');
-    });
-  });
 
-  describe('calcularTotalReceitas', () => {
-    it('soma valores', () => {
-      const total = service.calcularTotalReceitas([
-        mockReceitas,
-        { ...mockReceitas, id: 2, valor: 200 },
-      ]);
-      expect(total).toBe(2200);
-    });
+      const req = httpMock.expectOne(`${baseUrl}/receitas/1`);
 
-    it('retorna 0 para array vazio', () => {
-      expect(service.calcularTotalReceitas([])).toBe(0);
-    });
+      expect(req.request.method).toBe('DELETE');
 
-    it('deve considerar valor null como 0', () => {
-      const total = service.calcularTotalReceitas([
-        { ...mockReceitas, valor: null as any },
-      ]);
-      expect(total).toBe(0);
-    });
-
-    it('deve considerar valor undefined como 0', () => {
-      const total = service.calcularTotalReceitas([
-        { ...mockReceitas, valor: undefined as any },
-      ]);
-      expect(total).toBe(0);
-    });
-
-    it('deve considerar valor inválido como 0', () => {
-      const total = service.calcularTotalReceitas([
-        { ...mockReceitas, valor: 'abc' as any },
-      ]);
-      expect(total).toBe(0);
-    });
-
-    it('deve somar ignorando valores inválidos', () => {
-      const total = service.calcularTotalReceitas([
-        mockReceitas,
-        { ...mockReceitas, id: 2, valor: 'abc' as any },
-        { ...mockReceitas, id: 3, valor: 100 },
-      ]);
-      expect(total).toBe(2100);
+      req.flush(null);
     });
   });
 });

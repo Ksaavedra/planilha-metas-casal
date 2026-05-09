@@ -10,7 +10,6 @@
         <div class="relatorio-hero__text">
           <h1 class="relatorio-hero__title">
             Relatório financeiro
-            <span class="relatorio-hero__year-pill">{{ anoSelecionado }}</span>
           </h1>
           <p class="relatorio-hero__subtitle">Receitas, despesas, dívidas e investimentos mês a mês</p>
         </div>
@@ -107,8 +106,7 @@
     </div>
   </ng-container>
 
-  <app-relatorio-categorias *ngIf="visaoRelatorio === 'categorias'" [anoSelecionado]="anoSelecionado"
-    [meses]="meses" [naturezaReceitaLinhas]="naturezaReceitaLinhas"
-    [receitasPorTipoLinhas]="receitasPorTipoLinhas" [naturezaDespesaLinhas]="naturezaDespesaLinhas"
-    [despesasPorCategoriaLinhas]="despesasPorCategoriaLinhas" />
+  <app-relatorio-categorias *ngIf="visaoRelatorio === 'categorias'" [anoSelecionado]="anoSelecionado" [meses]="meses"
+    [naturezaReceitaLinhas]="naturezaReceitaLinhas" [receitasPorTipoLinhas]="receitasPorTipoLinhas"
+    [naturezaDespesaLinhas]="naturezaDespesaLinhas" [despesasPorCategoriaLinhas]="despesasPorCategoriaLinhas" />
 </div>

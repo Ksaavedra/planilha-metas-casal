@@ -93,7 +93,7 @@ describe('AdicionarDespesaDialogComponent', () => {
         { provide: UsuariosService, useValue: usuariosServiceMock },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
-    });
+    }).compileComponents();
 
     fixture = TestBed.createComponent(AdicionarDespesaDialogComponent);
     component = fixture.componentInstance;
