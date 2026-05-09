@@ -1,14 +1,17 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
 import { DespesasService } from './despesas.service';
 import { Despesa } from '@app/core/interfaces/despesas/despesas';
-import { ApiService } from '../api/api.service';
+import {
+  HttpClientTestingModule,
+  HttpTestingController,
+} from '@angular/common/http/testing';
+import { environment } from 'src/environments';
 
 describe('DespesasService', () => {
   let service: DespesasService;
-  let apiService: jest.Mocked<
-    Pick<ApiService, 'get' | 'post' | 'patch' | 'delete'>
-  >;
+  let httpMock: HttpTestingController;
+
+  const baseUrl = environment.apiUrl;
 
   const mockDespesa: Despesa = {
     id: 1,
@@ -34,19 +37,16 @@ describe('DespesasService', () => {
   };
 
   beforeEach(() => {
-    apiService = {
-      get: jest.fn(),
-      post: jest.fn(),
-      patch: jest.fn(),
-      delete: jest.fn(),
-    };
     TestBed.configureTestingModule({
-      providers: [
-        DespesasService,
-        { provide: ApiService, useValue: apiService },
-      ],
+      imports: [HttpClientTestingModule],
+      providers: [DespesasService],
     });
     service = TestBed.inject(DespesasService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
   });
 
   describe('Inicialização', () => {
@@ -58,107 +58,72 @@ describe('DespesasService', () => {
   describe('getDespesas', () => {
     it('chama API com ano e mês', () => {
       const rows = [mockDespesa];
-      apiService.get.mockReturnValue(of(rows));
       service.getDespesas({ ano: 2025, mes: 3 }).subscribe((r) => {
         expect(r).toEqual(rows);
       });
-      expect(apiService.get).toHaveBeenCalledWith('/despesas', {
-        ano: 2025,
-        mes: 3,
-      });
+
+      const req = httpMock.expectOne(`${baseUrl}/despesas?ano=2025&mes=3`);
+      expect(req.request.method).toBe('GET');
+      req.flush(rows);
     });
 
     it('propaga erro', () => {
-      apiService.get.mockReturnValue(throwError(() => new Error('falha')));
       service.getDespesas({ ano: 2025, mes: 1 }).subscribe({
         error: (e) => {
-          expect(e).toBeTruthy();
+          expect(e).toBe(500);
         },
       });
+
+      const req = httpMock.expectOne(`${baseUrl}/despesas?ano=2025&mes=1`);
+      req.flush('Erro', { status: 500, statusText: 'Erro' });
     });
   });
 
   describe('getDespesa', () => {
     it('chama /despesas/:id', () => {
-      apiService.get.mockReturnValue(of(mockDespesa));
       service.getDespesa(1).subscribe((r) => expect(r).toEqual(mockDespesa));
-      expect(apiService.get).toHaveBeenCalledWith('/despesas/1');
+
+      const req = httpMock.expectOne(`${baseUrl}/despesas/1`);
+      expect(req.request.method).toBe('GET');
+      req.flush(mockDespesa);
     });
   });
 
   describe('createDespesa', () => {
-    it('faz POST', () => {
-      const created = { ...mockDespesa, id: 2, descricao: 'Novo' };
-      apiService.post.mockReturnValue(of(created));
+    it('deve fazer POST', () => {
+      const created = { ...mockDespesa, id: 2 };
+
       service
         .createDespesa(mockCreate)
         .subscribe((r) => expect(r).toEqual(created));
-      expect(apiService.post).toHaveBeenCalledWith('/despesas', mockCreate);
+
+      const req = httpMock.expectOne(`${baseUrl}/despesas`);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual(mockCreate);
+      req.flush(created);
     });
   });
 
   describe('updateDespesa', () => {
-    it('faz PATCH', () => {
+    it('deve fazer UPDATE PATCH', () => {
       const up = { valor: 100 };
-      apiService.patch.mockReturnValue(of({ ...mockDespesa, ...up }));
+
       service.updateDespesa(1, up).subscribe();
-      expect(apiService.patch).toHaveBeenCalledWith('/despesas/1', up);
+
+      const req = httpMock.expectOne(`${baseUrl}/despesas/1`);
+      expect(req.request.method).toBe('PATCH');
+      expect(req.request.body).toEqual(up);
+      req.flush({});
     });
   });
 
   describe('deleteDespesa', () => {
-    it('faz DELETE', () => {
-      apiService.delete.mockReturnValue(of(void 0 as never));
+    it('deve fazer DELETE', () => {
       service.deleteDespesa(1).subscribe();
-      expect(apiService.delete).toHaveBeenCalledWith('/despesas/1');
-    });
-  });
 
-  describe('calcularTotalDespesas', () => {
-    it('soma valores', () => {
-      const total = service.calcularTotalDespesas([
-        mockDespesa,
-        { ...mockDespesa, id: 2, valor: 200 },
-      ]);
-      expect(total).toBe(1700);
-    });
-
-    it('retorna 0 para array vazio', () => {
-      expect(service.calcularTotalDespesas([])).toBe(0);
-    });
-
-    it('deve considerar valor null como 0', () => {
-      const total = service.calcularTotalDespesas([
-        { ...mockDespesa, valor: null as any },
-      ]);
-
-      expect(total).toBe(0);
-    });
-
-    it('deve considerar valor undefined como 0', () => {
-      const total = service.calcularTotalDespesas([
-        { ...mockDespesa, valor: undefined as any },
-      ]);
-
-      expect(total).toBe(0);
-    });
-
-    it('deve considerar valor inválido como 0', () => {
-      const total = service.calcularTotalDespesas([
-        { ...mockDespesa, valor: 'abc' as any },
-      ]);
-
-      expect(total).toBe(0);
-    });
-
-    it('deve somar ignorando valores inválidos', () => {
-      const total = service.calcularTotalDespesas([
-        mockDespesa,
-        { ...mockDespesa, id: 2, valor: 'abc' as any },
-        { ...mockDespesa, id: 3, valor: 100 },
-      ]);
-
-      expect(total).toBe(100);
+      const req = httpMock.expectOne(`${baseUrl}/despesas/1`);
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
     });
   });
 });

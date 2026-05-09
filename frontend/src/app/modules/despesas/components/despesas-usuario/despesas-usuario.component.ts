@@ -75,7 +75,7 @@ export class DespesasUsuarioComponent implements OnChanges {
       const ta = a.data ? Date.parse(a.data) : 0;
       const tb = b.data ? Date.parse(b.data) : 0;
       if (ta !== tb) return ta - tb;
-      return (a.descricao || '').localeCompare(b.descricao || '', 'pt-BR');
+      return (a.categoria || '').localeCompare(b.categoria || '', 'pt-BR');
     });
   }
 

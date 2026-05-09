@@ -433,6 +433,71 @@
   font-size: 1.05rem;
 }
 
+.receitas-paginacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.receitas-paginacao__info {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.receitas-paginacao__nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-left: auto;
+}
+
+.receitas-paginacao__paginas {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.receitas-paginacao__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #5b21b6;
+  background: #fff;
+  border: 1px solid #e9d5ff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+
+  .material-icons {
+    font-size: 1.1rem;
+  }
+
+  &:hover:not(:disabled) {
+    background: #f5f3ff;
+    border-color: #c4b5fd;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
 /* Total Geral do Mês (alinhado a despesas-page) */
 .total-geral {
   background: white;

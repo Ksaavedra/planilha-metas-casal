@@ -1,6 +1,7 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiService } from '../api/api.service';
+import { environment } from 'src/environments';
 import {
   Despesa,
   CreateDespesaRequest,
@@ -9,32 +10,30 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class DespesasService {
-  constructor(private apiService: ApiService) {}
+  private readonly API_URL = `${environment.apiUrl}/despesas`;
+
+  constructor(private httpClient: HttpClient) {}
 
   getDespesas(params: { ano: number; mes: number }): Observable<Despesa[]> {
-    return this.apiService.get<Despesa[]>('/despesas', params);
+    return this.httpClient.get<Despesa[]>(`${this.API_URL}`, { params });
   }
 
   getDespesa(id: number): Observable<Despesa> {
-    return this.apiService.get<Despesa>(`/despesas/${id}`);
+    return this.httpClient.get<Despesa>(`${this.API_URL}/${id}`);
   }
 
   createDespesa(despesa: CreateDespesaRequest): Observable<Despesa> {
-    return this.apiService.post<Despesa>('/despesas', despesa);
+    return this.httpClient.post<Despesa>(`${this.API_URL}`, despesa);
   }
 
   updateDespesa(
     id: number,
     despesa: UpdateDespesaRequest,
   ): Observable<Despesa> {
-    return this.apiService.patch<Despesa>(`/despesas/${id}`, despesa);
+    return this.httpClient.patch<Despesa>(`${this.API_URL}/${id}`, despesa);
   }
 
   deleteDespesa(id: number): Observable<void> {
-    return this.apiService.delete<void>(`/despesas/${id}`);
-  }
-
-  calcularTotalDespesas(despesas: Despesa[]): number {
-    return despesas.reduce((total, d) => total + Number(d.valor) || 0, 0);
+    return this.httpClient.delete<void>(`${this.API_URL}/${id}`);
   }
 }
