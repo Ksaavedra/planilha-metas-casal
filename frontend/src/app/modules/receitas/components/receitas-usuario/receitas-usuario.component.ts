@@ -66,26 +66,32 @@ export class ReceitasUsuarioComponent implements OnChanges {
     );
   }
 
-  get receitasDetalhesFiltradas(): Receita[] {
-    if (!this.usuarioFiltro) return [];
-    const list = this.receitas.filter(
-      (r) => this.normalizarUsuario(r) === this.usuarioFiltro,
-    );
-    return list.sort((a, b) => {
-      const ta = a.data ? Date.parse(a.data) : 0;
-      const tb = b.data ? Date.parse(b.data) : 0;
-      if (ta !== tb) return ta - tb;
-      return (a.categoria || '').localeCompare(b.categoria || '', 'pt-BR');
+  private ordenarPorDataDesc(receitas: Receita[]): Receita[] {
+    return [...receitas].sort((a, b) => {
+      const dataA = new Date(a.data || '').getTime();
+      const dataB = new Date(b.data || '').getTime();
+
+      return dataB - dataA;
     });
   }
 
   get receitasFixasUsuario(): Receita[] {
-    return this.receitasDetalhesFiltradas.filter((r) => r.natureza === 'fixa');
+    return this.ordenarPorDataDesc(
+      this.receitas.filter(
+        (r) =>
+          this.normalizarUsuario(r) === this.usuarioFiltro &&
+          r.natureza === 'fixa',
+      ),
+    );
   }
 
   get receitasVariaveisUsuario(): Receita[] {
-    return this.receitasDetalhesFiltradas.filter(
-      (r) => r.natureza === 'variavel',
+    return this.ordenarPorDataDesc(
+      this.receitas.filter(
+        (r) =>
+          this.normalizarUsuario(r) === this.usuarioFiltro &&
+          r.natureza === 'variavel',
+      ),
     );
   }
 

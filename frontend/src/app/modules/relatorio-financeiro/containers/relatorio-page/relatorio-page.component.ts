@@ -64,7 +64,7 @@ export class RelatorioPageComponent implements AfterViewInit {
 
   /** Uma linha por tipo de receita (Salário, Freela, etc.). */
   receitasPorTipoLinhas: {
-    categoria: string;
+    tipo: string;
     valores: number[];
     total: number;
   }[] = [];
@@ -828,14 +828,14 @@ export class RelatorioPageComponent implements AfterViewInit {
       },
     ];
     this.receitasPorTipoLinhas = Array.from(porCategoria.entries())
-      .map(([categoria, valores]) => ({
-        categoria,
+      .map(([tipo, valores]) => ({
+        tipo,
         valores,
         total: sum(valores),
       }))
       .filter((l) => l.total > 0)
       .sort((a, b) =>
-        a.categoria.localeCompare(b.categoria, 'pt-BR', {
+        a.tipo.localeCompare(b.tipo, 'pt-BR', {
           sensitivity: 'base',
         }),
       );

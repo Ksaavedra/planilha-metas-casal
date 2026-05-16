@@ -674,15 +674,15 @@ describe('RelatorioPageComponent', () => {
     expect(component.naturezaReceitaLinhas[0].total).toBe(1000);
     expect(component.naturezaReceitaLinhas[1].total).toBe(700);
 
-    const categorias = component.receitasPorTipoLinhas;
+    const tipos = component.receitasPorTipoLinhas;
     expect(
-      categorias.find((c) => c.categoria === 'Freela' && c.total === 500),
+      tipos.find((c) => c.tipo === 'Freela' && c.total === 500),
     ).toBeTruthy();
     expect(
-      categorias.find((c) => c.categoria === 'Outras' && c.total === 200),
+      tipos.find((c) => c.tipo === 'Outras' && c.total === 200),
     ).toBeTruthy();
     expect(
-      categorias.find((c) => c.categoria === 'Salário' && c.total === 1000),
+      tipos.find((c) => c.tipo === 'Salário' && c.total === 1000),
     ).toBeTruthy();
   });
 
