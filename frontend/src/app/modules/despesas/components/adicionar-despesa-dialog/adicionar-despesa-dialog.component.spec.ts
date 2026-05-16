@@ -459,6 +459,39 @@ describe('AdicionarDespesaDialogComponent', () => {
 
       expect(result).toEqual(['David', 'Kelly']);
     });
+
+    it('deve ignorar strings vazias', () => {
+      const result = component['normalizarListaNomes'](['', '   ', 'Kelly']);
+
+      expect(result).toEqual(['Kelly']);
+    });
+
+    it('deve tratar null e undefined como vazio', () => {
+      const result = component['normalizarListaNomes']([
+        null,
+        undefined,
+        'David',
+      ] as any);
+
+      expect(result).toEqual(['David']);
+    });
+
+    it('deve retornar vazio quando todos forem inválidos', () => {
+      const result = component['normalizarListaNomes']([
+        '',
+        '   ',
+        null,
+        undefined,
+      ] as any);
+
+      expect(result).toEqual([]);
+    });
+
+    it('deve aplicar trim antes do toTitleCase', () => {
+      const result = component['normalizarListaNomes'](['   kelly   ']);
+
+      expect(result).toEqual(['Kelly']);
+    });
   });
 
   describe('carregarPessoasOpcoes', () => {
@@ -616,6 +649,8 @@ describe('AdicionarDespesaDialogComponent', () => {
   describe('Salvar inclusão', () => {
     beforeEach(() => {
       component.ngOnInit();
+      usuariosServiceMock.createUsuario.mockReturnValue(of({}));
+      despesasServiceMock.createDespesa.mockReturnValue(of({}));
     });
 
     it('deve marcar form como touched quando inválido', () => {
@@ -724,6 +759,43 @@ describe('AdicionarDespesaDialogComponent', () => {
       component.salvar();
 
       expect(component.erro).toBe('Não foi possível salvar.');
+    });
+
+    it('deve salvar despesa mesmo quando createUsuario der erro', () => {
+      usuariosServiceMock.createUsuario.mockReturnValue(throwError(() => ({})));
+
+      component.form.patchValue({
+        pessoa: 'Kelly',
+        natureza: 'fixa',
+        categoria: 'Casa',
+        descricao: 'Aluguel',
+        valor: 100,
+        data: '2026-01-01',
+      });
+
+      component.salvar();
+
+      expect(usuariosServiceMock.createUsuario).toHaveBeenCalledWith('Kelly');
+      expect(despesasServiceMock.createDespesa).toHaveBeenCalled();
+      expect(dialogRefMock.close).toHaveBeenCalledWith(true);
+    });
+
+    it('deve cair no else e salvar despesa quando pessoaTrim for vazio', () => {
+      jest.spyOn(component as any, 'pessoaTextoParaSalvar').mockReturnValue('');
+      jest.spyOn(component.form, 'invalid', 'get').mockReturnValue(false);
+
+      component.form.patchValue({
+        pessoa: '',
+        natureza: 'fixa',
+        categoria: 'Casa',
+        valor: 100,
+        data: '2026-01-01',
+      });
+
+      component.salvar();
+
+      expect(usuariosServiceMock.createUsuario).not.toHaveBeenCalled();
+      expect(despesasServiceMock.createDespesa).toHaveBeenCalled();
     });
   });
 

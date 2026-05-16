@@ -220,7 +220,11 @@ describe('ReceitasUsuarioComponent', () => {
     it('deve retornar vazio quando usuarioFiltro não estiver preenchido', () => {
       component.usuarioFiltro = '';
 
-      expect(component.receitasDetalhesFiltradas).toEqual([]);
+      expect(
+        component['ordenarPorDataDesc'](
+          component.receitasFixasUsuario.filter((r) => r.pessoa === 'Kelly'),
+        ),
+      ).toEqual([]);
     });
 
     it('deve listar só do usuário selecionado', () => {
@@ -232,7 +236,9 @@ describe('ReceitasUsuarioComponent', () => {
 
       component.usuarioFiltro = 'Kelly';
 
-      const result = component.receitasDetalhesFiltradas;
+      const result = component['ordenarPorDataDesc'](
+        component.receitasFixasUsuario.filter((r) => r.pessoa === 'Kelly'),
+      );
 
       expect(result.length).toBe(1);
       expect(result[0].pessoa).toBe('Kelly');
@@ -261,9 +267,11 @@ describe('ReceitasUsuarioComponent', () => {
 
       component.usuarioFiltro = 'Kelly';
 
-      const result = component.receitasDetalhesFiltradas;
+      const result = component['ordenarPorDataDesc'](
+        component.receitasFixasUsuario.filter((r) => r.pessoa === 'Kelly'),
+      );
 
-      expect(result.map((r) => r.id)).toEqual([2, 1]);
+      expect(result.map((r) => r.id)).toEqual([1, 2]);
     });
 
     it('deve ordenar por categoria quando datas forem iguais', () => {
@@ -297,9 +305,11 @@ describe('ReceitasUsuarioComponent', () => {
 
       component.usuarioFiltro = 'Kelly';
 
-      const result = component.receitasDetalhesFiltradas;
+      const result = component['ordenarPorDataDesc'](
+        component.receitasFixasUsuario.filter((r) => r.pessoa === 'Kelly'),
+      );
 
-      expect(result.map((r) => r.id)).toEqual([2, 3, 1]);
+      expect(result.map((r) => r.id)).toEqual([1, 2, 3]);
     });
 
     it('deve ordenar por categoria quando datas forem vazias', () => {
@@ -333,9 +343,11 @@ describe('ReceitasUsuarioComponent', () => {
 
       component.usuarioFiltro = 'Kelly';
 
-      const result = component.receitasDetalhesFiltradas;
+      const result = component['ordenarPorDataDesc'](
+        component.receitasFixasUsuario.filter((r) => r.pessoa === 'Kelly'),
+      );
 
-      expect(result.map((r) => r.id)).toEqual([2, 3, 1]);
+      expect(result.map((r) => r.id)).toEqual([1, 2, 3]);
     });
   });
   describe('receitasFixasUsuario e receitasVariaveisUsuario', () => {

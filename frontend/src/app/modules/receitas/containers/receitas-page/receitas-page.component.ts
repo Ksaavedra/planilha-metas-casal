@@ -60,14 +60,6 @@ export class ReceitasPageComponent implements OnInit {
     private dialog: MatDialog,
   ) {}
 
-  private log(acao: string, payload?: unknown): void {
-    if (payload === undefined) {
-      console.log(`[ReceitasPage] ${acao}`);
-      return;
-    }
-    console.log(`[ReceitasPage] ${acao}`, payload);
-  }
-
   get nomeMesAtual(): string {
     const mes = this.mesAtual.getMonth();
     const ano = this.mesAtual.getFullYear();
@@ -156,7 +148,6 @@ export class ReceitasPageComponent implements OnInit {
     }
   }
 
-  /** Garante página atual válida após mudar quantidade de linhas (ex.: excluir na última página). */
   private normalizarIndicesPagina(): void {
     const pf = this.totalPaginasFixas;
     if (pf === 0) {
@@ -173,11 +164,8 @@ export class ReceitasPageComponent implements OnInit {
     }
   }
 
-  /**
-   * Atualiza lista e paginação após GET; OnPush + subscribe async precisa marcar CD explicitamente.
-   */
   private aplicarResultadoCarregar(rows: Receita[], erro: string | null): void {
-    this.receitas = [...rows];
+    this.receitas = this.ordenarReceitasPorData(rows);
     this.paginaFixas = 1;
     this.paginaVariaveis = 1;
     this.normalizarIndicesPagina();
@@ -185,6 +173,23 @@ export class ReceitasPageComponent implements OnInit {
     this.erroCarregar = erro;
     this.cdr.markForCheck();
     this.cdr.detectChanges();
+  }
+
+  private ordenarReceitasPorData(rows: Receita[]): Receita[] {
+    return [...rows].sort((a, b) => {
+      const dataA = this.obterTempoData(a.data || '');
+      const dataB = this.obterTempoData(b.data || '');
+
+      if (dataB !== dataA) {
+        return dataB - dataA;
+      }
+
+      return Number(b.id) - Number(a.id);
+    });
+  }
+
+  private obterTempoData(data: string): number {
+    return new Date(data).getTime();
   }
 
   get totalFixas(): number {
@@ -208,7 +213,6 @@ export class ReceitasPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.log('ngOnInit');
     this.carregar();
   }
 
@@ -216,7 +220,6 @@ export class ReceitasPageComponent implements OnInit {
     const r = new Date(this.mesAtual);
     r.setMonth(r.getMonth() - 1);
     this.mesAtual = r;
-    this.log('mesAnterior', { ano: this.anoRef, mes: this.mesRef });
     this.carregar();
   }
 
@@ -224,31 +227,25 @@ export class ReceitasPageComponent implements OnInit {
     const r = new Date(this.mesAtual);
     r.setMonth(r.getMonth() + 1);
     this.mesAtual = r;
-    this.log('proximoMes', { ano: this.anoRef, mes: this.mesRef });
     this.carregar();
   }
 
   selecionarVisao(visao: 'lista' | 'exemplos' | 'usuario'): void {
     this.visaoReceitas = visao;
-    this.log('selecionarVisao', { visao });
     this.cdr.markForCheck();
   }
 
   abrirModalAdicionarReceita(): void {
-    this.log('abrirModalAdicionarReceita');
     this.abrirDialogReceita(null);
   }
 
   editar(r: Receita): void {
-    this.log('editar', r);
     this.abrirDialogReceita(r);
   }
 
   private abrirDialogReceita(receita: Receita | null): void {
-    this.log('abrirDialogReceita', receita);
     const ref = this.abrirDialog(receita);
     ref.afterClosed().subscribe((saved) => {
-      this.log('dialogFechado', { saved });
       if (saved) {
         this.porSalvarReceita(receita);
       }
@@ -261,7 +258,6 @@ export class ReceitasPageComponent implements OnInit {
       ano: this.anoRef,
       mes: this.mesRef,
     };
-    this.log('abrirDialog payload', data);
     return this.dialog.open(AdicionarReceitaDialogComponent, {
       width: 'min(520px, 96vw)',
       maxHeight: '90vh',
@@ -272,7 +268,6 @@ export class ReceitasPageComponent implements OnInit {
   }
 
   private porSalvarReceita(receita: Receita | null): void {
-    this.log('porSalvarReceita', receita);
     this.carregar();
 
     const isEdicao = receita != null;
@@ -283,7 +278,6 @@ export class ReceitasPageComponent implements OnInit {
   }
 
   private abrirModalSucesso(isEdicao: boolean): void {
-    this.log('abrirModalSucesso', { isEdicao });
     this.dialog.open(SuccessModalComponent, {
       width: 'min(520px, 96vw)',
       maxHeight: '90vh',
@@ -298,7 +292,6 @@ export class ReceitasPageComponent implements OnInit {
   }
 
   carregar(): void {
-    this.log('carregar inicio', { ano: this.anoRef, mes: this.mesRef });
     this.loading = true;
     this.erroCarregar = null;
     this.cdr.markForCheck();
@@ -307,11 +300,9 @@ export class ReceitasPageComponent implements OnInit {
       .getReceitas({ ano: this.anoRef, mes: this.mesRef })
       .subscribe({
         next: (rows) => {
-          this.log('carregar sucesso', { total: rows.length, rows });
           this.aplicarResultadoCarregar(rows, null);
         },
         error: (e) => {
-          this.log('carregar erro', e);
           this.aplicarResultadoCarregar(
             [],
             e?.error?.error ||
@@ -323,7 +314,6 @@ export class ReceitasPageComponent implements OnInit {
   }
 
   abrirConfirmExcluir(r: Receita): void {
-    this.log('abrirConfirmExcluir', r);
     const ref = this.dialog.open(ConfirmModalComponent, {
       width: 'min(520px, 96vw)',
       maxHeight: '90vh',
@@ -336,11 +326,9 @@ export class ReceitasPageComponent implements OnInit {
     });
 
     ref.afterClosed().subscribe((confirmed) => {
-      this.log('confirmExcluir resultado', { confirmed, id: r.id });
       if (confirmed) {
         this.receitasService.deleteReceita(r.id).subscribe({
           next: () => {
-            this.log('excluir sucesso', { id: r.id });
             this.carregar();
             this.dialog.open(SuccessModalComponent, {
               width: 'min(520px, 96vw)',
@@ -354,7 +342,6 @@ export class ReceitasPageComponent implements OnInit {
             this.cdr.markForCheck();
           },
           error: (e) => {
-            this.log('excluir erro', e);
             this.erroCarregar =
               e?.error?.error || e?.message || 'Erro ao excluir.';
             this.cdr.markForCheck();

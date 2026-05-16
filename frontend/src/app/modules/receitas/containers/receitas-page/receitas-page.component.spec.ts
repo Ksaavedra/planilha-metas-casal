@@ -257,6 +257,44 @@ describe('ReceitasPageComponent', () => {
       expect(component.erroCarregar).toBeNull();
     });
 
+    describe('ordenarReceitasPorData', () => {
+      it('deve ordenar receitas da data mais recente para a mais antiga', () => {
+        const rows = [
+          { ...mockReceita, id: 1, data: '2026-05-02' },
+          { ...mockReceita, id: 2, data: '2026-05-09' },
+          { ...mockReceita, id: 3, data: '2026-05-03' },
+        ];
+
+        const result = component['ordenarReceitasPorData'](rows);
+
+        expect(result.map((r) => r.id)).toEqual([2, 3, 1]);
+      });
+
+      it('deve ordenar por id decrescente quando a data for igual', () => {
+        const rows = [
+          { ...mockReceita, id: 1, data: '2026-05-02' },
+          { ...mockReceita, id: 3, data: '2026-05-02' },
+          { ...mockReceita, id: 2, data: '2026-05-02' },
+        ];
+
+        const result = component['ordenarReceitasPorData'](rows);
+
+        expect(result.map((r) => r.id)).toEqual([3, 2, 1]);
+      });
+
+      it('deve manter array original sem alterar', () => {
+        const rows = [
+          { ...mockReceita, id: 1, data: '2026-05-02' },
+          { ...mockReceita, id: 2, data: '2026-05-09' },
+        ];
+
+        const result = component['ordenarReceitasPorData'](rows);
+
+        expect(result.map((r) => r.id)).toEqual([2, 1]);
+        expect(rows.map((r) => r.id)).toEqual([1, 2]);
+      });
+    });
+
     it('paginaProximaVariaveis deve avançar página quando menor que total', () => {
       component.paginaVariaveis = 1;
 
