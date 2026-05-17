@@ -1,4 +1,4 @@
-import { BaseEntity, Categoria, Status } from './common';
+import { BaseEntity, Categoria, Status } from './divida';
 
 export interface Investimento extends BaseEntity {
   tipoInvestimento: TipoInvestimento;
