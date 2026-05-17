@@ -8,7 +8,7 @@ export interface Meta {
   valorPorMes: number;
   mesesNecessarios: number;
   valorAtual: number;
-  icon?: string; // Ícone do Bootstrap Icons (ex: 'bi-house', 'bi-car-front')
+  icon?: string;
   meses: MesMeta[];
 }
 

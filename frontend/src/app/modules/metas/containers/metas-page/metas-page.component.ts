@@ -86,8 +86,7 @@ export class MetasPageComponent implements OnInit {
   /** Ano vazio diferente do calendário atual (ex.: 2024 sem metas → ir para 2026). */
   get exibirBotaoVoltarExercicioAtual(): boolean {
     return (
-      this.exibirAvisoAnoVazio &&
-      Number(this.anoSelecionado) !== this.anoAtual
+      this.exibirAvisoAnoVazio && Number(this.anoSelecionado) !== this.anoAtual
     );
   }
 
@@ -234,7 +233,8 @@ export class MetasPageComponent implements OnInit {
       this.metas,
       this.anoAtual,
     );
-    const fimLista = this.anosComparacao[this.anosComparacao.length - 1] ?? this.anoAtual;
+    const fimLista =
+      this.anosComparacao[this.anosComparacao.length - 1] ?? this.anoAtual;
     if (selecionado > fimLista) {
       const extras: number[] = [];
       for (let y = fimLista + 1; y <= selecionado; y++) {
