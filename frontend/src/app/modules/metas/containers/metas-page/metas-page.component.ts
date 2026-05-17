@@ -40,6 +40,8 @@ const ANO_REFERENCIA_MIN = 2020;
 export class MetasPageComponent implements OnInit {
   readonly tituloSecundario = 'Construindo sonhos juntos, passo a passo';
 
+  visaoMetas: 'lista' | 'exemplos' = 'lista';
+
   private parabensDialogAberto = false;
 
   meses: string[] = [];
@@ -113,6 +115,10 @@ export class MetasPageComponent implements OnInit {
   proximoAno(): void {
     this.anoSelecionado = Number(this.anoSelecionado) + 1;
     this.onAnoChange();
+  }
+
+  selecionarVisao(visao: 'lista' | 'exemplos'): void {
+    this.visaoMetas = visao;
   }
 
   onAnoChange(): void {

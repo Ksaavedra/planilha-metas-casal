@@ -73,6 +73,14 @@ describe('MetasPageComponent', () => {
 
   it('should have default values', () => {
     expect(component.metas).toEqual([]);
+    expect(component.visaoMetas).toBe('lista');
+  });
+
+  it('selecionarVisao alterna entre lista e exemplos', () => {
+    component.selecionarVisao('exemplos');
+    expect(component.visaoMetas).toBe('exemplos');
+    component.selecionarVisao('lista');
+    expect(component.visaoMetas).toBe('lista');
   });
 
   it('should load metas on init', () => {

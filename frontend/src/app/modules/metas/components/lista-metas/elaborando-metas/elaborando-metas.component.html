@@ -52,7 +52,7 @@
 
             <!-- Edição -->
             <ng-template #editNome>
-              <input class="cell-input input-nome" [(ngModel)]="meta.nomeTemp" (keyup)="onKeyUp($event, meta, 'nome')"
+              <input class="cell-input input-nome" [(ngModel)]="meta.nomeTemp" (keydown)="onKeyUp($event, meta, 'nome')"
                 (blur)="confirmarCampoBlur(meta, 'nome')" />
             </ng-template>
           </td>
@@ -67,7 +67,7 @@
             </ng-container>
             <ng-template #editValorMeta>
               <input class="cell-input input-valorMeta" [(ngModel)]="meta.valorMetaTemp" inputmode="decimal"
-                (keyup)="onKeyUp($event, meta, 'valorMeta')" (blur)="confirmarCampoBlur(meta, 'valorMeta')" />
+                (keydown)="onKeyUp($event, meta, 'valorMeta')" (blur)="confirmarCampoBlur(meta, 'valorMeta')" />
             </ng-template>
           </td>
           <td [attr.data-meta-id]="meta.id">
@@ -81,7 +81,7 @@
             </ng-container>
             <ng-template #editValorMes>
               <input class="cell-input input-valorPorMes" [(ngModel)]="meta.valorPorMesTemp" inputmode="decimal"
-                (keyup)="onKeyUp($event, meta, 'valorPorMes')" (blur)="confirmarCampoBlur(meta, 'valorPorMes')" />
+                (keydown)="onKeyUp($event, meta, 'valorPorMes')" (blur)="confirmarCampoBlur(meta, 'valorPorMes')" />
             </ng-template>
           </td>
           <td class="col-meses">
@@ -107,7 +107,7 @@
             </ng-container>
             <ng-template #editValorAtual>
               <input class="cell-input input-valorAtual" [(ngModel)]="meta.valorAtualTemp" inputmode="decimal"
-                (keyup)="onKeyUp($event, meta, 'valorAtual')" (blur)="confirmarCampoBlur(meta, 'valorAtual')" />
+                (keydown)="onKeyUp($event, meta, 'valorAtual')" (blur)="confirmarCampoBlur(meta, 'valorAtual')" />
             </ng-template>
           </td>
           <td class="progress-cell">

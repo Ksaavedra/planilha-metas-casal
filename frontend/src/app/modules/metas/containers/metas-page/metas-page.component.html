@@ -13,7 +13,7 @@
           <p class="metas-hero__subtitle">{{ tituloSecundario }}</p>
         </div>
       </div>
-      <div class="metas-hero__field" aria-label="Ano de referência">
+      <div class="metas-hero__field" aria-label="Ano de referência" *ngIf="visaoMetas === 'lista'">
         <p class="metas-hero__label">Ano de referência</p>
         <div class="metas-hero__ano-nav">
           <button type="button" class="metas-hero__nav-btn" (click)="anoAnterior()" [disabled]="!podeAnoAnterior"
@@ -38,21 +38,18 @@
 
     <div class="metas-hero__toolbar" aria-label="Visão e ações de metas">
       <div class="metas-hero__chips" role="tablist" aria-label="Alternar entre lista do mês e exemplos de categorias">
-        <!-- <button type="button" class="metas-hero__chip" [class.is-active]="visaoDespesas === 'lista'"
-          (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoDespesas === 'lista'">
-          Minhas despesas
+        <button type="button" class="metas-hero__chip" [class.is-active]="visaoMetas === 'lista'"
+          (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoMetas === 'lista'">
+          Minhas metas
         </button>
-        <button type="button" class="metas-hero__chip" [class.is-active]="visaoDespesas === 'usuario'"
-          (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoDespesas === 'usuario'">
-          Por pessoa
-        </button>
-        <button type="button" class="metas-hero__chip"
-          role="tab">
+        <button type="button" class="metas-hero__chip" [class.is-active]="visaoMetas === 'exemplos'"
+          (click)="selecionarVisao('exemplos')" role="tab" [attr.aria-selected]="visaoMetas === 'exemplos'">
           Exemplos
-        </button> -->
+        </button>
       </div>
       <div class="metas-hero__actions">
-        <button type="button" class="btn-add-meta" (click)="abrirModalAdicionarMeta()" [disabled]="metas.length >= 15">
+        <button type="button" class="btn-add-meta" *ngIf="visaoMetas === 'lista'" (click)="abrirModalAdicionarMeta()"
+          [disabled]="metas.length >= 15">
           <span class="material-icons" aria-hidden="true">add</span>
           Adicionar meta
         </button>
@@ -60,40 +57,44 @@
     </div>
   </header>
 
-  <div *ngIf="carregandoMetas" class="metas-carregando" role="status" aria-live="polite">
-    <span class="material-icons metas-carregando__icon" aria-hidden="true">hourglass_top</span>
-    Carregando metas de {{ anoSelecionado }}…
-  </div>
-
-  <div class="metas-ano-aviso" *ngIf="exibirAvisoAnoVazio" role="status" aria-live="polite">
-    <span class="material-icons metas-ano-aviso__icon" aria-hidden="true">info</span>
-    <div class="metas-ano-aviso__conteudo">
-      <p class="metas-ano-aviso__texto">
-        Nenhuma meta cadastrada para <strong>{{ anoSelecionado }}</strong>.
-        Use <strong>Adicionar meta</strong> para planejar este ano.
-      </p>
-      <button type="button" class="metas-ano-aviso__btn" *ngIf="exibirBotaoVoltarExercicioAtual"
-        (click)="voltarParaAnoAtual()">
-        Ver metas de {{ anoAtual }}
-      </button>
+  <ng-container *ngIf="visaoMetas === 'lista'">
+    <div *ngIf="carregandoMetas" class="metas-carregando" role="status" aria-live="polite">
+      <span class="material-icons metas-carregando__icon" aria-hidden="true">hourglass_top</span>
+      Carregando metas de {{ anoSelecionado }}…
     </div>
-  </div>
 
-  <!-- Seção 1: Elaborando as Metas do Casal -->
-  <app-elaborando-metas *ngIf="!ocultarSecoesMetas" [metas]="metas" [percentualPagoView]="percentualPagoView"
-    [totalValorMetaView]="totalValorMetaView" [totalValorPorMesView]="totalValorPorMesView"
-    [totalMesesNecessariosView]="totalMesesNecessariosView" [totalValorAtualView]="totalValorAtualView"
-    [totalContribuicoesView]="totalContribuicoesView" (metasAtualizadas)="reloadMetas()"
-    (confirmar)="onConfirmarCampo($event)" (remover)="removerMeta($event)">
-  </app-elaborando-metas>
+    <div class="metas-ano-aviso" *ngIf="exibirAvisoAnoVazio" role="status" aria-live="polite">
+      <span class="material-icons metas-ano-aviso__icon" aria-hidden="true">info</span>
+      <div class="metas-ano-aviso__conteudo">
+        <p class="metas-ano-aviso__texto">
+          Nenhuma meta cadastrada para <strong>{{ anoSelecionado }}</strong>.
+          Use <strong>Adicionar meta</strong> para planejar este ano.
+        </p>
+        <button type="button" class="metas-ano-aviso__btn" *ngIf="exibirBotaoVoltarExercicioAtual"
+          (click)="voltarParaAnoAtual()">
+          Ver metas de {{ anoAtual }}
+        </button>
+      </div>
+    </div>
 
-  <!-- Seção 2: Evolução das Metas do Casal -->
-  <app-evolucao-metas *ngIf="!ocultarSecoesMetas" [metas]="metas"></app-evolucao-metas>
+    <!-- Seção 1: Elaborando as Metas do Casal -->
+    <app-elaborando-metas *ngIf="!ocultarSecoesMetas" [metas]="metas" [percentualPagoView]="percentualPagoView"
+      [totalValorMetaView]="totalValorMetaView" [totalValorPorMesView]="totalValorPorMesView"
+      [totalMesesNecessariosView]="totalMesesNecessariosView" [totalValorAtualView]="totalValorAtualView"
+      [totalContribuicoesView]="totalContribuicoesView" (metasAtualizadas)="reloadMetas()"
+      (confirmar)="onConfirmarCampo($event)" (remover)="removerMeta($event)">
+    </app-elaborando-metas>
 
-  <!-- Seção 3: Executando as Metas do Casal -->
-  <app-executando-metas *ngIf="!ocultarSecoesMetas" [meses]="meses" [metas]="metas"
-    [totalContribuicoesView]="totalContribuicoesView" (alternarStatus)="onAlterarStatus($event)"
-    (salvarValor)="onSalvarValorMes($event)" (metaCompleta)="onMetaCompleta($event)">
-  </app-executando-metas>
+    <!-- Seção 2: Evolução das Metas do Casal -->
+    <app-evolucao-metas *ngIf="!ocultarSecoesMetas" [metas]="metas"></app-evolucao-metas>
+
+    <!-- Seção 3: Executando as Metas do Casal -->
+    <app-executando-metas *ngIf="!ocultarSecoesMetas" [meses]="meses" [metas]="metas"
+      [totalContribuicoesView]="totalContribuicoesView" (alternarStatus)="onAlterarStatus($event)"
+      (salvarValor)="onSalvarValorMes($event)" (metaCompleta)="onMetaCompleta($event)">
+    </app-executando-metas>
+  </ng-container>
+
+  <app-metas-exemplos *ngIf="visaoMetas === 'exemplos'"></app-metas-exemplos>
 
 </div>
