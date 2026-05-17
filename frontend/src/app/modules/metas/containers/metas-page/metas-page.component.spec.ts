@@ -858,15 +858,13 @@ describe('MetasPageComponent', () => {
 
       component.confirmarCampo(meta, 'valorPorMes');
 
-      expect(updateSpy).toHaveBeenCalledWith(
-        7,
-        expect.objectContaining({
-          valorPorMes: 500,
-          mesesNecessarios: 20,
-          ano: component.anoSelecionado,
-          meses: expect.any(Array),
-        }),
-      );
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+      const [metaId, patch] = updateSpy.mock.calls[0];
+      expect(metaId).toBe(7);
+      expect(patch.valorPorMes).toBe(500);
+      expect(patch.mesesNecessarios).toBe(20);
+      expect(patch.ano).toBe(component.anoSelecionado);
+      expect(Array.isArray(patch.meses)).toBe(true);
     });
   });
 
@@ -934,6 +932,167 @@ describe('MetasPageComponent', () => {
       component.adicionarMeta();
 
       expect(createSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('navegação por ano e getters de visão', () => {
+    it('estaEmAnoFuturo quando ano selecionado é maior que o atual', () => {
+      component.anoSelecionado = component.anoAtual + 2;
+      expect(component.estaEmAnoFuturo).toBe(true);
+      component.anoSelecionado = component.anoAtual;
+      expect(component.estaEmAnoFuturo).toBe(false);
+    });
+
+    it('exibirBotaoVoltarExercicioAtual quando ano vazio e diferente do calendário', () => {
+      component.metas = [];
+      component.carregandoMetas = false;
+      component.anoSelecionado = component.anoAtual - 1;
+      expect(component.exibirBotaoVoltarExercicioAtual).toBe(true);
+      component.anoSelecionado = component.anoAtual;
+      expect(component.exibirBotaoVoltarExercicioAtual).toBe(false);
+    });
+
+    it('ocultarSecoesMetas quando não há metas e não está carregando', () => {
+      component.metas = [];
+      component.carregandoMetas = false;
+      expect(component.ocultarSecoesMetas).toBe(true);
+      component.metas = mockMetas as any;
+      expect(component.ocultarSecoesMetas).toBe(false);
+    });
+
+    it('podeProximoAno é sempre true', () => {
+      expect(component.podeProximoAno).toBe(true);
+    });
+
+    it('anoAnterior decrementa ano e recarrega metas', () => {
+      component.anosComparacao = [2020, component.anoAtual];
+      component.anoSelecionado = component.anoAtual;
+      const getSpy = jest.spyOn(metasService, 'getMetas').mockReturnValue(of([]));
+      const setSpy = jest.spyOn(metasService, 'setAnoSelecionado');
+
+      component.anoAnterior();
+
+      expect(component.anoSelecionado).toBe(component.anoAtual - 1);
+      expect(setSpy).toHaveBeenCalledWith(component.anoAtual - 1);
+      expect(getSpy).toHaveBeenCalled();
+    });
+
+    it('anoAnterior não altera quando já está no ano mínimo', () => {
+      component.anosComparacao = [2020];
+      component.anoSelecionado = 2020;
+      const getSpy = jest.spyOn(metasService, 'getMetas');
+
+      component.anoAnterior();
+
+      expect(component.anoSelecionado).toBe(2020);
+      expect(getSpy).not.toHaveBeenCalled();
+    });
+
+    it('proximoAno incrementa ano e recarrega metas', () => {
+      component.anoSelecionado = component.anoAtual;
+      const getSpy = jest.spyOn(metasService, 'getMetas').mockReturnValue(of([]));
+
+      component.proximoAno();
+
+      expect(component.anoSelecionado).toBe(component.anoAtual + 1);
+      expect(getSpy).toHaveBeenCalled();
+    });
+
+    it('onAnoChange ignora ano abaixo do mínimo', () => {
+      component.anoSelecionado = 2010;
+      const getSpy = jest.spyOn(metasService, 'getMetas');
+
+      component.onAnoChange();
+
+      expect(getSpy).not.toHaveBeenCalled();
+    });
+
+    it('voltarParaAnoAtual navega para o ano civil atual', () => {
+      const irSpy = jest.spyOn(component, 'irParaAno');
+      component.voltarParaAnoAtual();
+      expect(irSpy).toHaveBeenCalledWith(component.anoAtual);
+    });
+
+    it('irParaAno não recarrega quando o ano é o mesmo', () => {
+      component.anoSelecionado = 2025;
+      const getSpy = jest.spyOn(metasService, 'getMetas');
+
+      component.irParaAno(2025);
+
+      expect(getSpy).not.toHaveBeenCalled();
+    });
+
+    it('irParaAno recarrega e faz scroll quando o ano muda', () => {
+      const scrollSpy = jest
+        .spyOn(window, 'scrollTo')
+        .mockImplementation(() => undefined);
+      component.anoSelecionado = 2024;
+      jest.spyOn(metasService, 'getMetas').mockReturnValue(of([]));
+
+      component.irParaAno(2026);
+
+      expect(component.anoSelecionado).toBe(2026);
+      expect(scrollSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+      scrollSpy.mockRestore();
+    });
+
+    it('ngOnInit usa anoAtual quando getAnoSelecionado retorna NaN', () => {
+      jest.spyOn(metasService, 'getAnoSelecionado').mockReturnValue(NaN);
+      jest.spyOn(metasService, 'getMetas').mockReturnValue(of([]));
+
+      component.ngOnInit();
+
+      expect(component.anoSelecionado).toBe(component.anoAtual);
+    });
+  });
+
+  describe('template visaoMetas', () => {
+    it('exibe app-metas-exemplos e oculta seções na visão exemplos', () => {
+      component.selecionarVisao('exemplos');
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('app-metas-exemplos')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('app-elaborando-metas')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('.btn-add-meta')).toBeFalsy();
+    });
+
+    it('exibe seções e botão adicionar na visão lista com metas', () => {
+      component.metas = mockMetas as any;
+      component.carregandoMetas = false;
+      component.selecionarVisao('lista');
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('app-elaborando-metas')).toBeTruthy();
+      expect(fixture.nativeElement.querySelector('app-metas-exemplos')).toBeFalsy();
+      expect(fixture.nativeElement.querySelector('.btn-add-meta')).toBeTruthy();
+    });
+  });
+
+  describe('abrirModalAdicionarMeta', () => {
+    it('abre dialog e recarrega após salvar com modal de sucesso', () => {
+      const dialog = TestBed.inject(MatDialog) as jest.Mocked<MatDialog>;
+      const reloadSpy = jest.spyOn(component, 'reloadMetas').mockImplementation();
+      dialog.open = jest
+        .fn()
+        .mockReturnValueOnce({ afterClosed: () => of(true) })
+        .mockReturnValueOnce({ afterClosed: () => of(undefined) });
+
+      component.abrirModalAdicionarMeta();
+
+      expect(dialog.open).toHaveBeenCalledTimes(2);
+      expect(reloadSpy).toHaveBeenCalled();
+    });
+
+    it('não abre modal quando já há 15 metas', () => {
+      const dialog = TestBed.inject(MatDialog) as jest.Mocked<MatDialog>;
+      component.metas = Array(15)
+        .fill(null)
+        .map((_, i) => ({ id: i + 1, nome: `M${i}` })) as any;
+      const openSpy = jest.spyOn(dialog, 'open');
+
+      component.abrirModalAdicionarMeta();
+
+      expect(openSpy).not.toHaveBeenCalled();
     });
   });
 });

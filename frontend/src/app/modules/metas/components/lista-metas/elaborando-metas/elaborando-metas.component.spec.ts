@@ -531,6 +531,33 @@ describe('ElaborandoMetasComponent', () => {
     });
   });
 
+  describe('getMesesRestantesLabel', () => {
+    it('retorna string vazia quando restantes é -1', () => {
+      const meta = makeMeta({ valorPorMes: 0 });
+      expect(component.getMesesRestantesLabel(meta)).toBe('');
+    });
+
+    it('retorna concluída quando restantes é 0', () => {
+      const meta = makeMeta({
+        valorMeta: 1000,
+        valorPorMes: 500,
+        valorAtual: 1000,
+        meses: [{ id: 1, nome: 'Jan', valor: 500, status: 'Pago' as const }],
+      });
+      expect(component.getMesesRestantesLabel(meta)).toBe(' · concluída');
+    });
+
+    it('retorna faltam N quando há meses restantes', () => {
+      const meta = makeMeta({
+        valorMeta: 10000,
+        valorPorMes: 1000,
+        valorAtual: 2000,
+        meses: [{ id: 1, nome: 'Jan', valor: 1000, status: 'Pago' as const }],
+      });
+      expect(component.getMesesRestantesLabel(meta)).toContain('faltam');
+    });
+  });
+
   describe('getMesesRestantes', () => {
     it('should return -1 when valorMeta <= 0 or valorPorMes <= 0', () => {
       const meta1 = makeMeta({ valorMeta: 0, valorPorMes: 1000 }) as any;
@@ -759,10 +786,10 @@ describe('ElaborandoMetasComponent', () => {
 
         component.confirmarCampo(meta, 'valorMeta');
 
-        expect(metasService.updateMeta).toHaveBeenCalledWith(
-          meta.id,
-          expect.objectContaining({ valorMeta: 15000, meses: expect.any(Array) }),
-        );
+        expect(metasService.updateMeta).toHaveBeenCalledTimes(1);
+        const patch791 = (metasService.updateMeta as jest.Mock).mock.calls[0][1];
+        expect(patch791.valorMeta).toBe(15000);
+        expect(Array.isArray(patch791.meses)).toBe(true);
         expect(meta.valorMeta).toBe(15000);
         expect(meta.editandoValorMeta).toBe(false);
       });
@@ -782,10 +809,9 @@ describe('ElaborandoMetasComponent', () => {
 
         component.confirmarCampo(meta, 'valorMeta');
 
-        expect(metasService.updateMeta).toHaveBeenCalledWith(
-          meta.id,
-          expect.objectContaining({ valorMeta: 15000 }),
-        );
+        expect(metasService.updateMeta).toHaveBeenCalledTimes(1);
+        const patch814 = (metasService.updateMeta as jest.Mock).mock.calls[0][1];
+        expect(patch814.valorMeta).toBe(15000);
       });
 
       it('should cancel when novo equals atual for numeric fields', () => {
@@ -1188,12 +1214,8 @@ describe('ElaborandoMetasComponent', () => {
         expect(meta.valorMeta).toBe(1500);
         expect(metasService.updateMeta).toHaveBeenCalledTimes(1);
         const payload = (metasService.updateMeta as jest.Mock).mock.calls[0][1];
-        expect(payload).toEqual(
-          expect.objectContaining({
-            valorMeta: 1500,
-            meses: expect.any(Array),
-          }),
-        );
+        expect(payload.valorMeta).toBe(1500);
+        expect(Array.isArray(payload.meses)).toBe(true);
         expect(successSpy).toHaveBeenCalledWith(meta, 'valorMeta', 1500);
       });
 
@@ -1402,6 +1424,23 @@ describe('ElaborandoMetasComponent', () => {
 
       expect(component.camposProcessados.has(chave)).toBe(false);
       expect(confirmSpy).not.toHaveBeenCalled();
+    });
+
+    it('should limpar edição no blur quando meta está concluída', () => {
+      const meta = makeMeta({
+        valorMeta: 1000,
+        valorPorMes: 100,
+        valorAtual: 1000,
+        editandoNome: true,
+        nomeTemp: 'X',
+        meses: [{ id: 1, nome: 'Jan', valor: 0, status: 'Pago' as const }],
+      });
+      const confirmSpy = jest.spyOn(component, 'confirmarCampo');
+
+      component.confirmarCampoBlur(meta, 'nome');
+
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(meta.editandoNome).toBe(false);
     });
   });
 
@@ -1671,6 +1710,41 @@ describe('ElaborandoMetasComponent', () => {
       expect(event.preventDefault).toHaveBeenCalled();
       expect(event.stopPropagation).toHaveBeenCalled();
       expect(confirmSpy).toHaveBeenCalledWith(meta, 'nome');
+    });
+
+    it('should handle NumpadEnter key', () => {
+      const meta = makeMeta();
+      const event = {
+        key: 'Enter',
+        code: 'NumpadEnter',
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as any;
+      const confirmSpy = jest.spyOn(component, 'confirmarCampo');
+
+      component.onKeyUp(event, meta, 'nome');
+
+      expect(confirmSpy).toHaveBeenCalledWith(meta, 'nome');
+    });
+
+    it('should ignore keys when meta is concluded', () => {
+      const meta = makeMeta({
+        valorMeta: 1000,
+        valorPorMes: 100,
+        valorAtual: 1000,
+        meses: [{ id: 1, nome: 'Jan', valor: 0, status: 'Pago' as const }],
+      });
+      const event = {
+        key: 'Enter',
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+      } as any;
+      const confirmSpy = jest.spyOn(component, 'confirmarCampo');
+
+      component.onKeyUp(event, meta, 'nome');
+
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(event.preventDefault).not.toHaveBeenCalled();
     });
 
     it('should handle Escape key', () => {

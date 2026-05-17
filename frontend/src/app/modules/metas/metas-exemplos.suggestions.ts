@@ -1,4 +1,3 @@
-/** Ideias de objetivos para a aba Exemplos (somente orientação; não cadastra metas). */
 export const EXEMPLOS_OBJETIVOS_SONHOS = [
   'Viajar para a Europa',
   'Comprar um carro',
