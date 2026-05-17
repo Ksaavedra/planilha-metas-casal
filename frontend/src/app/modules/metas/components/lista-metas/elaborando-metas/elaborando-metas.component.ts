@@ -5,7 +5,10 @@ import {
   Output,
   OnDestroy,
 } from '@angular/core';
-import { Meta, MetaExtended } from '../../../../../core/interfaces/metas/mes-meta';
+import {
+  Meta,
+  MetaExtended,
+} from '../../../../../core/interfaces/metas/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { Subscription } from 'rxjs';
 import {
@@ -13,6 +16,11 @@ import {
   getValorRealizadoMeta as calcularValorRealizado,
   metaEstaConcluida,
 } from '@core/interfaces/metas/metas-parabens';
+import {
+  mesesTotaisDoPlano,
+  metaVisivelNoExercicio,
+  regenerarMesesMeta,
+} from '@core/utils/metas-meses.util';
 
 @Component({
   selector: 'app-elaborando-metas',
@@ -372,17 +380,31 @@ export class ElaborandoMetasComponent implements OnDestroy {
   ): Record<string, unknown> {
     const patch: Record<string, unknown> = { [campo]: novo };
 
-    if (campo === 'valorPorMes') {
-      patch.mesesNecessarios =
-        novo > 0 ? Math.ceil((meta.valorMeta || 0) / novo) : 0;
+    const anoInicio = meta.ano ?? this.metasService.getAnoSelecionado();
 
-      if (meta.meses && meta.meses.length > 0) {
-        patch.meses = meta.meses.map((mes) => ({
-          ...mes,
-          valor: novo > 0 ? novo : 0,
-          status: novo > 0 ? 'Programado' : 'Vazio',
-        }));
+    if (campo === 'valorPorMes') {
+      const mesesNecessarios =
+        novo > 0 ? Math.ceil((meta.valorMeta || 0) / novo) : 0;
+      patch.mesesNecessarios = mesesNecessarios;
+      if (mesesNecessarios > 0) {
+        patch.meses = regenerarMesesMeta(
+          meta,
+          anoInicio,
+          mesesNecessarios,
+          novo,
+        );
       }
+    }
+
+    if (campo === 'valorMeta' && meta.valorPorMes > 0) {
+      const mesesNecessarios = Math.ceil(novo / meta.valorPorMes);
+      patch.mesesNecessarios = mesesNecessarios;
+      patch.meses = regenerarMesesMeta(
+        meta,
+        anoInicio,
+        mesesNecessarios,
+        meta.valorPorMes,
+      );
     }
 
     return patch;
@@ -393,11 +415,15 @@ export class ElaborandoMetasComponent implements OnDestroy {
     campo: 'valorMeta' | 'valorPorMes' | 'valorAtual',
     novo: number,
   ): void {
-    if (campo === 'valorPorMes' && meta.meses && meta.meses.length > 0) {
-      meta.meses.forEach((mes) => {
-        mes.valor = novo > 0 ? novo : 0;
-        mes.status = novo > 0 ? 'Programado' : 'Vazio';
-      });
+    if (
+      (campo === 'valorPorMes' || campo === 'valorMeta') &&
+      meta.meses &&
+      meta.meses.length > 0
+    ) {
+      const patch = this.buildPatchCampoNumerico(meta, campo, novo);
+      if (Array.isArray(patch.meses)) {
+        meta.meses = patch.meses as typeof meta.meses;
+      }
     }
 
     meta.savedTickCampo = true;
@@ -438,7 +464,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
     );
 
     this.totalMesesNecessariosView = this.metas.reduce(
-      (t, m) => t + (Number(m.mesesNecessarios) || 0),
+      (t, m) => t + mesesTotaisDoPlano(m),
       0,
     );
 
@@ -484,6 +510,22 @@ export class ElaborandoMetasComponent implements OnDestroy {
     return Number(((totalRealizado * 100) / valorMeta).toFixed(2));
   }
 
+  /** Total de meses do plano (ex.: 500.000 ÷ 5.000 = 100). */
+  getMesesDoPlano(meta: MetaExtended): number {
+    return mesesTotaisDoPlano(meta);
+  }
+
+  getMesesRestantesLabel(meta: MetaExtended): string {
+    const restantes = this.getMesesRestantes(meta);
+    if (restantes === -1) {
+      return '';
+    }
+    if (restantes === 0) {
+      return ' · concluída';
+    }
+    return ` · faltam ${restantes}`;
+  }
+
   // Calcular meses restantes baseado nos meses pagos
   getMesesRestantes(meta: MetaExtended): number {
     const valorMeta = Number(meta.valorMeta) || 0;
@@ -525,32 +567,33 @@ export class ElaborandoMetasComponent implements OnDestroy {
     // Preservar estado savedTickCampo da meta que acabou de ser salva
     const savedMetaState = Boolean(preserveSavedTick && savedMetaId);
 
-    this.metasService.getMetas().subscribe((metas: Meta[]) => {
-      // Filtrar apenas metas válidas (com ID válido e nome não vazio)
-      const metasValidas = metas.filter((meta) => {
-        // Aceitar qualquer ID válido (não vazio, não 0, não undefined)
+    const ano = this.metasService.getAnoSelecionado();
+    this.metasService.getMetas(ano).subscribe((metas: Meta[]) => {
+      const anoAtual = new Date().getFullYear();
+      const metasDoAno = metas.filter((m) =>
+        metaVisivelNoExercicio(m, ano, anoAtual),
+      );
+      const metasValidas = metasDoAno.filter((meta) => {
         const idValido =
           meta.id && meta.id !== 0 && String(meta.id).trim() !== '';
-        // Aceitar nomes válidos (não vazios, não undefined)
         const nomeValido =
           meta.nome && meta.nome.trim().length > 0 && meta.nome !== 'undefined';
         return idValido && nomeValido;
       });
 
       this.metas = metasValidas.map((m) => {
-        // Preservar savedTickCampo se for a meta que acabou de ser salva
         const shouldPreserveTick = Boolean(
           savedMetaId && String(m.id) === String(savedMetaId) && savedMetaState,
         );
 
         const metaExtended: MetaExtended = {
           ...m,
-          id: m.id, // Padronizar todos os IDs como string
+          id: m.id,
           valorMeta: this.toNum(m.valorMeta),
           valorPorMes: this.toNum(m.valorPorMes),
           valorAtual: this.toNum(m.valorAtual),
           mesesNecessarios: this.toNum(m.mesesNecessarios),
-          icon: m.icon || 'bi-bullseye', // Preservar o ícone da meta
+          icon: m.icon || 'bi-bullseye',
           editandoNome: false,
           nomeTemp: '',
           savingNome: false,
@@ -576,7 +619,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
       return;
     }
 
-    // Enter (inclui o do teclado numérico)
     if (ev.key === 'Enter' || ev.code === 'NumpadEnter') {
       ev.preventDefault();
       ev.stopPropagation();
@@ -588,7 +630,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
       return;
     }
 
-    // Escape
     if (ev.key === 'Escape') {
       ev.preventDefault();
       ev.stopPropagation();
@@ -596,9 +637,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
     }
   }
 
-  // Método para validar apenas números nos campos de valor do modal
   validarApenasNumeros(event: KeyboardEvent): void {
-    // Permitir teclas de controle (não precisam validação)
     const teclasControle = [
       'Backspace',
       'Delete',
@@ -619,26 +658,23 @@ export class ElaborandoMetasComponent implements OnDestroy {
     ];
 
     if (teclasControle.includes(event.key)) {
-      return; // Permite teclas de controle
+      return;
     }
 
-    // Permitir teclas do teclado numérico (Numpad)
     if (event.code.startsWith('Numpad')) {
-      // Verificar se é número do numpad (0-9) ou vírgula/ponto
       if (
         event.code.includes('Comma') ||
         event.code.includes('Period') ||
         (event.code >= 'Numpad0' && event.code <= 'Numpad9')
       ) {
-        return; // Permite números do numpad, vírgula e ponto
+        return;
       }
     }
 
-    // Permitir apenas: números (0-9), vírgula (,) e ponto (.)
     const teclasPermitidas = /^[0-9,\.]$/;
 
     if (!teclasPermitidas.test(event.key)) {
-      event.preventDefault(); // Bloqueia qualquer outro caractere
+      event.preventDefault();
     }
   }
 }

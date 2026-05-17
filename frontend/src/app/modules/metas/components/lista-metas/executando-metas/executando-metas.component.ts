@@ -105,18 +105,9 @@ export class ExecutandoMetasComponent implements OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['metas']) {
-      if (changes['metas'].currentValue) {
-        this.setHeaderMesesFromData();
-        this.metas.forEach((m) => this.normalizeMeses(m));
-      }
+    if (changes['metas']?.currentValue || changes['meses']) {
+      this.metas.forEach((m) => this.normalizeMeses(m));
     }
-  }
-
-  setHeaderMesesFromData(): void {
-    const nomes = this.metas.flatMap((m) => m.meses?.map((x) => x.nome) ?? []);
-    const unicos = Array.from(new Set(nomes));
-    this.meses = unicos.length ? unicos : [...this.MESES_PADRAO];
   }
 
   private normalizeMeses(meta: MetaExtended): void {

@@ -1,15 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MetasService } from '../../../../core/services/metas/metas.service';
-import {
-  AdicionarMetaDialogComponent,
-} from '../../components/adicionar-meta-dialog/adicionar-meta-dialog.component';
+import { AdicionarMetaDialogComponent } from '../../components/adicionar-meta-dialog/adicionar-meta-dialog.component';
 import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
 import {
   Meta,
   MetaExtended,
   ModalEdicao,
 } from '@core/interfaces/metas/mes-meta';
+import { UpdateMetaRequest } from '@core/interfaces/metas/metas-modais';
 import {
   finalizarMesesRestantesDaMeta,
   getValorRealizadoMeta,
@@ -18,8 +17,22 @@ import {
   metaEstaConcluida,
 } from '@core/interfaces/metas/metas-parabens';
 import { ParabensDialogComponent } from '../../components/parabens-dialog/parabens-dialog.component';
+import {
+  buildAnosComparacaoParaMetas,
+  filtrarMesesPorAno,
+  gerarMesesPlanejamento,
+  mesesPadraoDoAno,
+  mesesTotaisDoPlano,
+  migrarMesesLegado,
+  metaVisivelNoExercicio,
+  ordenarNomesMeses,
+  quantidadeMesesPlanejamento,
+  regenerarMesesMeta,
+} from '@core/utils/metas-meses.util';
 
 type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
+
+const ANO_REFERENCIA_MIN = 2020;
 
 @Component({
   selector: 'app-metas-page',
@@ -41,6 +54,7 @@ export class MetasPageComponent implements OnInit {
   };
 
   metas: MetaExtended[] = [];
+  carregandoMetas = false;
   percentualPagoView = 0;
   isProcessingEdit = false;
   totalValorMetaView = 0;
@@ -55,61 +69,213 @@ export class MetasPageComponent implements OnInit {
     private dialog: MatDialog,
   ) {}
 
-  private readonly MESES_PADRAO = [
-    'Janeiro',
-    'Fevereiro',
-    'Março',
-    'Abril',
-    'Maio',
-    'Junho',
-    'Julho',
-    'Agosto',
-    'Setembro',
-    'Outubro',
-    'Novembro',
-    'Dezembro',
-  ];
+  anosComparacao: number[] = [];
+  readonly anoAtual = new Date().getFullYear();
+
+  anoSelecionado = this.metasService.getAnoSelecionado();
+
+  get exibirAvisoAnoVazio(): boolean {
+    return !this.carregandoMetas && this.metas.length === 0;
+  }
+
+  /** Cabeçalho: link rápido ao exercício atual (ex.: navegou para 2030). */
+  get estaEmAnoFuturo(): boolean {
+    return Number(this.anoSelecionado) > this.anoAtual;
+  }
+
+  /** Ano vazio diferente do calendário atual (ex.: 2024 sem metas → ir para 2026). */
+  get exibirBotaoVoltarExercicioAtual(): boolean {
+    return (
+      this.exibirAvisoAnoVazio &&
+      Number(this.anoSelecionado) !== this.anoAtual
+    );
+  }
+
+  /** Sem metas no ano: mostra só o aviso (layout do print). */
+  get ocultarSecoesMetas(): boolean {
+    return this.exibirAvisoAnoVazio;
+  }
+
+  get podeAnoAnterior(): boolean {
+    const min = this.anosComparacao[0];
+    return Number(this.anoSelecionado) > min;
+  }
+
+  /** Futuro livre: metas longas (ex.: carro em 100+ meses) podem ir além de qualquer teto fixo. */
+  get podeProximoAno(): boolean {
+    return true;
+  }
+
+  anoAnterior(): void {
+    if (!this.podeAnoAnterior) {
+      return;
+    }
+    this.anoSelecionado = Number(this.anoSelecionado) - 1;
+    this.onAnoChange();
+  }
+
+  proximoAno(): void {
+    this.anoSelecionado = Number(this.anoSelecionado) + 1;
+    this.onAnoChange();
+  }
+
+  onAnoChange(): void {
+    const ano = Number(this.anoSelecionado);
+    if (!Number.isFinite(ano) || ano < ANO_REFERENCIA_MIN) {
+      return;
+    }
+    this.anoSelecionado = ano;
+    this.metasService.setAnoSelecionado(ano);
+    this.limparMetasDoAno();
+    this.carregarMetas();
+  }
+
+  private limparMetasDoAno(): void {
+    this.metas = [];
+    this.meses = mesesPadraoDoAno(this.anoSelecionado);
+    this.recalcResumo();
+  }
+
+  irParaAno(ano: number): void {
+    if (!Number.isFinite(ano) || Number(this.anoSelecionado) === ano) {
+      return;
+    }
+    this.anoSelecionado = ano;
+    this.metasService.setAnoSelecionado(ano);
+    this.limparMetasDoAno();
+    this.carregarMetas();
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  voltarParaAnoAtual(): void {
+    this.irParaAno(this.anoAtual);
+  }
 
   ngOnInit(): void {
-    this.metasService.getMetas().subscribe((metas: Meta[]) => {
-      // Filtrar apenas metas válidas (com ID válido e nome não vazio)
-      const metasValidas = metas.filter((meta) => {
-        // Aceitar qualquer ID válido (não vazio, não 0, não undefined)
-        const idValido =
-          meta.id && meta.id !== 0 && String(meta.id).trim() !== '';
+    this.anoSelecionado = this.clampAnoReferencia(
+      this.metasService.getAnoSelecionado(),
+    );
+    this.anosComparacao = buildAnosComparacaoParaMetas([], this.anoAtual);
+    this.metasService.setAnoSelecionado(this.anoSelecionado);
+    this.carregarMetas();
+  }
 
-        // Aceitar nomes válidos (não vazios, não undefined)
-        const nomeValido =
-          meta.nome && meta.nome.trim().length > 0 && meta.nome !== 'undefined';
+  private clampAnoReferencia(ano: number): number {
+    if (!Number.isFinite(ano)) {
+      return this.anoAtual;
+    }
+    return Math.max(ANO_REFERENCIA_MIN, Math.round(ano));
+  }
 
-        return idValido && nomeValido;
-      });
-
-      this.metas = metasValidas.map((m) => {
-        const metaExtended: MetaExtended = {
-          ...m,
-          id: m.id, // Padronizar todos os IDs como string
-          valorMeta: this.toNum(m.valorMeta),
-          valorPorMes: this.toNum(m.valorPorMes),
-          valorAtual: this.toNum(m.valorAtual),
-          mesesNecessarios: this.toNum(m.mesesNecessarios),
-          editandoNome: false,
-          nomeTemp: '',
-          savingNome: false,
-          savedTick: false,
-          editandoValorMeta: false,
-          editandoValorPorMes: false,
-          editandoValorAtual: false,
-          savedTickCampo: false,
-          dropdownOpen: undefined,
-        };
-        return metaExtended;
-      });
-
-      this.setHeaderMesesFromData();
-      this.metas.forEach((m) => this.normalizeMeses(m));
-      this.recalcResumo();
+  private carregarMetas(): void {
+    const ano = Number(this.anoSelecionado);
+    this.carregandoMetas = true;
+    this.metasService.getMetas(ano).subscribe({
+      next: (metas: Meta[]) => {
+        this.aplicarMetasCarregadas(metas);
+        this.carregandoMetas = false;
+      },
+      error: () => {
+        this.limparMetasDoAno();
+        this.carregandoMetas = false;
+        alert('Não foi possível carregar as metas deste ano. Tente novamente.');
+      },
     });
+  }
+
+  private aplicarMetasCarregadas(metas: Meta[]): void {
+    const anoExercicio = Number(this.anoSelecionado);
+    const metasValidas = metas.filter((meta) => {
+      const idValido =
+        meta.id && meta.id !== 0 && String(meta.id).trim() !== '';
+
+      const nomeValido =
+        meta.nome && meta.nome.trim().length > 0 && meta.nome !== 'undefined';
+
+      const pertenceAoAno = this.metaPertenceAoExercicio(meta, anoExercicio);
+
+      return idValido && nomeValido && pertenceAoAno;
+    });
+
+    this.metas = metasValidas.map((m) => {
+      const metaExtended: MetaExtended = {
+        ...m,
+        id: m.id,
+        valorMeta: this.toNum(m.valorMeta),
+        valorPorMes: this.toNum(m.valorPorMes),
+        valorAtual: this.toNum(m.valorAtual),
+        mesesNecessarios: this.toNum(m.mesesNecessarios),
+        editandoNome: false,
+        nomeTemp: '',
+        savingNome: false,
+        savedTick: false,
+        editandoValorMeta: false,
+        editandoValorPorMes: false,
+        editandoValorAtual: false,
+        savedTickCampo: false,
+        dropdownOpen: undefined,
+      };
+      migrarMesesLegado(metaExtended, metaExtended.ano ?? this.anoSelecionado);
+      this.sincronizarMesesComPlanejamento(metaExtended);
+      return metaExtended;
+    });
+
+    this.atualizarAnosComparacao();
+    this.setHeaderMesesFromData();
+    this.metas.forEach((m) => this.normalizeMeses(m));
+    this.recalcResumo();
+  }
+
+  private atualizarAnosComparacao(): void {
+    const selecionado = Number(this.anoSelecionado);
+    this.anosComparacao = buildAnosComparacaoParaMetas(
+      this.metas,
+      this.anoAtual,
+    );
+    const fimLista = this.anosComparacao[this.anosComparacao.length - 1] ?? this.anoAtual;
+    if (selecionado > fimLista) {
+      const extras: number[] = [];
+      for (let y = fimLista + 1; y <= selecionado; y++) {
+        extras.push(y);
+      }
+      this.anosComparacao = [...this.anosComparacao, ...extras];
+    }
+  }
+
+  /** Garante 18 parcelas (etc.) na memória para Executando, mesmo se o banco ainda tiver só 12. */
+  private sincronizarMesesComPlanejamento(meta: MetaExtended): void {
+    const qtd = quantidadeMesesPlanejamento(meta);
+    const anoInicio = meta.ano ?? this.anoSelecionado;
+    const atual = meta.meses?.length ?? 0;
+    const precisaExpandir = qtd > atual;
+    const semAnoNoNome = !(meta.meses ?? []).some((m) => m.nome.includes('/'));
+
+    if (!precisaExpandir && !semAnoNoNome) {
+      return;
+    }
+
+    meta.meses = regenerarMesesMeta(
+      meta,
+      anoInicio,
+      Math.max(qtd, 12),
+      Number(meta.valorPorMes) || 0,
+    );
+  }
+
+  private metaPertenceAoExercicio(meta: Meta, anoExercicio: number): boolean {
+    return metaVisivelNoExercicio(meta, anoExercicio, this.anoAtual);
+  }
+
+  private comAnoDoExercicio(
+    meta: MetaExtended,
+    patch: UpdateMetaRequest,
+  ): UpdateMetaRequest {
+    if (meta.ano == null || meta.ano === undefined) {
+      return { ...patch, ano: Number(this.anoSelecionado) };
+    }
+    return patch;
   }
 
   abrirModalAdicionarMeta(): void {
@@ -138,7 +304,6 @@ export class MetasPageComponent implements OnInit {
   }
 
   reloadMetas(): void {
-    // Preservar estados savedTickCampo antes de recarregar
     const savedTickStates = new Map<string | number, boolean>();
     this.metas.forEach((meta) => {
       if (meta.savedTickCampo && meta.id) {
@@ -146,17 +311,18 @@ export class MetasPageComponent implements OnInit {
       }
     });
 
-    this.metasService.getMetas().subscribe((metas: Meta[]) => {
+    const anoExercicio = Number(this.anoSelecionado);
+    this.metasService.getMetas(anoExercicio).subscribe((metas: Meta[]) => {
       const metasValidas = metas.filter((meta) => {
         const idValido =
           meta.id && meta.id !== 0 && String(meta.id).trim() !== '';
         const nomeValido =
           meta.nome && meta.nome.trim().length > 0 && meta.nome !== 'undefined';
-        return idValido && nomeValido;
+        const pertenceAoAno = this.metaPertenceAoExercicio(meta, anoExercicio);
+        return idValido && nomeValido && pertenceAoAno;
       });
 
       this.metas = metasValidas.map((m) => {
-        // Restaurar savedTickCampo se estava ativo antes do reload
         const shouldPreserveTick = savedTickStates.has(m.id);
         const savedTickValue = shouldPreserveTick
           ? savedTickStates.get(m.id)
@@ -169,8 +335,8 @@ export class MetasPageComponent implements OnInit {
           valorPorMes: this.toNum(m.valorPorMes),
           valorAtual: this.toNum(m.valorAtual),
           mesesNecessarios: this.toNum(m.mesesNecessarios),
-          icon: m.icon || 'bi-bullseye', // Preservar o ícone da meta
-          meses: m.meses ? [...m.meses] : [], // Preservar os meses atualizados do servidor
+          icon: m.icon || 'bi-bullseye',
+          meses: m.meses ? [...m.meses] : [],
           editandoNome: false,
           nomeTemp: '',
           savingNome: false,
@@ -182,7 +348,6 @@ export class MetasPageComponent implements OnInit {
           dropdownOpen: undefined,
         };
 
-        // Se estava preservando, configurar timeout para limpar após 5 segundos
         if (shouldPreserveTick && savedTickValue) {
           setTimeout(() => {
             const currentMeta = this.metas.find(
@@ -194,19 +359,21 @@ export class MetasPageComponent implements OnInit {
           }, 5000);
         }
 
+        migrarMesesLegado(
+          metaExtended,
+          metaExtended.ano ?? this.anoSelecionado,
+        );
+        this.sincronizarMesesComPlanejamento(metaExtended);
         return metaExtended;
       });
 
+      this.atualizarAnosComparacao();
       this.setHeaderMesesFromData();
       this.metas.forEach((m) => this.normalizeMeses(m));
       this.recalcResumo();
     });
   }
 
-  /**
-   * Exibe parabéns quando a meta acaba de atingir 100% (ação do usuário).
-   * Não dispara ao carregar a página — metas já concluídas não bloqueiam o modal.
-   */
   private processarMetaConcluida(
     meta: MetaExtended,
     acabouDeConcluir: boolean,
@@ -259,13 +426,24 @@ export class MetasPageComponent implements OnInit {
   }
 
   setHeaderMesesFromData(): void {
-    const nomes = this.metas.flatMap((m) => m.meses?.map((x) => x.nome) ?? []);
-    const unicos = Array.from(new Set(nomes));
-    this.meses = unicos.length ? unicos : [...this.MESES_PADRAO];
+    const todosNomes = this.metas.flatMap(
+      (m) => m.meses?.map((x) => x.nome) ?? [],
+    );
+    const doAno = filtrarMesesPorAno(
+      todosNomes,
+      this.anoSelecionado,
+      this.anoSelecionado,
+    );
+    const ordenados = ordenarNomesMeses(doAno, this.anoSelecionado);
+    this.meses = ordenados.length
+      ? ordenados
+      : mesesPadraoDoAno(this.anoSelecionado);
   }
 
   private normalizeMeses(meta: MetaExtended): void {
-    const header = this.meses.length ? this.meses : this.MESES_PADRAO;
+    const header = this.meses.length
+      ? this.meses
+      : mesesPadraoDoAno(this.anoSelecionado);
     const byName = new Map((meta.meses ?? []).map((m) => [m.nome, m]));
     meta.meses = header.map(
       (nome, i) =>
@@ -274,7 +452,6 @@ export class MetasPageComponent implements OnInit {
   }
 
   private recalcResumo(): void {
-    // Calcular todos os totais de uma vez
     this.totalValorMetaView = this.metas.reduce(
       (t, m) => t + (Number(m.valorMeta) || 0),
       0,
@@ -286,7 +463,7 @@ export class MetasPageComponent implements OnInit {
     );
 
     this.totalMesesNecessariosView = this.metas.reduce(
-      (t, m) => t + (Number(m.mesesNecessarios) || 0),
+      (t, m) => t + mesesTotaisDoPlano(m),
       0,
     );
 
@@ -300,12 +477,11 @@ export class MetasPageComponent implements OnInit {
       0,
     );
 
-    // Calcular percentual pago (considerando "quanto já temos" + "quanto já pagamos")
     const totalRealizado = this.metas.reduce((t, m) => {
-      const valorAtual = Number(m.valorAtual) || 0; // "Quanto já temos"
+      const valorAtual = Number(m.valorAtual) || 0;
       const valorPago = (m.meses ?? [])
         .filter((x) => x.status === 'Pago')
-        .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
+        .reduce((s, x) => s + (Number(x.valor) || 0), 0);
       return t + valorAtual + valorPago;
     }, 0);
 
@@ -320,38 +496,35 @@ export class MetasPageComponent implements OnInit {
     return meta.meses.reduce((total, mes) => total + mes.valor, 0);
   }
 
-  // Calcular progresso real de uma meta (quanto já temos + quanto já pagamos)
   getProgressoRealMeta(meta: MetaExtended): number {
     const valorMeta = Number(meta.valorMeta) || 0;
     if (valorMeta <= 0) return 0;
 
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
+    const valorAtual = Number(meta.valorAtual) || 0;
     const valorPago = (meta.meses ?? [])
       .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
+      .reduce((s, x) => s + (Number(x.valor) || 0), 0);
 
     const totalRealizado = valorAtual + valorPago;
     return Number(((totalRealizado * 100) / valorMeta).toFixed(2));
   }
 
-  // Calcular valor que ainda falta pagar
   getValorFaltanteMeta(meta: MetaExtended): number {
     const valorMeta = Number(meta.valorMeta) || 0;
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
+    const valorAtual = Number(meta.valorAtual) || 0;
     const valorPago = (meta.meses ?? [])
       .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
+      .reduce((s, x) => s + (Number(x.valor) || 0), 0);
 
     const totalRealizado = valorAtual + valorPago;
     return Math.max(0, valorMeta - totalRealizado);
   }
 
-  // Calcular valor total realizado (quanto já temos + quanto já pagamos)
   getValorRealizadoMeta(meta: MetaExtended): number {
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
+    const valorAtual = Number(meta.valorAtual) || 0;
     const valorPago = (meta.meses ?? [])
       .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
+      .reduce((s, x) => s + (Number(x.valor) || 0), 0);
 
     return valorAtual + valorPago;
   }
@@ -359,30 +532,21 @@ export class MetasPageComponent implements OnInit {
   adicionarMeta(): void {
     if (this.metas.length >= 15) return;
 
-    const header = this.meses.length ? this.meses : this.MESES_PADRAO;
-
-    // Gerar nome padrão para a nova meta
     const proximoNumero = this.metas.length + 1;
     const nomePadrao = `Sua ${proximoNumero}ª Meta aqui`;
 
     const body = {
-      nome: nomePadrao, // Usar nome padrão em vez de vazio
+      ano: this.anoSelecionado,
+      nome: nomePadrao,
       valorMeta: 0,
       valorPorMes: 0,
       mesesNecessarios: 0,
       valorAtual: 0,
-      meses: header.map((nome, i) => ({
-        id: i + 1,
-        nome,
-        valor: 0,
-        status: 'Vazio' as StatusMeta,
-      })),
+      meses: gerarMesesPlanejamento(this.anoSelecionado, 12, 0),
     };
 
-    // Usar POST simples para deixar o json-server gerar o ID
     this.metasService.createMeta(body).subscribe({
       next: (_created) => {
-        // Recarregar as metas do servidor para ter o ID correto
         this.reloadMetas();
       },
       error: (_e) => {
@@ -408,15 +572,12 @@ export class MetasPageComponent implements OnInit {
     campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome',
     ev: Event,
   ) {
-    // Prevenir comportamento padrão do Enter
     ev.preventDefault();
     ev.stopPropagation();
 
-    // Marcar como processado
     const chave = `${meta.id}-${campo}`;
     this.camposProcessados.add(chave);
 
-    // Chamar confirmarCampo diretamente
     this.confirmarCampo(meta, campo);
   }
 
@@ -424,7 +585,6 @@ export class MetasPageComponent implements OnInit {
     meta: MetaExtended,
     campo: 'valorMeta' | 'valorPorMes' | 'valorAtual' | 'nome',
   ) {
-    // valida ID (string do json-server)
     if (!meta.id || String(meta.id).trim() === '') {
       alert('Erro: Meta sem ID válido. Recarregue a página e tente novamente.');
       return;
@@ -444,7 +604,6 @@ export class MetasPageComponent implements OnInit {
 
     const tempVal = (meta as any)[tempKey];
 
-    // ====== 1) Atualização de NOME ======
     if (campo === 'nome') {
       const novoNome = String(tempVal ?? '').trim();
       if (!novoNome || novoNome === meta.nome) {
@@ -452,29 +611,26 @@ export class MetasPageComponent implements OnInit {
         return;
       }
 
-      // aplica localmente
       meta.nome = novoNome;
 
-      // salva (PATCH parcial)
-      this.metasService.updateMeta(meta.id, { nome: novoNome }).subscribe({
-        next: () => {
-          meta.savedTickCampo = true;
-          setTimeout(() => (meta.savedTickCampo = false), 1200);
-          this.reloadMetas();
-        },
-        error: (_e) => {
-          alert('Erro ao salvar. Tente novamente.');
-        },
-      });
+      this.metasService
+        .updateMeta(meta.id, this.comAnoDoExercicio(meta, { nome: novoNome }))
+        .subscribe({
+          next: () => {
+            meta.savedTickCampo = true;
+            setTimeout(() => (meta.savedTickCampo = false), 1200);
+            this.reloadMetas();
+          },
+          error: (_e) => {
+            alert('Erro ao salvar. Tente novamente.');
+          },
+        });
 
-      // encerra estado de edição
       (meta as any)[flag] = false;
       (meta as any)[tempKey] = undefined;
       return;
     }
 
-    // ====== 2) Atualização de CAMPOS NUMÉRICOS ======
-    // Sempre parsear (suporta "3.123,00", "3123.00", "200")
     const novo = this.parseNumeroBR(tempVal);
     const atual = Number((meta as any)[campo]) || 0;
 
@@ -485,7 +641,6 @@ export class MetasPageComponent implements OnInit {
 
     const estavaConcluida = metaEstaConcluida(meta);
 
-    // aplica localmente
     (meta as any)[campo] = novo;
     this.recalcResumo();
     this.processarMetaConcluida(
@@ -493,26 +648,48 @@ export class MetasPageComponent implements OnInit {
       !estavaConcluida && metaEstaConcluida(meta),
     );
 
-    // monta patch; se mudar valorPorMes, recalc mesesNecessarios
-    const patch: any = { [campo]: novo };
+    const patch: UpdateMetaRequest = { [campo]: novo };
+    const anoInicio = meta.ano ?? this.anoSelecionado;
+
     if (campo === 'valorPorMes') {
-      patch.mesesNecessarios =
+      const mesesNecessarios =
         novo > 0 ? Math.ceil((meta.valorMeta || 0) / novo) : 0;
+      patch.mesesNecessarios = mesesNecessarios;
+      if (mesesNecessarios > 0) {
+        patch.meses = regenerarMesesMeta(
+          meta,
+          anoInicio,
+          mesesNecessarios,
+          novo,
+        );
+      }
     }
 
-    this.metasService.updateMeta(meta.id, patch).subscribe({
-      next: () => {
-        meta.savedTickCampo = true;
-        setTimeout(() => (meta.savedTickCampo = false), 1200);
-        this.recalcResumo();
-        this.reloadMetas();
-      },
-      error: (_e) => {
-        alert('Erro ao salvar. Tente novamente.');
-      },
-    });
+    if (campo === 'valorMeta' && meta.valorPorMes > 0) {
+      const mesesNecessarios = Math.ceil(novo / meta.valorPorMes);
+      patch.mesesNecessarios = mesesNecessarios;
+      patch.meses = regenerarMesesMeta(
+        meta,
+        anoInicio,
+        mesesNecessarios,
+        meta.valorPorMes,
+      );
+    }
 
-    // encerra estado de edição
+    this.metasService
+      .updateMeta(meta.id, this.comAnoDoExercicio(meta, patch))
+      .subscribe({
+        next: () => {
+          meta.savedTickCampo = true;
+          setTimeout(() => (meta.savedTickCampo = false), 1200);
+          this.recalcResumo();
+          this.reloadMetas();
+        },
+        error: (_e) => {
+          alert('Erro ao salvar. Tente novamente.');
+        },
+      });
+
     (meta as any)[flag] = false;
     (meta as any)[tempKey] = undefined;
   }
@@ -539,24 +716,18 @@ export class MetasPageComponent implements OnInit {
   private parseNumeroBR(v: any): number {
     if (v === null || v === undefined) return 0;
 
-    // para garantir: transforma em string e tira espaços (inclui NBSP)
     let s = String(v).trim();
     if (!s) return 0;
 
-    // remove tudo que não for dígito, vírgula, ponto ou sinal
-    // (tira "R$", letras, etc.)
     s = s.replace(/\s+/g, '').replace(/[^\d.,-]+/g, '');
 
-    // Se tem vírgula, tratamos vírgula como decimal e removemos pontos de milhar
     if (s.includes(',')) {
       s = s.replace(/\./g, '').replace(',', '.');
     } else {
-      // sem vírgula: mantemos ponto como decimal (e se tiver só números, ok)
-      // (se vier "2.000.000" com vários pontos, você pode remover todos menos o último)
       const parts = s.split('.');
       if (parts.length > 2) {
-        const dec = parts.pop(); // último ponto vira decimal
-        s = parts.join('') + '.' + dec; // remove pontos de milhar
+        const dec = parts.pop();
+        s = parts.join('') + '.' + dec;
       }
     }
 
@@ -568,9 +739,6 @@ export class MetasPageComponent implements OnInit {
     this.metasService.deleteMeta(id).subscribe({
       next: () => {
         this.reloadMetas();
-      },
-      error: (_e) => {
-        // Erro ao remover meta
       },
     });
   }
@@ -588,7 +756,6 @@ export class MetasPageComponent implements OnInit {
     mes.status = e.status;
     this.recalcResumo();
 
-    // Ao marcar Pago com meta já em 100%, sempre tenta parabéns (ex.: concluiu só com valorAtual antes)
     const deveParabenizar = e.status === 'Pago' && metaEstaConcluida(meta);
     if (deveParabenizar) {
       this.processarMetaConcluida(meta, true);

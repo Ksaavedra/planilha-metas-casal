@@ -197,6 +197,18 @@
   text-align: left;
 }
 
+.meses-restantes-hint {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-top: 0.15rem;
+}
+
+.cell-text--meses {
+  line-height: 1.25;
+}
+
 .metas-table th.col-meses,
 .metas-table td.col-meses {
   text-align: center;

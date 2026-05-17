@@ -85,12 +85,16 @@
             </ng-template>
           </td>
           <td class="col-meses">
-            <ng-container *ngIf="getMesesRestantes(meta) === -1; else mesesTemplate">
-              0
+            <ng-container *ngIf="getMesesDoPlano(meta) > 0; else mesesSemPlano">
+              <span class="cell-text cell-text--meses"
+                [attr.title]="'Planejamento: ' + getMesesDoPlano(meta) + ' meses' + getMesesRestantesLabel(meta)">
+                {{ getMesesDoPlano(meta) }}
+                <small class="meses-restantes-hint" *ngIf="getMesesRestantes(meta) >= 0 && getMesesRestantes(meta) !== getMesesDoPlano(meta)">
+                  ({{ getMesesRestantes(meta) === 0 ? 'ok' : getMesesRestantes(meta) + ' rest.' }})
+                </small>
+              </span>
             </ng-container>
-            <ng-template #mesesTemplate>
-              {{ getMesesRestantes(meta) === 0 ? 'Finalizado' : getMesesRestantes(meta) }}
-            </ng-template>
+            <ng-template #mesesSemPlano>0</ng-template>
           </td>
           <td [attr.data-meta-id]="meta.id">
             <ng-container *ngIf="!meta.editandoValorAtual; else editValorAtual">

@@ -10,10 +10,6 @@ import { ElaborandoMetasComponent } from './elaborando-metas.component';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { MetaExtended } from '../../../../../core/interfaces/metas/mes-meta';
 import { of, throwError } from 'rxjs';
-import {
-  ModalStateSalvar,
-  ValoresSalvarMetaModal,
-} from '@app/core/interfaces/metas/metas-modais';
 
 describe('ElaborandoMetasComponent', () => {
   let component: ElaborandoMetasComponent;
@@ -42,18 +38,6 @@ describe('ElaborandoMetasComponent', () => {
     dropdownOpen: undefined,
     ...over,
   });
-  const makeModalState = (
-    overrides: Partial<ModalStateSalvar> = {},
-  ): ModalStateSalvar => ({
-    nome: 'Meta',
-    valorMetaRaw: '1000',
-    valorPorMesRaw: '100',
-    valorAtualRaw: '0',
-    temValorAtual: false,
-    icon: '',
-    ...overrides,
-  });
-
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [ElaborandoMetasComponent],
@@ -775,9 +759,10 @@ describe('ElaborandoMetasComponent', () => {
 
         component.confirmarCampo(meta, 'valorMeta');
 
-        expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, {
-          valorMeta: 15000,
-        });
+        expect(metasService.updateMeta).toHaveBeenCalledWith(
+          meta.id,
+          expect.objectContaining({ valorMeta: 15000, meses: expect.any(Array) }),
+        );
         expect(meta.valorMeta).toBe(15000);
         expect(meta.editandoValorMeta).toBe(false);
       });
@@ -797,9 +782,10 @@ describe('ElaborandoMetasComponent', () => {
 
         component.confirmarCampo(meta, 'valorMeta');
 
-        expect(metasService.updateMeta).toHaveBeenCalledWith(meta.id, {
-          valorMeta: 15000,
-        });
+        expect(metasService.updateMeta).toHaveBeenCalledWith(
+          meta.id,
+          expect.objectContaining({ valorMeta: 15000 }),
+        );
       });
 
       it('should cancel when novo equals atual for numeric fields', () => {
@@ -839,11 +825,13 @@ describe('ElaborandoMetasComponent', () => {
         expect(meta.editandoValorPorMes).toBe(false);
         // meta.meses.length > 0 => patch.meses com valor/status atualizados (novo > 0)
         expect(payload.meses).toBeDefined();
-        expect(payload.meses.length).toBe(meta.meses!.length);
-        payload.meses.forEach((mes: any) => {
-          expect(mes.valor).toBe(2000);
-          expect(mes.status).toBe('Programado');
-        });
+        expect(payload.meses.length).toBeGreaterThan(0);
+        payload.meses
+          .filter((mes: any) => mes.status !== 'Pago' && mes.status !== 'Finalizado')
+          .forEach((mes: any) => {
+            expect(mes.valor).toBe(2000);
+          });
+        expect(payload.meses.some((mes: any) => mes.valor === 2000)).toBe(true);
       });
 
       describe('erro updateMeta', () => {
@@ -889,15 +877,10 @@ describe('ElaborandoMetasComponent', () => {
         const payload = (metasService.updateMeta as jest.Mock).mock.calls[0][1];
         expect(payload.valorPorMes).toBe(0);
         expect(payload.mesesNecessarios).toBe(0);
-        // meta.meses.length > 0 => patch.meses com valor 0 e status 'Vazio' (novo <= 0)
-        expect(payload.meses).toBeDefined();
-        payload.meses.forEach((mes: any) => {
-          expect(mes.valor).toBe(0);
-          expect(mes.status).toBe('Vazio');
-        });
+        expect(payload.meses).toBeUndefined();
       });
 
-      it('should not set patch.meses when meta.meses is empty or null (valorPorMes)', () => {
+      it('should regenerate patch.meses when meta.meses is empty (valorPorMes)', () => {
         const metaSemMeses = {
           ...[makeMeta()][0],
           meses: [] as any,
@@ -914,10 +897,11 @@ describe('ElaborandoMetasComponent', () => {
 
         const payload = (metasService.updateMeta as jest.Mock).mock.calls[0][1];
         expect(payload.valorPorMes).toBe(1500);
-        expect(payload.meses).toBeUndefined();
+        expect(payload.meses).toBeDefined();
+        expect(payload.meses.length).toBeGreaterThan(0);
       });
 
-      it('should not set patch.meses when meta.meses is null (valorPorMes)', () => {
+      it('should regenerate patch.meses when meta.meses is null (valorPorMes)', () => {
         const metaMesesNull = {
           ...[makeMeta()][0],
           meses: null as any,
@@ -934,7 +918,8 @@ describe('ElaborandoMetasComponent', () => {
 
         const payload = (metasService.updateMeta as jest.Mock).mock.calls[0][1];
         expect(payload.valorPorMes).toBe(800);
-        expect(payload.meses).toBeUndefined();
+        expect(payload.meses).toBeDefined();
+        expect(payload.meses.length).toBeGreaterThan(0);
       });
 
       it('should handle numeric field update with null valorMeta in mesesNecessarios calculation', () => {
@@ -1203,7 +1188,12 @@ describe('ElaborandoMetasComponent', () => {
         expect(meta.valorMeta).toBe(1500);
         expect(metasService.updateMeta).toHaveBeenCalledTimes(1);
         const payload = (metasService.updateMeta as jest.Mock).mock.calls[0][1];
-        expect(payload).toEqual({ valorMeta: 1500 });
+        expect(payload).toEqual(
+          expect.objectContaining({
+            valorMeta: 1500,
+            meses: expect.any(Array),
+          }),
+        );
         expect(successSpy).toHaveBeenCalledWith(meta, 'valorMeta', 1500);
       });
 
@@ -1224,15 +1214,17 @@ describe('ElaborandoMetasComponent', () => {
         expect(payload.valorPorMes).toBe(200);
         expect(payload.mesesNecessarios).toBe(5); // ceil(1000/200)
         expect(payload.meses).toBeDefined();
-        payload.meses.forEach((mes: any) => {
-          expect(mes.valor).toBe(200);
-          expect(mes.status).toBe('Programado');
-        });
+        payload.meses
+          .filter((mes: any) => mes.status !== 'Pago' && mes.status !== 'Finalizado')
+          .forEach((mes: any) => {
+            expect(mes.valor).toBe(200);
+          });
+        expect(payload.meses.some((mes: any) => mes.valor === 200)).toBe(true);
 
         expect(successSpy).toHaveBeenCalledWith(meta, 'valorPorMes', 200);
       });
 
-      it('should build patch for valorPorMes with meses empty -> without meses', () => {
+      it('should build patch for valorPorMes with meses empty -> regenera meses', () => {
         const meta = makeMeta({
           meses: [] as any,
           valorMeta: 1000,
@@ -1248,7 +1240,8 @@ describe('ElaborandoMetasComponent', () => {
           .calls[0][1] as any;
         expect(payload.valorPorMes).toBe(200);
         expect(payload.mesesNecessarios).toBe(5);
-        expect(payload.meses).toBeUndefined();
+        expect(payload.meses).toBeDefined();
+        expect(payload.meses.length).toBe(5);
       });
 
       it('should call onUpdateMetaError on numeric update error', () => {
@@ -1270,7 +1263,14 @@ describe('ElaborandoMetasComponent', () => {
 
     describe('onUpdateMetaSuccessNumerico', () => {
       it('should update meses when campo=valorPorMes, call recalcResumo, emit+reload after 200ms, and reset savedTickCampo after 5000ms (currentMeta found)', fakeAsync(() => {
-        const meta = makeMeta({ id: 1, valorPorMes: 100 });
+        const meta = makeMeta({
+          id: 1,
+          valorPorMes: 200,
+          meses: [
+            { id: 1, nome: 'Janeiro/2026', valor: 100, status: 'Programado' as const },
+            { id: 2, nome: 'Fevereiro/2026', valor: 100, status: 'Programado' as const },
+          ],
+        });
         component.metas = [meta];
 
         const recalcSpy = jest
@@ -1287,8 +1287,10 @@ describe('ElaborandoMetasComponent', () => {
           200,
         );
 
-        // meses atualizados imediatamente
         meta.meses!.forEach((mes) => {
+          if (mes.status === 'Pago' || mes.status === 'Finalizado') {
+            return;
+          }
           expect(mes.valor).toBe(200);
           expect(mes.status).toBe('Programado');
         });
@@ -1328,8 +1330,9 @@ describe('ElaborandoMetasComponent', () => {
         // sem assert de savedTickCampo porque meta não está em component.metas
       }));
 
-      it('should set meses to Vazio when novo <= 0 (campo=valorPorMes)', fakeAsync(() => {
+      it('should not alterar meses quando novo <= 0 (campo=valorPorMes)', fakeAsync(() => {
         const meta = makeMeta({ id: 1 });
+        const mesesAntes = JSON.parse(JSON.stringify(meta.meses));
         component.metas = [meta];
 
         jest
@@ -1342,10 +1345,7 @@ describe('ElaborandoMetasComponent', () => {
 
         (component as any).onUpdateMetaSuccessNumerico(meta, 'valorPorMes', 0);
 
-        meta.meses!.forEach((mes) => {
-          expect(mes.valor).toBe(0);
-          expect(mes.status).toBe('Vazio');
-        });
+        expect(meta.meses).toEqual(mesesAntes);
 
         tick(200);
         tick(5000);
@@ -1415,111 +1415,6 @@ describe('ElaborandoMetasComponent', () => {
       (component as any).confirmarCampoNome(meta, undefined);
 
       expect(cancelarSpy).toHaveBeenCalledWith(meta, 'nome');
-    });
-  });
-
-  describe('validarEstadoModalSalvar - separada', () => {
-    it('should return error when temValorAtual = true and valorAtualRaw is empty', () => {
-      const modalState = makeModalState({
-        nome: 'Meta',
-        valorMetaRaw: '1000',
-        valorPorMesRaw: '100',
-        valorAtualRaw: '',
-        temValorAtual: true,
-      });
-
-      const result = (component as any).validarEstadoModalSalvar(modalState);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return error when temValorAtual = true and valorAtual < 0', () => {
-      const modalState = makeModalState({
-        temValorAtual: true,
-        valorAtualRaw: 'qualquer',
-      });
-
-      jest.spyOn(component as any, 'parseNumeroBR').mockReturnValueOnce(1000); // valorMeta
-      jest.spyOn(component as any, 'parseNumeroBR').mockReturnValueOnce(100); // valorPorMes
-      jest.spyOn(component as any, 'parseNumeroBR').mockReturnValueOnce(-10); // valorAtual
-
-      const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
-
-      const result = (component as any).validarEstadoModalSalvar(modalState);
-
-      expect(result).toBeNull();
-      expect(alertSpy).toHaveBeenCalled();
-    });
-
-    it('should cover fallback "" when nome is undefined (nome ?? "")', () => {
-      const modalState = makeModalState({ nome: undefined as any });
-
-      const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
-
-      const result = (component as any).validarEstadoModalSalvar(modalState);
-
-      expect(result).toBeNull();
-      expect(alertSpy).toHaveBeenCalled();
-    });
-
-    it('should cover fallback "" when valorAtualRaw is undefined and temValorAtual=true (valorAtualRaw ?? "")', () => {
-      const modalState = makeModalState({
-        temValorAtual: true,
-        valorAtualRaw: undefined as any,
-      });
-
-      const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {});
-
-      const result = (component as any).validarEstadoModalSalvar(modalState);
-
-      expect(result).toBeNull();
-      expect(alertSpy).toHaveBeenCalled();
-    });
-
-    it('should return valores when temValorAtual = false (covers return null branch)', () => {
-      const modalState = makeModalState({
-        nome: 'Meta',
-        valorMetaRaw: '1000',
-        valorPorMesRaw: '100',
-        valorAtualRaw: '',
-        temValorAtual: false,
-      });
-
-      const result = (component as any).validarEstadoModalSalvar(modalState);
-
-      expect(result).toEqual({
-        nome: 'Meta',
-        valorMeta: 1000,
-        valorPorMes: 100,
-        valorAtual: 0,
-      });
-    });
-  });
-
-  describe('buildDadosMetaParaEnviar', () => {
-    it('should set mesesNecessarios = 0 when valorPorMes <= 0 (covers ": 0" branch)', () => {
-      const modalState: ModalStateSalvar = {
-        nome: 'Meta',
-        valorMetaRaw: '1000',
-        valorPorMesRaw: '0',
-        valorAtualRaw: '0',
-        temValorAtual: false,
-        icon: '',
-      };
-
-      const valores: ValoresSalvarMetaModal = {
-        nome: 'Meta',
-        valorMeta: 1000,
-        valorPorMes: 0, // <= 0 para cair no branch do 0
-        valorAtual: 0,
-      };
-
-      const result = (component as any).buildDadosMetaParaEnviar(
-        modalState,
-        valores,
-      );
-
-      expect(result.mesesNecessarios).toBe(0);
     });
   });
 

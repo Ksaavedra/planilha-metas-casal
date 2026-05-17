@@ -2,6 +2,7 @@ import { MesMeta } from './mes-meta';
 
 // --- Request types (API) ---
 export interface CreateMetaRequest {
+  ano?: number;
   nome: string;
   valorMeta: number;
   valorPorMes: number;

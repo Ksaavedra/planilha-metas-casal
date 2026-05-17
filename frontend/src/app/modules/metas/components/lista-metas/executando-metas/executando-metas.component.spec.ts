@@ -229,7 +229,8 @@ describe('ExecutandoMetasComponent', () => {
   });
 
   describe('ngOnChanges', () => {
-    it('should handle metas changes', () => {
+    it('should normalize meses when metas input changes', () => {
+      component.meses = ['Janeiro/2026', 'Fevereiro/2026'];
       const changes = {
         metas: {
           currentValue: mockMetas,
@@ -239,89 +240,35 @@ describe('ExecutandoMetasComponent', () => {
         },
       };
 
-      const setHeaderSpy = jest.spyOn(component, 'setHeaderMesesFromData');
       const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
 
       component.ngOnChanges(changes);
 
-      expect(setHeaderSpy).toHaveBeenCalled();
       expect(normalizeSpy).toHaveBeenCalledTimes(mockMetas.length);
     });
 
-    it('should not process changes when metas is null', () => {
-      const changes = {
-        metas: {
-          currentValue: null,
-          previousValue: mockMetas,
+    it('should normalize when meses header changes', () => {
+      component.metas = mockMetas;
+      const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
+
+      component.ngOnChanges({
+        meses: {
+          currentValue: ['Janeiro/2026'],
+          previousValue: [],
           firstChange: false,
           isFirstChange: () => false,
         },
-      };
+      });
 
-      const setHeaderSpy = jest.spyOn(component, 'setHeaderMesesFromData');
-      const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
-
-      component.ngOnChanges(changes);
-
-      expect(setHeaderSpy).not.toHaveBeenCalled();
-      expect(normalizeSpy).not.toHaveBeenCalled();
+      expect(normalizeSpy).toHaveBeenCalledTimes(mockMetas.length);
     });
 
-    it('ngOnChanges deve ignorar quando não existe changes de metas', () => {
-      const spy = jest.spyOn(component, 'setHeaderMesesFromData');
+    it('ngOnChanges deve ignorar quando não há mudança em metas nem meses', () => {
+      const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
 
       component.ngOnChanges({});
 
-      expect(spy).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('setHeaderMesesFromData', () => {
-    it('should set meses from metas data', () => {
-      component.metas = mockMetas;
-      component.setHeaderMesesFromData();
-
-      expect(component.meses).toContain('Janeiro');
-      expect(component.meses).toContain('Fevereiro');
-      expect(component.meses).toContain('Março');
-      expect(component.meses).toContain('Abril');
-      expect(component.meses).toContain('Maio');
-      expect(component.meses).toContain('Junho');
-    });
-
-    it('should handle empty metas array', () => {
-      component.metas = [];
-      component.setHeaderMesesFromData();
-
-      expect(component.meses).toEqual([
-        'Janeiro',
-        'Fevereiro',
-        'Março',
-        'Abril',
-        'Maio',
-        'Junho',
-        'Julho',
-        'Agosto',
-        'Setembro',
-        'Outubro',
-        'Novembro',
-        'Dezembro',
-      ]);
-    });
-
-    it('setHeaderMesesFromData deve ignorar meta sem meses e usar MESES_PADRAO', () => {
-      component.metas = [
-        {
-          ...mockMetas[0],
-          meses: undefined,
-        } as any,
-      ];
-
-      component.setHeaderMesesFromData();
-
-      expect(component.meses.length).toBe(12);
-      expect(component.meses[0]).toBe('Janeiro');
-      expect(component.meses[11]).toBe('Dezembro');
+      expect(normalizeSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -632,7 +579,7 @@ describe('ExecutandoMetasComponent', () => {
 
       component.selecionarStatusByOverlay('Pago');
 
-      expect(spy).toHaveBeenCalledWith(component.metas[0], 1, 'Pago');
+      expect(spy).toHaveBeenCalledWith(component.metas[0], 1, 0, 'Pago');
     });
   });
 

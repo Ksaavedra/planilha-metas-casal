@@ -17,6 +17,7 @@ describe('AdicionarMetaDialogComponent', () => {
 
   const metasServiceMock = {
     createMeta: jest.fn(),
+    getAnoSelecionado: jest.fn().mockReturnValue(2026),
   };
 
   function preencherFormularioValido(): void {
@@ -182,7 +183,8 @@ describe('AdicionarMetaDialogComponent', () => {
       expect(payload.mesesNecessarios).toBe(10);
       expect(payload.valorAtual).toBe(0);
       expect(payload.icon).toBe('bi-bullseye');
-      expect(payload.meses?.length).toBe(12);
+      expect(payload.meses?.length).toBe(10);
+      expect(payload.meses![0].nome).toMatch(/\/\d{4}$/);
       expect(payload.meses![0].status).toBe('Programado');
       expect(dialogRefMock.close).toHaveBeenCalledWith(true);
       expect(component.saving).toBe(false);

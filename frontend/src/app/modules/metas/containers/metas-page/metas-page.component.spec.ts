@@ -6,6 +6,7 @@ import { MetasService } from '../../../../core/services/metas/metas.service';
 import { Meta, StatusMeta } from '../../../../core/interfaces/metas/mes-meta';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { mesesPadraoDoAno } from '@core/utils/metas-meses.util';
 
 describe('MetasPageComponent', () => {
   let component: MetasPageComponent;
@@ -265,21 +266,9 @@ describe('MetasPageComponent', () => {
       component.metas = [];
       component.setHeaderMesesFromData();
 
-      // When metas is empty, it should use MESES_PADRAO
-      expect(component.meses).toEqual([
-        'Janeiro',
-        'Fevereiro',
-        'Março',
-        'Abril',
-        'Maio',
-        'Junho',
-        'Julho',
-        'Agosto',
-        'Setembro',
-        'Outubro',
-        'Novembro',
-        'Dezembro',
-      ]);
+      expect(component.meses).toEqual(
+        mesesPadraoDoAno(component.anoSelecionado),
+      );
     });
   });
 
@@ -770,6 +759,14 @@ describe('MetasPageComponent', () => {
   });
 
   describe('onMetaCompleta', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('deve abrir dialog de parabéns quando meta está concluída', () => {
       localStorage.removeItem('metas_parabens_exibidos_v3');
       (component as any).parabensDialogAberto = false;
@@ -789,6 +786,7 @@ describe('MetasPageComponent', () => {
       ];
 
       component.onMetaCompleta({ metaId: 1, metaNome: 'Casa', valorMeta: 1000 });
+      jest.runAllTimers();
 
       expect(openSpy).toHaveBeenCalled();
     });
@@ -852,10 +850,15 @@ describe('MetasPageComponent', () => {
 
       component.confirmarCampo(meta, 'valorPorMes');
 
-      expect(updateSpy).toHaveBeenCalledWith(7, {
-        valorPorMes: 500,
-        mesesNecessarios: 20,
-      });
+      expect(updateSpy).toHaveBeenCalledWith(
+        7,
+        expect.objectContaining({
+          valorPorMes: 500,
+          mesesNecessarios: 20,
+          ano: component.anoSelecionado,
+          meses: expect.any(Array),
+        }),
+      );
     });
   });
 

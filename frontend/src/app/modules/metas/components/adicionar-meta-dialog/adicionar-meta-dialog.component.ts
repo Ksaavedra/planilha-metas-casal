@@ -19,6 +19,7 @@ import { AVAILABLE_META_ICONS } from '../../../../core/constants/meta-icons.cons
 import { MesMeta } from '../../../../core/interfaces/metas/mes-meta';
 import { CreateMetaRequest } from '../../../../core/interfaces/metas/metas-modais';
 import { MetasService } from '../../../../core/services/metas/metas.service';
+import { gerarMesesPlanejamento } from '@core/utils/metas-meses.util';
 
 @Component({
   selector: 'app-adicionar-meta-dialog',
@@ -186,42 +187,26 @@ export class AdicionarMetaDialogComponent implements OnInit, OnDestroy {
     const icon = this.iconSelecionado.trim() || 'bi-bullseye';
 
     return {
+      ano: this.metasService.getAnoSelecionado(),
       nome,
       valorMeta,
       valorPorMes,
       mesesNecessarios,
       valorAtual: temValorAtual ? valorAtual : 0,
       icon,
-      meses: this.buildMeses(valorPorMes),
+      meses: this.buildMeses(valorMeta, valorPorMes),
     };
   }
 
-  private buildMeses(valorPorMes: number): Partial<MesMeta>[] {
-    const mesesPadrao = [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
-    ];
-    const valor = valorPorMes > 0 ? valorPorMes : 0;
-    const status = (valorPorMes > 0 ? 'Programado' : 'Vazio') as
-      | 'Programado'
-      | 'Vazio';
-
-    return mesesPadrao.map((nome, i) => ({
-      id: i + 1,
-      nome,
-      valor,
-      status,
-    }));
+  private buildMeses(valorMeta: number, valorPorMes: number): Partial<MesMeta>[] {
+    const mesesNecessarios =
+      valorPorMes > 0 ? Math.ceil(valorMeta / valorPorMes) : 12;
+    const qtd = Math.max(mesesNecessarios, 1);
+    return gerarMesesPlanejamento(
+      this.metasService.getAnoSelecionado(),
+      qtd,
+      valorPorMes,
+    );
   }
 
   parseNumeroBR(value: string): number {

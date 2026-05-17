@@ -43,6 +43,8 @@ describe('MetasService', () => {
   };
 
   beforeEach(() => {
+    localStorage.removeItem('metas_ano_selecionado');
+
     const apiServiceSpy = {
       get: jest.fn(),
       post: jest.fn(),
@@ -74,7 +76,18 @@ describe('MetasService', () => {
         expect(result).toEqual(mockMetas);
       });
 
-      expect(apiService.get).toHaveBeenCalledWith('/metas');
+      expect(apiService.get).toHaveBeenCalledWith(
+        `/metas?ano=${service.getAnoSelecionado()}`,
+      );
+    });
+
+    it('should request metas for a specific year', () => {
+      service.setAnoSelecionado(2024);
+      apiService.get.mockReturnValue(of([]));
+
+      service.getMetas(2024).subscribe();
+
+      expect(apiService.get).toHaveBeenCalledWith('/metas?ano=2024');
     });
 
     it('should handle error when getting metas', () => {
@@ -86,7 +99,9 @@ describe('MetasService', () => {
         error: (err) => expect(err).toBe(error),
       });
 
-      expect(apiService.get).toHaveBeenCalledWith('/metas');
+      expect(apiService.get).toHaveBeenCalledWith(
+        `/metas?ano=${service.getAnoSelecionado()}`,
+      );
     });
   });
 

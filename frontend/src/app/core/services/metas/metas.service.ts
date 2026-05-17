@@ -18,6 +18,11 @@ import { environment } from 'src/environments';
 @Injectable({ providedIn: 'root' })
 export class MetasService {
   private readonly API_URL = `${environment.apiUrl}/metas`;
+  private readonly ANO_STORAGE_KEY = 'metas_ano_selecionado';
+  private readonly anoSelecionadoSubject = new BehaviorSubject<number>(
+    this.readAnoSalvo(),
+  );
+  readonly anoSelecionado$ = this.anoSelecionadoSubject.asObservable();
 
   private sucessoStateSubject = new BehaviorSubject<ModalSucessoState>({
     isOpen: false,
@@ -58,10 +63,37 @@ export class MetasService {
     );
   }
 
+  getAnoSelecionado(): number {
+    return this.anoSelecionadoSubject.value;
+  }
+
+  setAnoSelecionado(ano: number): void {
+    this.anoSelecionadoSubject.next(ano);
+    try {
+      localStorage.setItem(this.ANO_STORAGE_KEY, String(ano));
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  private readAnoSalvo(): number {
+    try {
+      const stored = localStorage.getItem(this.ANO_STORAGE_KEY);
+      const parsed = stored ? parseInt(stored, 10) : NaN;
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return new Date().getFullYear();
+  }
+
   // ========== API ==========
-  getMetas(): Observable<Meta[]> {
-    this.logRequest('GET', '');
-    return this.apiService.get<Meta[]>('/metas').pipe(
+  getMetas(ano?: number): Observable<Meta[]> {
+    const anoConsulta = ano ?? this.getAnoSelecionado();
+    this.logRequest('GET', `?ano=${anoConsulta}`);
+    return this.apiService.get<Meta[]>(`/metas?ano=${anoConsulta}`).pipe(
       tap((response) => {
         console.log(`📊 Total de metas retornadas: ${response.length}`);
       }),
