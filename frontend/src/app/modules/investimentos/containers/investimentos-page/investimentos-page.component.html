@@ -1,8 +1,265 @@
 <div class="investimentos-container">
-  <h1>Investimentos</h1>
-  <p>Gestão de investimentos e rentabilidade</p>
-  <div class="placeholder">
-    <span class="material-icons">account_balance</span>
-    <p>Funcionalidade em desenvolvimento</p>
+  <header class="investimentos-hero" role="banner" aria-label="Cabeçalho de investimentos">
+    <div class="investimentos-hero__accent" aria-hidden="true"></div>
+    <div class="investimentos-hero__inner">
+      <div class="investimentos-hero__brand">
+        <div class="investimentos-hero__icon-wrap" aria-hidden="true">
+          <span class="material-icons investimentos-hero__icon">savings</span>
+        </div>
+        <div class="investimentos-hero__text">
+          <h1 class="investimentos-hero__title">Investimentos do casal</h1>
+          <p class="investimentos-hero__subtitle">
+            Acompanhando crescimento financeiro e patrimônio
+          </p>
+        </div>
+      </div>
+
+      <div class="investimentos-hero__filters">
+        <div class="investimentos-hero__field" aria-label="Ano de referência">
+          <p class="investimentos-hero__label">Ano de referência</p>
+          <div class="investimentos-hero__ano-nav">
+            <button type="button" class="investimentos-hero__nav-btn" (click)="anoAnterior()"
+              [disabled]="!podeAnoAnterior" aria-label="Ano anterior">
+              <span class="material-icons">chevron_left</span>
+            </button>
+            <div class="investimentos-hero__ano-atual">
+              <span class="material-icons" aria-hidden="true">calendar_today</span>
+              <span>{{ anoSelecionado }}</span>
+            </div>
+            <button type="button" class="investimentos-hero__nav-btn" (click)="proximoAno()"
+              [disabled]="!podeProximoAno" aria-label="Próximo ano">
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="investimentos-hero__field" aria-label="Tipo de investimento">
+          <p class="investimentos-hero__label">Tipo investimento</p>
+          <div class="investimentos-hero__select-wrap">
+            <select class="investimentos-hero__select" [(ngModel)]="tipoFiltro" (ngModelChange)="onTipoFiltroChange()"
+              aria-label="Filtrar por tipo de investimento">
+              <option value="">Todos os tipos</option>
+              <option *ngFor="let t of tiposOpcoes" [value]="t.value">{{ t.label }}</option>
+            </select>
+            <span class="material-icons investimentos-hero__select-icon" aria-hidden="true">expand_more</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="investimentos-hero__toolbar">
+      <div class="investimentos-hero__actions">
+        <button type="button" class="btn-add-investimento" (click)="abrirModalAdicionar()">
+          <span class="material-icons" aria-hidden="true">add</span>
+          Adicionar investimento
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div *ngIf="carregando" class="investimentos-estado investimentos-estado--loading" role="status">
+    <span class="material-icons">hourglass_top</span>
+    Carregando investimentos de {{ anoSelecionado }}…
   </div>
+
+  <div *ngIf="erroCarregar && !carregando" class="investimentos-estado investimentos-estado--erro">
+    {{ erroCarregar }}
+  </div>
+
+  <div class="investimentos-ano-aviso" *ngIf="exibirAvisoVazio" role="status">
+    <span class="material-icons investimentos-ano-aviso__icon">info</span>
+    <div class="investimentos-ano-aviso__conteudo">
+      <p class="investimentos-ano-aviso__texto">
+        Nenhum investimento cadastrado para <strong>{{ anoSelecionado }}</strong>.
+      </p>
+      <button type="button" class="investimentos-ano-aviso__btn" (click)="abrirModalAdicionar()">
+        Adicionar investimento
+      </button>
+      <button type="button" class="investimentos-ano-aviso__btn investimentos-ano-aviso__btn--sec"
+        *ngIf="exibirBotaoVoltarAnoAtual" (click)="voltarParaAnoAtual()">
+        Ver investimentos de {{ anoAtual }}
+      </button>
+      <button type="button" class="investimentos-ano-aviso__btn investimentos-ano-aviso__btn--sec"
+        *ngIf="estaEmAnoFuturo && !exibirBotaoVoltarAnoAtual" (click)="voltarParaAnoAtual()">
+        Voltar para {{ anoAtual }}
+      </button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!ocultarConteudo && !carregando">
+    <section class="investimentos-resumo" aria-label="Resumo da carteira">
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true">
+          <span class="material-icons">account_balance_wallet</span>
+        </span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Total investido</span>
+          <span class="resumo-card__valor">{{ resumo.totalInvestido | currency:'BRL' }}</span>
+        </div>
+      </article>
+      <article class="resumo-card resumo-card--destaque">
+        <span class="resumo-card__icon resumo-card__icon--light" aria-hidden="true">
+          <span class="material-icons">savings</span>
+        </span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Patrimônio atual</span>
+          <span class="resumo-card__valor">{{ resumo.patrimonioAtual | currency:'BRL' }}</span>
+        </div>
+      </article>
+      <article class="resumo-card" [class.resumo-card--lucro]="lucroPositivo(resumo.lucroAcumulado)"
+        [class.resumo-card--prejuizo]="!lucroPositivo(resumo.lucroAcumulado)">
+        <span class="resumo-card__icon resumo-card__icon--lucro" aria-hidden="true">
+          <span class="material-icons">trending_up</span>
+        </span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Lucro acumulado</span>
+          <span class="resumo-card__valor">{{ resumo.lucroAcumulado | currency:'BRL' }}</span>
+        </div>
+      </article>
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true">
+          <span class="material-icons">percent</span>
+        </span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Rentabilidade</span>
+          <span class="resumo-card__valor" [title]="tooltipRentabilidade">
+            {{ resumo.rentabilidadePercentual | number:'1.1-1' }}%
+          </span>
+        </div>
+      </article>
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true">
+          <span class="material-icons">pie_chart</span>
+        </span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Investimentos ativos</span>
+          <span class="resumo-card__valor">{{ resumo.quantidadeAtivos }}</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="investimentos-graficos" aria-label="Gráficos">
+      <div class="grafico-card">
+        <div #chartPatrimonio class="grafico-card__chart"></div>
+      </div>
+      <div class="grafico-card">
+        <div #chartRendimento class="grafico-card__chart"></div>
+      </div>
+      <div class="grafico-card">
+        <div #chartPizza class="grafico-card__chart"></div>
+      </div>
+    </section>
+
+    <section class="investimentos-evolucao" aria-labelledby="h-evolucao">
+      <h2 id="h-evolucao" class="secao-titulo">
+        <span class="material-icons">insights</span>
+        Evolução dos investimentos
+      </h2>
+      <div class="evolucao-scroll">
+        <article class="evolucao-card" *ngFor="let inv of investimentos">
+          <div class="evolucao-card__icon" aria-hidden="true">
+            <span class="material-icons">{{ iconTipo(inv.tipoInvestimento) }}</span>
+          </div>
+          <h3 class="evolucao-card__nome">{{ inv.descricao }}</h3>
+          <p class="evolucao-card__linha">
+            <span>Investido</span>
+            <strong>{{ inv.valorInvestido | currency:'BRL' }}</strong>
+          </p>
+          <p class="evolucao-card__linha">
+            <span>Patrimônio</span>
+            <strong>{{ inv.valorAtual | currency:'BRL' }}</strong>
+          </p>
+          <p class="evolucao-card__linha" [class.texto-lucro]="lucroPositivo(inv.rentabilidade)"
+            [class.texto-prejuizo]="!lucroPositivo(inv.rentabilidade)">
+            <span>Lucro</span>
+            <strong>{{ inv.rentabilidade | currency:'BRL' }}</strong>
+          </p>
+          <p class="evolucao-card__linha">
+            <span [title]="tooltipRentabilidade">Rentab.</span>
+            <strong>{{ inv.rentabilidadePercentual | number:'1.1-1' }}%</strong>
+          </p>
+          <span class="evolucao-card__status" [ngClass]="statusClasse(inv.statusInvestimento)">
+            {{ statusLabel(inv.statusInvestimento) }}
+          </span>
+          <div class="evolucao-card__bar" aria-hidden="true">
+            <span class="evolucao-card__bar-fill" [style.width.%]="progressoPatrimonio(inv)"></span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="investimentos-tabela-secao" aria-labelledby="h-executando">
+      <h2 id="h-executando" class="secao-titulo">
+        <span class="material-icons">table_chart</span>
+        Executando os investimentos
+      </h2>
+      <div class="table-wrap">
+        <table class="investimentos-table">
+          <thead>
+            <tr>
+              <th>Objetivo</th>
+              <th>Tipo</th>
+              <th class="col-centro">Valor investido</th>
+              <th class="col-centro">Aporte mensal</th>
+              <th class="col-centro">Patrimônio atual</th>
+              <th class="col-centro">Rentabilidade</th>
+              <th class="col-centro">Lucro</th>
+              <th class="col-centro">Status</th>
+              <th class="col-centro">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let inv of investimentosPaginados">
+              <td class="col-objetivo">{{ inv.descricao }}</td>
+              <td>{{ labelTipo(inv.tipoInvestimento) }}</td>
+              <td class="num">{{ inv.valorInvestido | currency:'BRL' }}</td>
+              <td class="num">{{ inv.aporteMensal | currency:'BRL' }}</td>
+              <td class="num">{{ inv.valorAtual | currency:'BRL' }}</td>
+              <td class="num" [title]="tooltipRentabilidade">
+                {{ inv.rentabilidadePercentual | number:'1.1-1' }}%
+              </td>
+              <td class="num" [class.texto-lucro]="lucroPositivo(inv.rentabilidade)"
+                [class.texto-prejuizo]="!lucroPositivo(inv.rentabilidade)">
+                {{ inv.rentabilidade | currency:'BRL' }}
+              </td>
+              <td class="col-centro">
+                <span class="badge-status" [ngClass]="statusClasse(inv.statusInvestimento)">
+                  {{ statusLabel(inv.statusInvestimento) }}
+                </span>
+              </td>
+              <td class="acoes col-centro">
+                <button type="button" class="btn-icone" (click)="editar(inv)" title="Editar">
+                  <span class="material-icons">edit</span>
+                </button>
+                <button type="button" class="btn-icone btn-icone-excluir" (click)="confirmarExcluir(inv)"
+                  title="Excluir">
+                  <span class="material-icons">delete</span>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="investimentos-paginacao" *ngIf="exibirPaginacaoTabela">
+        <span class="investimentos-paginacao__info">
+          Mostrando {{ exibindoDeTabela }}–{{ exibindoAteTabela }} de {{ investimentos.length }}
+        </span>
+        <nav class="investimentos-paginacao__nav" aria-label="Paginação da tabela de investimentos">
+          <button type="button" class="investimentos-paginacao__btn" (click)="paginaAnteriorTabela()"
+            [disabled]="paginaTabela <= 1">
+            <span class="material-icons" aria-hidden="true">chevron_left</span>
+            Anterior
+          </button>
+          <span class="investimentos-paginacao__paginas">
+            Página {{ paginaTabela }} de {{ totalPaginasTabela }}
+          </span>
+          <button type="button" class="investimentos-paginacao__btn" (click)="paginaProximaTabela()"
+            [disabled]="paginaTabela >= totalPaginasTabela">
+            Próxima
+            <span class="material-icons" aria-hidden="true">chevron_right</span>
+          </button>
+        </nav>
+      </div>
+    </section>
+  </ng-container>
 </div>
