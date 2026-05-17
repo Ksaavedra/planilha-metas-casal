@@ -3,19 +3,16 @@ import { MatDialog } from '@angular/material/dialog';
 import { MetasService } from '../../../../core/services/metas/metas.service';
 import { AdicionarMetaDialogComponent } from '../../components/adicionar-meta-dialog/adicionar-meta-dialog.component';
 import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
-import {
-  Meta,
-  MetaExtended,
-  ModalEdicao,
-} from '@core/interfaces/metas/mes-meta';
+import { Meta, MetaExtended } from '@core/interfaces/metas/mes-meta';
 import { UpdateMetaRequest } from '@core/interfaces/metas/metas-modais';
+import { ModalEdicao } from '@core/interfaces/metas/editar-modal';
 import {
   finalizarMesesRestantesDaMeta,
   getValorRealizadoMeta,
   jaMostrouParabens,
   marcarParabensMostrado,
   metaEstaConcluida,
-} from '@core/interfaces/metas/metas-parabens';
+} from '@app/core/utils';
 import { ParabensDialogComponent } from '../../components/parabens-dialog/parabens-dialog.component';
 import {
   buildAnosComparacaoParaMetas,

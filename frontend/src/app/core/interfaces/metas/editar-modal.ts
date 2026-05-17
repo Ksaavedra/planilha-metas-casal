@@ -11,3 +11,24 @@ export interface EditarValorDialogResult {
   mesId: number;
   valor: number;
 }
+
+export interface ModalEdicao {
+  meta: MetaExtended;
+  mesId: number;
+  valor: number;
+  isOpen: boolean;
+}
+
+export interface ModalEdicaoNome {
+  meta: MetaExtended;
+  nome: string;
+  isOpen: boolean;
+}
+
+export interface ModalAdicionarMeta {
+  nome: string;
+  valorMeta: number;
+  valorPorMes: number;
+  valorAtual: number;
+  isOpen: boolean;
+}
