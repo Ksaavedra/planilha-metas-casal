@@ -1,0 +1,74 @@
+<div class="evolucao-section" *ngIf="metasValidas.length > 0">
+  <div class="metas-hero__accent" aria-hidden="true"></div>
+  <header class="section-header">
+    <div class="section-header__brand">
+      <div class="section-header__text">
+        <h2>Evolução das metas do casal</h2>
+        <p class="section-header__subtitle">
+          {{ metasValidas.length }} {{ metasValidas.length === 1 ? 'meta' : 'metas' }} · arraste para ver todas
+        </p>
+      </div>
+    </div>
+  </header>
+  <div class="evolucao-body">
+    <div class="evolucao-scroll-wrap">
+      <div class="evolucao-scroll-fade evolucao-scroll-fade--left" aria-hidden="true"></div>
+      <div class="evolucao-scroll-fade evolucao-scroll-fade--right" aria-hidden="true"></div>
+      <div class="evolucao-scroll" #scrollArea tabindex="0" role="region" aria-label="Lista de metas em evolução"
+        (wheel)="onWheel($event)">
+        <div class="evolucao-track">
+          <article class="meta-card" *ngFor="let meta of metasValidas; let i = index"
+            [class.meta-card--concluida]="getValorFaltanteMeta(meta) === 0">
+            <div class="card-cover">
+              <div class="cover-gradient" [style.background]="getGradientColor(i)"></div>
+              <div class="cover-shine" aria-hidden="true"></div>
+              <div class="cover-content">
+                <div class="meta-icon-wrap">
+                  <i [class]="'bi ' + getMetaIcon(meta)" aria-hidden="true"></i>
+                </div>
+              </div>
+              <span class="card-badge" *ngIf="getValorFaltanteMeta(meta) === 0">Concluída</span>
+            </div>
+            <div class="card-body">
+              <h3 class="meta-name">{{ meta.nome }}</h3>
+              <div class="progress-info">
+                <div class="progress-header">
+                  <span class="progress-label">Progresso</span>
+                  <span class="progress-percentage">{{ getProgressoRealMeta(meta) | number:'1.1-1' }}%</span>
+                </div>
+                <div class="progress-bar" role="progressbar" [attr.aria-valuenow]="getProgressoRealMeta(meta)"
+                  aria-valuemin="0" aria-valuemax="100">
+                  <div class="progress-fill" [style.width.%]="getProgressoRealMeta(meta)"></div>
+                </div>
+              </div>
+              <dl class="meta-details">
+                <div class="detail-item">
+                  <dt class="label">Meta</dt>
+                  <dd class="value">{{ meta.valorMeta | currency:'BRL' }}</dd>
+                </div>
+                <div class="detail-item">
+                  <dt class="label">Atual</dt>
+                  <dd class="value">{{ getValorRealizadoMeta(meta) | currency:'BRL' }}</dd>
+                </div>
+                <div class="detail-item">
+                  <dt class="label">
+                    <ng-container *ngIf="getValorFaltanteMeta(meta) === 0; else faltaLabel">Status</ng-container>
+                    <ng-template #faltaLabel>Falta</ng-template>
+                  </dt>
+                  <dd class="value" [class.concluido]="getValorFaltanteMeta(meta) === 0">
+                    <ng-container *ngIf="getValorFaltanteMeta(meta) === 0; else faltaTemplate">
+                      Concluído 🎉
+                    </ng-container>
+                    <ng-template #faltaTemplate>
+                      {{ getValorFaltanteMeta(meta) | currency:'BRL' }}
+                    </ng-template>
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

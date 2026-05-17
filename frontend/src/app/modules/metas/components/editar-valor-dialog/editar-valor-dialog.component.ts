@@ -33,7 +33,7 @@ export class EditarValorDialogComponent implements OnInit {
     this.valorInput = this.valor === 0 ? '' : String(this.valor);
   }
 
-  /** Mesmo cálculo do card (progress-table / elaborando-metas). */
+  /** Mesmo cálculo do card (evolucao-metas / elaborando-metas). */
   get valorFaltanteParaConcluir(): number {
     return getValorFaltanteMeta(this.data.meta);
   }

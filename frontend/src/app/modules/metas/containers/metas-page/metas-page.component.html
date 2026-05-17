@@ -31,8 +31,7 @@
         </button> -->
       </div>
       <div class="metas-hero__actions">
-        <button type="button" class="btn-add-meta" (click)="abrirModalAdicionarMeta()"
-          [disabled]="metas.length >= 15">
+        <button type="button" class="btn-add-meta" (click)="abrirModalAdicionarMeta()" [disabled]="metas.length >= 15">
           <span class="material-icons" aria-hidden="true">add</span>
           Adicionar meta
         </button>
@@ -49,7 +48,7 @@
   </app-elaborando-metas>
 
   <!-- Seção 2: Evolução das Metas do Casal -->
-  <app-progress-table [metas]="metas"></app-progress-table>
+  <app-evolucao-metas [metas]="metas"></app-evolucao-metas>
 
   <!-- Seção 3: Executando as Metas do Casal -->
   <app-executando-metas [meses]="meses" [metas]="metas" [totalContribuicoesView]="totalContribuicoesView"
