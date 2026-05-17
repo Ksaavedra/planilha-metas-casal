@@ -1,10 +1,7 @@
 import { Component, Input } from '@angular/core';
 import { MetaExtended } from '../../../../../core/interfaces/metas/mes-meta';
 import { AVAILABLE_META_ICONS } from '../../../../../core/constants/meta-icons.constant';
-import {
-  getValorFaltanteMeta,
-  getValorRealizadoMeta,
-} from '@core/interfaces/metas/metas-parabens';
+import { getValorFaltanteMeta, getValorRealizadoMeta } from '@app/core/utils';
 
 @Component({
   selector: 'app-evolucao-metas',

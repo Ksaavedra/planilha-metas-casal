@@ -1,11 +1,11 @@
-import { MetaExtended } from './mes-meta';
+import { MetaExtended } from '../interfaces/metas/mes-meta';
 import {
   getValorFaltanteMeta,
   getValorMaximoPermitidoMes,
   getValorRealizadoMeta,
   getValorRealizadoSemMes,
   metaEstaConcluida,
-} from './metas-parabens';
+} from '@core/utils/metas-parabens';
 
 describe('metas-parabens', () => {
   const metaBase = (overrides: Partial<MetaExtended> = {}): MetaExtended =>

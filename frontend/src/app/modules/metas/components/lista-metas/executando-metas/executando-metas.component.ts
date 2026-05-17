@@ -12,10 +12,7 @@ import {
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { MatDialog } from '@angular/material/dialog';
-import {
-  mesExecucaoDesabilitado,
-  metaEstaConcluida,
-} from '@core/interfaces/metas/metas-parabens';
+import { mesExecucaoDesabilitado, metaEstaConcluida } from '@app/core/utils';
 
 import {
   Meta,

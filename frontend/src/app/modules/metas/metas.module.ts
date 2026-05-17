@@ -11,6 +11,7 @@ import { EvolucaoMetasComponent } from './components/lista-metas/evolucao-metas/
 import { EditarValorDialogComponent } from './components/editar-valor-dialog/editar-valor-dialog.component';
 import { ParabensDialogComponent } from './components/parabens-dialog/parabens-dialog.component';
 import { AdicionarMetaDialogComponent } from './components/adicionar-meta-dialog/adicionar-meta-dialog.component';
+import { MetasExemplosComponent } from './components/metas-exemplos/metas-exemplos.component';
 import { SharedModule } from 'shared/shared.module';
 
 @NgModule({
@@ -22,6 +23,7 @@ import { SharedModule } from 'shared/shared.module';
     EditarValorDialogComponent,
     ParabensDialogComponent,
     AdicionarMetaDialogComponent,
+    MetasExemplosComponent,
   ],
   imports: [
     CommonModule,

@@ -1,6 +1,5 @@
 import { MesMeta } from './mes-meta';
 
-// --- Request types (API) ---
 export interface CreateMetaRequest {
   ano?: number;
   nome: string;
@@ -16,7 +15,6 @@ export interface UpdateMetaRequest extends Partial<CreateMetaRequest> {
   meses?: Partial<MesMeta>[];
 }
 
-// --- Estado do modal Adicionar Meta ---
 export interface ModalAdicionarMetaState {
   isOpen: boolean;
   nome: string;

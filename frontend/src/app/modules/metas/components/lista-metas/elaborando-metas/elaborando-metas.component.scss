@@ -480,8 +480,8 @@ td.actions-cell .actions {
   padding-right: 0.5rem;
   font-weight: 500;
   color: #374151;
-  min-width: 180px;
-  max-width: 300px;
+  // min-width: 180px;
+  max-width: max-content;
 }
 
 .input-nome::placeholder {

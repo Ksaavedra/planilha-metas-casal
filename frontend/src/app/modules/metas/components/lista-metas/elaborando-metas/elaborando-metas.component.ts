@@ -15,7 +15,7 @@ import {
   getValorFaltanteMeta as calcularValorFaltante,
   getValorRealizadoMeta as calcularValorRealizado,
   metaEstaConcluida,
-} from '@core/interfaces/metas/metas-parabens';
+} from '@app/core/utils';
 import {
   mesesTotaisDoPlano,
   metaVisivelNoExercicio,

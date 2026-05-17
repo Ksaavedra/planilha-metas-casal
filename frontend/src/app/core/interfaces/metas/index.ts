@@ -1,23 +1,19 @@
-export { Meta, MesMeta, MetaExtended } from './mes-meta';
+export { Meta, MesMeta, MetaExtended, StatusMeta } from './mes-meta';
 export {
   CreateMetaRequest,
+  UpdateMetaRequest,
   ModalAdicionarMetaState,
+  ModalSucessoState,
   ModalConfirmarDeleteState,
   ModalSucessoDeleteState,
-  ModalSucessoState,
-  UpdateMetaRequest,
+  ModalStateSalvar,
+  ValoresSalvarMetaModal,
 } from './metas-modais';
-export { EditarValorDialogData, EditarValorDialogResult } from './editar-modal';
 export {
-  MetaCompletaEvent,
-  ParabensDialogData,
-  finalizarMesesRestantesDaMeta,
-  mesExecucaoDesabilitado,
-  getValorFaltanteMeta,
-  getValorMaximoPermitidoMes,
-  getValorRealizadoMeta,
-  getValorRealizadoSemMes,
-  jaMostrouParabens,
-  marcarParabensMostrado,
-  metaEstaConcluida,
-} from './metas-parabens';
+  EditarValorDialogData,
+  EditarValorDialogResult,
+  ModalEdicao,
+  ModalEdicaoNome,
+  ModalAdicionarMeta,
+} from './editar-modal';
+export { ParabensDialogData, MetaCompletaEvent } from './metas-parabens';

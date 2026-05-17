@@ -39,7 +39,10 @@ export class AdicionarMetaDialogComponent implements OnInit, OnDestroy {
   private temValorAtualSub?: Subscription;
 
   constructor(
-    private dialogRef: MatDialogRef<AdicionarMetaDialogComponent, boolean | undefined>,
+    private dialogRef: MatDialogRef<
+      AdicionarMetaDialogComponent,
+      boolean | undefined
+    >,
     private fb: FormBuilder,
     private metasService: MetasService,
     private cdr: ChangeDetectorRef,
@@ -47,7 +50,10 @@ export class AdicionarMetaDialogComponent implements OnInit, OnDestroy {
     this.form = this.fb.group({
       nome: ['', Validators.required],
       valorMeta: ['', [Validators.required, this.valorMaiorQueZeroValidator()]],
-      valorPorMes: ['', [Validators.required, this.valorMaiorQueZeroValidator()]],
+      valorPorMes: [
+        '',
+        [Validators.required, this.valorMaiorQueZeroValidator()],
+      ],
       temValorAtual: [false],
       valorAtual: [{ value: '', disabled: true }],
       icon: ['bi-bullseye'],
@@ -105,7 +111,11 @@ export class AdicionarMetaDialogComponent implements OnInit, OnDestroy {
         this.saving = false;
         this.dialogRef.close(true);
       },
-      error: (err: { status?: number; statusText?: string; message?: string }) => {
+      error: (err: {
+        status?: number;
+        statusText?: string;
+        message?: string;
+      }) => {
         this.saving = false;
         if (err.status === 0 || err.statusText === 'Unknown Error') {
           this.erro =
@@ -153,7 +163,9 @@ export class AdicionarMetaDialogComponent implements OnInit, OnDestroy {
       String(this.form.get('valorPorMes')?.value ?? ''),
     );
     const temValorAtual = this.temValorAtual;
-    const valorAtualRaw = String(this.form.get('valorAtual')?.value ?? '').trim();
+    const valorAtualRaw = String(
+      this.form.get('valorAtual')?.value ?? '',
+    ).trim();
     const valorAtual = temValorAtual ? this.parseNumeroBR(valorAtualRaw) : 0;
 
     if (!nome) {
@@ -198,7 +210,10 @@ export class AdicionarMetaDialogComponent implements OnInit, OnDestroy {
     };
   }
 
-  private buildMeses(valorMeta: number, valorPorMes: number): Partial<MesMeta>[] {
+  private buildMeses(
+    valorMeta: number,
+    valorPorMes: number,
+  ): Partial<MesMeta>[] {
     const mesesNecessarios =
       valorPorMes > 0 ? Math.ceil(valorMeta / valorPorMes) : 12;
     const qtd = Math.max(mesesNecessarios, 1);

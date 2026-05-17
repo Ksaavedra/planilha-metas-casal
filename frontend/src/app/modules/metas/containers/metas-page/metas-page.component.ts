@@ -3,19 +3,16 @@ import { MatDialog } from '@angular/material/dialog';
 import { MetasService } from '../../../../core/services/metas/metas.service';
 import { AdicionarMetaDialogComponent } from '../../components/adicionar-meta-dialog/adicionar-meta-dialog.component';
 import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
-import {
-  Meta,
-  MetaExtended,
-  ModalEdicao,
-} from '@core/interfaces/metas/mes-meta';
+import { Meta, MetaExtended } from '@core/interfaces/metas/mes-meta';
 import { UpdateMetaRequest } from '@core/interfaces/metas/metas-modais';
+import { ModalEdicao } from '@core/interfaces/metas/editar-modal';
 import {
   finalizarMesesRestantesDaMeta,
   getValorRealizadoMeta,
   jaMostrouParabens,
   marcarParabensMostrado,
   metaEstaConcluida,
-} from '@core/interfaces/metas/metas-parabens';
+} from '@app/core/utils';
 import { ParabensDialogComponent } from '../../components/parabens-dialog/parabens-dialog.component';
 import {
   buildAnosComparacaoParaMetas,
@@ -42,6 +39,8 @@ const ANO_REFERENCIA_MIN = 2020;
 })
 export class MetasPageComponent implements OnInit {
   readonly tituloSecundario = 'Construindo sonhos juntos, passo a passo';
+
+  visaoMetas: 'lista' | 'exemplos' = 'lista';
 
   private parabensDialogAberto = false;
 
@@ -86,8 +85,7 @@ export class MetasPageComponent implements OnInit {
   /** Ano vazio diferente do calendário atual (ex.: 2024 sem metas → ir para 2026). */
   get exibirBotaoVoltarExercicioAtual(): boolean {
     return (
-      this.exibirAvisoAnoVazio &&
-      Number(this.anoSelecionado) !== this.anoAtual
+      this.exibirAvisoAnoVazio && Number(this.anoSelecionado) !== this.anoAtual
     );
   }
 
@@ -117,6 +115,10 @@ export class MetasPageComponent implements OnInit {
   proximoAno(): void {
     this.anoSelecionado = Number(this.anoSelecionado) + 1;
     this.onAnoChange();
+  }
+
+  selecionarVisao(visao: 'lista' | 'exemplos'): void {
+    this.visaoMetas = visao;
   }
 
   onAnoChange(): void {
@@ -234,7 +236,8 @@ export class MetasPageComponent implements OnInit {
       this.metas,
       this.anoAtual,
     );
-    const fimLista = this.anosComparacao[this.anosComparacao.length - 1] ?? this.anoAtual;
+    const fimLista =
+      this.anosComparacao[this.anosComparacao.length - 1] ?? this.anoAtual;
     if (selecionado > fimLista) {
       const extras: number[] = [];
       for (let y = fimLista + 1; y <= selecionado; y++) {

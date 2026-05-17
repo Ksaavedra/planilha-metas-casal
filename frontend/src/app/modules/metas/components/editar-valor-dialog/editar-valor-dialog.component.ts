@@ -7,7 +7,7 @@ import {
 import {
   getValorFaltanteMeta,
   getValorMaximoPermitidoMes,
-} from '@core/interfaces/metas/metas-parabens';
+} from '@app/core/utils';
 
 @Component({
   selector: 'app-editar-valor-dialog',

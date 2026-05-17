@@ -8,7 +8,7 @@ export interface Meta {
   valorPorMes: number;
   mesesNecessarios: number;
   valorAtual: number;
-  icon?: string; // Ícone do Bootstrap Icons (ex: 'bi-house', 'bi-car-front')
+  icon?: string;
   meses: MesMeta[];
 }
 
@@ -39,25 +39,4 @@ export interface MetaExtended extends Meta {
   savedTickCampo?: boolean | null;
 
   _draft?: boolean;
-}
-
-export interface ModalEdicao {
-  meta: MetaExtended;
-  mesId: number;
-  valor: number;
-  isOpen: boolean;
-}
-
-export interface ModalEdicaoNome {
-  meta: MetaExtended;
-  nome: string;
-  isOpen: boolean;
-}
-
-export interface ModalAdicionarMeta {
-  nome: string;
-  valorMeta: number;
-  valorPorMes: number;
-  valorAtual: number;
-  isOpen: boolean;
 }
