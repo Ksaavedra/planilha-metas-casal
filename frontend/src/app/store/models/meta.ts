@@ -12,7 +12,7 @@ export interface MetaInvestimento extends BaseEntity {
   categoria: Categoria;
   investimentosRelacionados?: string[]; // IDs dos investimentos
   aporteMensal?: number;
-  frequenciaAporte?: FrequenciaAporte;
+  frequenciaAporte?: MetaFrequenciaAporte;
   observacoes?: string;
 }
 
@@ -33,7 +33,7 @@ export enum Prioridade {
   URGENTE = 'urgente',
 }
 
-export enum FrequenciaAporte {
+export enum MetaFrequenciaAporte {
   SEMANAL = 'semanal',
   QUINZENAL = 'quinzenal',
   MENSAL = 'mensal',
@@ -54,7 +54,7 @@ export interface MetaForm {
   prioridade: Prioridade;
   investimentosRelacionados?: string[];
   aporteMensal?: number;
-  frequenciaAporte?: FrequenciaAporte;
+  frequenciaAporte?: MetaFrequenciaAporte;
   observacoes?: string;
 }
 
@@ -75,14 +75,14 @@ export const PRIORIDADES = [
   { value: Prioridade.URGENTE, label: 'Urgente', cor: '#dc3545' },
 ];
 
-export const FREQUENCIAS_APORTE = [
-  { value: FrequenciaAporte.SEMANAL, label: 'Semanal' },
-  { value: FrequenciaAporte.QUINZENAL, label: 'Quinzenal' },
-  { value: FrequenciaAporte.MENSAL, label: 'Mensal' },
-  { value: FrequenciaAporte.BIMESTRAL, label: 'Bimestral' },
-  { value: FrequenciaAporte.TRIMESTRAL, label: 'Trimestral' },
-  { value: FrequenciaAporte.SEMESTRAL, label: 'Semestral' },
-  { value: FrequenciaAporte.ANUAL, label: 'Anual' },
+export const META_FREQUENCIAS_APORTE = [
+  { value: MetaFrequenciaAporte.SEMANAL, label: 'Semanal' },
+  { value: MetaFrequenciaAporte.QUINZENAL, label: 'Quinzenal' },
+  { value: MetaFrequenciaAporte.MENSAL, label: 'Mensal' },
+  { value: MetaFrequenciaAporte.BIMESTRAL, label: 'Bimestral' },
+  { value: MetaFrequenciaAporte.TRIMESTRAL, label: 'Trimestral' },
+  { value: MetaFrequenciaAporte.SEMESTRAL, label: 'Semestral' },
+  { value: MetaFrequenciaAporte.ANUAL, label: 'Anual' },
 ];
 
 export interface ResumoMetas {

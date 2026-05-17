@@ -1,0 +1,9 @@
+node_modules
+.angular
+.git
+coverage
+**/*.spec.ts
+src
+public
+e2e
+*.md

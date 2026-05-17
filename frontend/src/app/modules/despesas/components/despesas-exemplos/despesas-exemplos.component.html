@@ -1,0 +1,63 @@
+<section class="despesas-exemplos" aria-label="O que são despesas fixas e variáveis">
+  <h2 class="despesas-exemplos__h2">Despesa fixa e variável</h2>
+  <p class="despesas-exemplos__intro">
+    Ao lançar, escolha o tipo certo na aba <strong>Minhas despesas</strong> (botão
+    <strong>Adicionar despesa</strong>).
+  </p>
+
+  <article class="despesas-exemplos__bloco">
+    <h3 class="despesas-exemplos__h3">Despesa fixa</h3>
+    <p>
+      É um gasto que se repete de mês a mês e costuma ser previsível (valor ou
+      vencimento parecidos).
+    </p>
+    <p>
+      <strong>Exemplos:</strong> aluguel ou parcela de financiamento, plano de
+      internet/celular, condomínio, seguro, mensalidade de academia, assinaturas
+      (streaming, etc.).
+    </p>
+    <p class="despesas-exemplos__ideia">
+      <strong>A ideia:</strong> “isso cai todo mês ou quase, com pouca surpresa”.
+    </p>
+  </article>
+
+  <article class="despesas-exemplos__bloco">
+    <h3 class="despesas-exemplos__h3">Despesa variável</h3>
+    <p>
+      É um gasto que muda de valor, de mês a mês, ou não acontece todos os meses
+      da mesma forma.
+    </p>
+    <p>
+      <strong>Exemplos:</strong> mercado, restaurante, lazer, compras de roupa,
+      manutenção do carro, remédios fora de plano, presentes, viagens.
+    </p>
+    <p class="despesas-exemplos__ideia">
+      <strong>A ideia:</strong> “depende de como foi o mês — pode subir, descer ou
+      nem existir”.
+    </p>
+  </article>
+
+  <div class="despesas-exemplos__categorias-wrap" aria-label="Mais ideias de categorias, separadas por fixa e variável">
+    <h3 class="despesas-exemplos__h3 despesas-exemplos__h3--sec">Mais ideias de categorias</h3>
+    <p class="despesas-exemplos__lista-intro">
+      No formulário, a <strong>categoria</strong> aparece com
+      <strong>nome curto</strong> (fácil de escolher); aqui está a versão
+      <strong>detalhada</strong> do que cada uma costuma incluir. O importante é
+      <strong>marcar fixa ou variável</strong> em coerência com o gasto.
+    </p>
+    <div class="despesas-exemplos__categorias-grid">
+      <div class="despesas-exemplos__categorias-col">
+        <h4 class="despesas-exemplos__h4" id="h-ex-cat-fixa">Categorias típicas (despesa fixa)</h4>
+        <ul class="despesas-exemplos__lista" aria-labelledby="h-ex-cat-fixa">
+          <li *ngFor="let c of exemplosCategoriasFixas">{{ c }}</li>
+        </ul>
+      </div>
+      <div class="despesas-exemplos__categorias-col">
+        <h4 class="despesas-exemplos__h4" id="h-ex-cat-var">Categorias típicas (despesa variável)</h4>
+        <ul class="despesas-exemplos__lista" aria-labelledby="h-ex-cat-var">
+          <li *ngFor="let c of exemplosCategoriasVariaveis">{{ c }}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

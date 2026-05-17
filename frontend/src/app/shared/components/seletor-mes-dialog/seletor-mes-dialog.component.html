@@ -1,0 +1,6 @@
+<mat-form-field>
+  <mat-label>Selecione uma data</mat-label>
+  <input matInput [matDatepicker]="picker" />
+  <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+  <mat-datepicker [dateClass]="dateClass" #picker></mat-datepicker>
+</mat-form-field>

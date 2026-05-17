@@ -1,0 +1,55 @@
+<section class="receitas-exemplos" aria-label="O que são receitas fixas e variáveis">
+  <h2 class="receitas-exemplos__h2">Receita fixa e variável</h2>
+  <p class="receitas-exemplos__intro">
+    Ao lançar, escolha o tipo certo na aba <strong>Minhas receitas</strong> (botão
+    <strong>Adicionar receita</strong>).
+  </p>
+
+  <article class="receitas-exemplos__bloco">
+    <h3 class="receitas-exemplos__h3">Receita fixa</h3>
+    <p>
+      É um valor que entra todo mês, geralmente com o mesmo valor ou pouca variação.
+    </p>
+    <p>
+      <strong>Exemplos:</strong> salário, pensão, aluguel recebido, renda recorrente.
+    </p>
+    <p class="receitas-exemplos__ideia">
+      <strong>A ideia:</strong> “entra todo mês ou quase, com pouca mudança”.
+    </p>
+  </article>
+
+  <article class="receitas-exemplos__bloco">
+    <h3 class="receitas-exemplos__h3">Receita variável</h3>
+    <p>
+      É um valor que pode mudar ou não acontece todos os meses.
+    </p>
+    <p>
+      <strong>Exemplos:</strong> freela, bônus, comissões, renda extra, vendas.
+    </p>
+    <p class="receitas-exemplos__ideia">
+      <strong>A ideia:</strong> “depende do mês - pode aumentar, diminuir ou nem acontecer”.
+    </p>
+  </article>
+
+  <div class="receitas-exemplos__categorias-wrap" aria-label="Mais ideias de categorias, separadas por fixa e variável">
+    <h3 class="receitas-exemplos__h3 receitas-exemplos__h3--sec">Mais ideias de categorias</h3>
+    <p class="receitas-exemplos__lista-intro">
+      No formulário, a <strong>categoria</strong> aparece com
+      <strong>nome curto</strong>. Aqui está uma versão mais clara para te ajudar a escolher.
+    </p>
+    <div class="receitas-exemplos__categorias-grid">
+      <div class="receitas-exemplos__categorias-col">
+        <h4 class="receitas-exemplos__h4" id="h-ex-cat-fixa">Categorias típicas (receita fixa)</h4>
+        <ul class="receitas-exemplos__lista" aria-labelledby="h-ex-cat-fixa">
+          <li *ngFor="let c of exemplosCategoriasFixas">{{ c }}</li>
+        </ul>
+      </div>
+      <div class="receitas-exemplos__categorias-col">
+        <h4 class="receitas-exemplos__h4" id="h-ex-cat-var">Categorias típicas (receita variável)</h4>
+        <ul class="receitas-exemplos__lista" aria-labelledby="h-ex-cat-var">
+          <li *ngFor="let c of exemplosCategoriasVariaveis">{{ c }}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

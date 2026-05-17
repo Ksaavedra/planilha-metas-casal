@@ -1,3 +1,3 @@
-import 'jest-preset-angular/setup-jest';
+import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';
 
-Object.defineProperty(window, 'scrollTo', { value: () => {}, writable: true });
+setupZoneTestEnv();

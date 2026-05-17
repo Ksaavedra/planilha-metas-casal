@@ -43,7 +43,7 @@ export const TIPOS_RECEITA = [
   { value: TipoReceita.OUTROS, label: 'Outros' },
 ];
 
-export const FREQUENCIAS_RECORRENCIA = [
+export const RECEITA_FREQUENCIAS_RECORRENCIA = [
   { value: FrequenciaRecorrencia.SEMANAL, label: 'Semanal' },
   { value: FrequenciaRecorrencia.QUINZENAL, label: 'Quinzenal' },
   { value: FrequenciaRecorrencia.MENSAL, label: 'Mensal' },

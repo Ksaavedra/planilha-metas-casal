@@ -85,7 +85,7 @@ export const TIPOS_INVESTIMENTO = [
   { value: TipoInvestimento.OUTROS, label: 'Outros' },
 ];
 
-export const FREQUENCIAS_APORTE = [
+export const INVESTIMENTO_FREQUENCIAS_APORTE = [
   { value: FrequenciaAporte.SEMANAL, label: 'Semanal' },
   { value: FrequenciaAporte.QUINZENAL, label: 'Quinzenal' },
   { value: FrequenciaAporte.MENSAL, label: 'Mensal' },

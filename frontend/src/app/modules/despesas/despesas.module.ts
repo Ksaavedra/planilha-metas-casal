@@ -1,0 +1,31 @@
+import { CUSTOM_ELEMENTS_SCHEMA, NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { DespesasPageComponent } from './containers/despesas-page/despesas-page.component';
+import { AdicionarDespesaDialogComponent } from './components/adicionar-despesa-dialog/adicionar-despesa-dialog.component';
+import { DespesasRoutingModule } from './despesas.routing';
+import { DSModule } from 'app/@ds';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { SharedModule } from 'app/shared/shared.module';
+import { DespesasExemplosComponent } from './components/despesas-exemplos/despesas-exemplos.component';
+import { DespesasUsuarioComponent } from './components/despesas-usuario/despesas-usuario.component';
+
+@NgModule({
+  declarations: [
+    DespesasPageComponent,
+    AdicionarDespesaDialogComponent,
+    DespesasExemplosComponent,
+    DespesasUsuarioComponent,
+  ],
+  imports: [
+    CommonModule,
+    RouterModule,
+    DespesasRoutingModule,
+    DSModule,
+    ReactiveFormsModule,
+    FormsModule,
+    SharedModule,
+  ],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+})
+export class DespesasModule {}

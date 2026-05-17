@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import { SidebarService } from 'core/services/sidebar/sidebar.service';
+import { SidebarService } from '../../services/sidebar/sidebar.service';
 
 @Component({
-  selector: 'app-logged',
-  templateUrl: './logged.component.html',
-  styleUrls: ['./logged.component.scss'],
+    selector: 'app-logged',
+    templateUrl: './logged.component.html',
+    styleUrls: ['./logged.component.scss'],
+    standalone: false
 })
 export class LoggedComponent implements OnInit {
   sidebarStatus: boolean = false;
