@@ -24,6 +24,8 @@ type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
   standalone: false,
 })
 export class MetasPageComponent implements OnInit {
+  readonly tituloSecundario = 'Construindo sonhos juntos, passo a passo';
+
   private parabensDialogAberto = false;
 
   meses: string[] = [];
@@ -457,7 +459,10 @@ export class MetasPageComponent implements OnInit {
     // aplica localmente
     (meta as any)[campo] = novo;
     this.recalcResumo();
-    this.processarMetaConcluida(meta, !estavaConcluida && metaEstaConcluida(meta));
+    this.processarMetaConcluida(
+      meta,
+      !estavaConcluida && metaEstaConcluida(meta),
+    );
 
     // monta patch; se mudar valorPorMes, recalc mesesNecessarios
     const patch: any = { [campo]: novo };
@@ -555,8 +560,7 @@ export class MetasPageComponent implements OnInit {
     this.recalcResumo();
 
     // Ao marcar Pago com meta já em 100%, sempre tenta parabéns (ex.: concluiu só com valorAtual antes)
-    const deveParabenizar =
-      e.status === 'Pago' && metaEstaConcluida(meta);
+    const deveParabenizar = e.status === 'Pago' && metaEstaConcluida(meta);
     if (deveParabenizar) {
       this.processarMetaConcluida(meta, true);
     } else if (metaEstaConcluida(meta)) {

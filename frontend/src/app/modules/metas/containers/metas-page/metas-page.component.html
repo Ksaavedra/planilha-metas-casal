@@ -1,12 +1,43 @@
 <div class="metas-container">
-  <!-- Header -->
-  <div class="header-metas">
-    <h1>
-      <span class="material-icons">favorite</span>
-      PLANO DE METAS DO CASAL
-    </h1>
-    <p>Construindo sonhos juntos, passo a passo</p>
-  </div>
+  <header class="metas-hero" role="banner" aria-label="Cabeçalho de metas">
+    <div class="metas-hero__accent" aria-hidden="true"></div>
+    <div class="metas-hero__inner">
+      <div class="metas-hero__brand">
+        <div class="metas-hero__icon-wrap" aria-hidden="true">
+          <span class="material-icons metas-hero__icon">track_changes</span>
+        </div>
+        <div class="metas-hero__text">
+          <h1 class="metas-hero__title">
+            Metas do casal
+          </h1>
+          <p class="metas-hero__subtitle">{{ tituloSecundario }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="metas-hero__toolbar" aria-label="Visão e ações de metas">
+      <div class="metas-hero__chips" role="tablist" aria-label="Alternar entre lista do mês e exemplos de categorias">
+        <!-- <button type="button" class="metas-hero__chip" [class.is-active]="visaoDespesas === 'lista'"
+          (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoDespesas === 'lista'">
+          Minhas despesas
+        </button>
+        <button type="button" class="metas-hero__chip" [class.is-active]="visaoDespesas === 'usuario'"
+          (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoDespesas === 'usuario'">
+          Por pessoa
+        </button>
+        <button type="button" class="metas-hero__chip"
+          role="tab">
+          Exemplos
+        </button> -->
+      </div>
+      <div class="metas-hero__actions">
+        <button type="button" class="btn-add-meta">
+          <span class="material-icons" aria-hidden="true">add</span>
+          Adicionar meta
+        </button>
+      </div>
+    </div>
+  </header>
 
   <!-- Seção 1: Elaborando as Metas do Casal -->
   <app-elaborando-metas [metas]="metas" [percentualPagoView]="percentualPagoView"
@@ -16,10 +47,10 @@
     (confirmar)="onConfirmarCampo($event)" (remover)="removerMeta($event)">
   </app-elaborando-metas>
 
-  <!-- Tabela de Progresso -->
+  <!-- Seção 2: Evolução das Metas do Casal -->
   <app-progress-table [metas]="metas"></app-progress-table>
 
-  <!-- Seção 2: Executando as Metas do Casal -->
+  <!-- Seção 3: Executando as Metas do Casal -->
   <app-executando-metas [meses]="meses" [metas]="metas" [totalContribuicoesView]="totalContribuicoesView"
     (alternarStatus)="onAlterarStatus($event)" (salvarValor)="onSalvarValorMes($event)"
     (metaCompleta)="onMetaCompleta($event)">
