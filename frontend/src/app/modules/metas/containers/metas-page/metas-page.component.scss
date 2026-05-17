@@ -1,3 +1,10 @@
+:host ::ng-deep .parabens-dialog-panel .mat-mdc-dialog-surface {
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+}
+
 .metas-container {
   max-width: 1800px;
   margin: 0 auto;

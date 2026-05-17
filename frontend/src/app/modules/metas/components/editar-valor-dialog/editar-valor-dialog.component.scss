@@ -1,0 +1,103 @@
+.editar-valor-dialog {
+  margin: 0.5rem;
+}
+
+.dialog-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.25rem;
+  padding: 0 0.25rem 0.5rem 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.dialog-titulo-icone {
+  color: #7c3aed;
+  font-size: 1.35rem;
+}
+
+.dialog-body {
+  padding-top: 0.5rem !important;
+  max-height: 70vh;
+  min-width: min(100%, 360px);
+}
+
+.dialog-acoes {
+  padding: 0.5rem 0 0;
+  gap: 0.5rem;
+}
+
+.modal-info {
+  margin-bottom: 1.25rem;
+}
+
+.modal-info p {
+  margin: 0.35rem 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.modal-info strong {
+  color: #1e293b;
+}
+
+.falta-concluir {
+  color: #7c3aed;
+  font-weight: 500;
+}
+
+.input-invalido {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+
+.validacao-erro {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.modal-input-group {
+  margin-bottom: 1rem;
+
+  label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.8rem;
+  }
+}
+
+.modal-input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  }
+}
+
+.resultado-formatado {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background-color: #f9fafb;
+
+  .valor-formatado {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #6b7280;
+  }
+}

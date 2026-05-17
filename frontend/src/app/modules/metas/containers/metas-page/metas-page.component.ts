@@ -1,11 +1,19 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MetasService } from '../../../../core/services/metas/metas.service';
 import {
   Meta,
   MetaExtended,
   ModalEdicao,
-} from '../../../../core/interfaces/metas/mes-meta';
-import { ElaborandoMetasComponent } from '../../components/lista-metas/elaborando-metas/elaborando-metas.component';
+} from '@core/interfaces/metas/mes-meta';
+import {
+  finalizarMesesRestantesDaMeta,
+  getValorRealizadoMeta,
+  jaMostrouParabens,
+  marcarParabensMostrado,
+  metaEstaConcluida,
+} from '@core/interfaces/metas/metas-parabens';
+import { ParabensDialogComponent } from '../../components/parabens-dialog/parabens-dialog.component';
 
 type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
 
@@ -16,7 +24,8 @@ type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
   standalone: false,
 })
 export class MetasPageComponent implements OnInit {
-  @ViewChild('elaborandoMetas') elaborandoMetas!: ElaborandoMetasComponent;
+  private parabensDialogAberto = false;
+
   meses: string[] = [];
   modalEdicao: ModalEdicao = {
     meta: {} as MetaExtended,
@@ -35,7 +44,10 @@ export class MetasPageComponent implements OnInit {
   totalContribuicoesView = 0;
   camposProcessados = new Set<string>();
 
-  constructor(private metasService: MetasService) {}
+  constructor(
+    private metasService: MetasService,
+    private dialog: MatDialog,
+  ) {}
 
   private readonly MESES_PADRAO = [
     'Janeiro',
@@ -158,6 +170,57 @@ export class MetasPageComponent implements OnInit {
       this.metas.forEach((m) => this.normalizeMeses(m));
       this.recalcResumo();
     });
+  }
+
+  /**
+   * Exibe parabéns quando a meta acaba de atingir 100% (ação do usuário).
+   * Não dispara ao carregar a página — metas já concluídas não bloqueiam o modal.
+   */
+  private processarMetaConcluida(
+    meta: MetaExtended,
+    acabouDeConcluir: boolean,
+  ): void {
+    if (!metaEstaConcluida(meta)) return;
+
+    if (acabouDeConcluir) {
+      this.abrirParabens(meta, true);
+    }
+
+    if (!finalizarMesesRestantesDaMeta(meta)) return;
+
+    this.metasService
+      .updateMeta(meta.id, {
+        meses: meta.meses.map((m) => ({ ...m })),
+        mesesNecessarios: 0,
+      })
+      .subscribe();
+  }
+
+  private abrirParabens(meta: MetaExtended, acabouDeConcluir = false): void {
+    if (!metaEstaConcluida(meta)) return;
+    if (!acabouDeConcluir && jaMostrouParabens(meta.id)) return;
+    if (this.parabensDialogAberto) return;
+
+    this.parabensDialogAberto = true;
+
+    setTimeout(() => {
+      const ref = this.dialog.open(ParabensDialogComponent, {
+        width: 'min(520px, 96vw)',
+        maxWidth: '96vw',
+        panelClass: 'parabens-dialog-panel',
+        disableClose: false,
+        data: {
+          metaNome: meta.nome,
+          valorMeta: meta.valorMeta,
+          valorRealizado: getValorRealizadoMeta(meta),
+        },
+      });
+
+      ref.afterClosed().subscribe(() => {
+        marcarParabensMostrado(meta.id);
+        this.parabensDialogAberto = false;
+      });
+    }, 0);
   }
 
   private toNum(v: any): number {
@@ -389,8 +452,12 @@ export class MetasPageComponent implements OnInit {
       return;
     }
 
+    const estavaConcluida = metaEstaConcluida(meta);
+
     // aplica localmente
     (meta as any)[campo] = novo;
+    this.recalcResumo();
+    this.processarMetaConcluida(meta, !estavaConcluida && metaEstaConcluida(meta));
 
     // monta patch; se mudar valorPorMes, recalc mesesNecessarios
     const patch: any = { [campo]: novo };
@@ -485,11 +552,20 @@ export class MetasPageComponent implements OnInit {
     if (!mes) return;
 
     mes.status = e.status;
+    this.recalcResumo();
+
+    // Ao marcar Pago com meta já em 100%, sempre tenta parabéns (ex.: concluiu só com valorAtual antes)
+    const deveParabenizar =
+      e.status === 'Pago' && metaEstaConcluida(meta);
+    if (deveParabenizar) {
+      this.processarMetaConcluida(meta, true);
+    } else if (metaEstaConcluida(meta)) {
+      this.processarMetaConcluida(meta, false);
+    }
+
     this.metasService
       .updateMeta(meta.id, { meses: meta.meses.map((m) => ({ ...m })) })
-      .subscribe(() => {
-        this.recalcResumo();
-      });
+      .subscribe(() => this.recalcResumo());
   }
 
   onSalvarValorMes(e: {
@@ -502,22 +578,28 @@ export class MetasPageComponent implements OnInit {
     const i = meta.meses.findIndex((m) => m.id === e.mesId);
     if (i < 0) return;
 
+    const estavaConcluida = metaEstaConcluida(meta);
     meta.meses[i].valor = e.valor;
     meta.meses[i].status = e.valor > 0 ? 'Programado' : 'Vazio';
+    this.recalcResumo();
+    this.processarMetaConcluida(
+      meta,
+      !estavaConcluida && metaEstaConcluida(meta),
+    );
+
     this.metasService
       .updateMeta(meta.id, { meses: meta.meses.map((m) => ({ ...m })) })
-      .subscribe(() => {
-        this.recalcResumo();
-      });
+      .subscribe(() => this.recalcResumo());
   }
 
-  // Receber evento quando uma meta for completada (atingir 100%)
-  onMetaCompleta(_event: {
+  onMetaCompleta(event: {
     metaId: string | number;
     metaNome: string;
     valorMeta: number;
   }): void {
-    // Aqui você pode adicionar lógica adicional se necessário
-    // Por exemplo, mostrar uma notificação, salvar estatísticas, etc.
+    const meta = this.metas.find((m) => String(m.id) === String(event.metaId));
+    if (meta) {
+      this.processarMetaConcluida(meta, true);
+    }
   }
 }

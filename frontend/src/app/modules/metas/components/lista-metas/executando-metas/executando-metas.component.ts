@@ -3,7 +3,6 @@ import {
   EventEmitter,
   Input,
   OnChanges,
-  OnInit,
   OnDestroy,
   Output,
   SimpleChanges,
@@ -12,14 +11,22 @@ import {
   Inject,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
+import { MatDialog } from '@angular/material/dialog';
+import {
+  mesExecucaoDesabilitado,
+  metaEstaConcluida,
+} from '@core/interfaces/metas/metas-parabens';
 
 import {
   Meta,
   MetaExtended,
   StatusMeta,
-} from '../../../../../core/interfaces/metas/mes-meta';
-import { MetasService } from '../../../../../core/services/metas/metas.service';
-import { Subscription } from 'rxjs';
+} from '@core/interfaces/metas/mes-meta';
+import {
+  EditarValorDialogData,
+  EditarValorDialogResult,
+} from '@core/interfaces/metas/editar-modal';
+import { EditarValorDialogComponent } from '../../editar-valor-dialog/editar-valor-dialog.component';
 
 export type ViewportSize = { width: number; height: number };
 export type DropdownPos = { top: number; left: number };
@@ -30,7 +37,7 @@ export type DropdownPos = { top: number; left: number };
   styleUrls: ['./executando-metas.component.scss'],
   standalone: false,
 })
-export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
+export class ExecutandoMetasComponent implements OnChanges, OnDestroy {
   @Input() meses: string[] = [];
   @Input() metas: MetaExtended[] = [];
   @Input() percentualPagoView = 0;
@@ -60,7 +67,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
 
   private activeMeta: MetaExtended | null = null;
   private activeMesId: number | null = null;
-  private editarValorSubscription?: Subscription;
   private dropdownElement: HTMLElement | null = null;
 
   /** Medidas aproximadas usadas no primeiro cálculo de posição (antes do layout real do DOM). */
@@ -71,7 +77,7 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   } as const;
 
   constructor(
-    private metasService: MetasService,
+    private dialog: MatDialog,
     private renderer: Renderer2,
     @Inject(DOCUMENT) private document: Document,
   ) {}
@@ -96,29 +102,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   }
   trackByMesId(_: number, mes: any): string | number {
     return mes.id;
-  }
-
-  ngOnInit() {
-    this.editarValorSubscription = this.metasService.editarValorSave$.subscribe(
-      (data: { metaId: number | string; mesId: number; valor: number }) => {
-        const { metaId, mesId, valor } = data;
-        const meta = this.metas.find((m) => String(m.id) === String(metaId));
-        if (!meta) return;
-
-        const mes = meta.meses.find((m) => m.id === mesId);
-        if (!mes) return;
-
-        mes.valor = valor;
-        mes.status = valor > 0 ? 'Programado' : 'Vazio';
-
-        // Emitir evento para o pai
-        this.salvarValor.emit({
-          metaId,
-          mesId,
-          valor,
-        });
-      },
-    );
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -150,6 +133,59 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
       style: 'currency',
       currency: 'BRL',
     }).format(n);
+  }
+
+  mesEstaDesabilitado(meta: MetaExtended, mesIndex: number): boolean {
+    return mesExecucaoDesabilitado(meta, mesIndex);
+  }
+
+  abrirModalEdicao(
+    meta: MetaExtended,
+    mesId: number,
+    mesIndex: number,
+    event?: MouseEvent,
+  ): void {
+    event?.stopPropagation();
+    this.closeDropdown();
+
+    if (this.mesEstaDesabilitado(meta, mesIndex)) return;
+
+    const mes = meta.meses?.find((m) => m.id === mesId);
+    if (!mes) return;
+
+    const meses =
+      this.meses.length > 0
+        ? this.meses
+        : (meta.meses?.map((m) => m.nome) ?? [...this.MESES_PADRAO]);
+
+    const data: EditarValorDialogData = { meta, mesId, meses };
+    const ref = this.dialog.open(EditarValorDialogComponent, {
+      width: 'min(420px, 96vw)',
+      maxHeight: '90vh',
+      data,
+      autoFocus: 'dialog',
+      restoreFocus: true,
+    });
+
+    ref.afterClosed().subscribe((result?: EditarValorDialogResult) => {
+      if (!result) return;
+      this.aplicarValorSalvo(result);
+    });
+  }
+
+  private aplicarValorSalvo(result: EditarValorDialogResult): void {
+    const { metaId, mesId, valor } = result;
+    const meta = this.metas.find((m) => String(m.id) === String(metaId));
+    if (!meta) return;
+
+    const mes = meta.meses.find((m) => m.id === mesId);
+    if (!mes) return;
+
+    mes.valor = valor;
+    mes.status = valor > 0 ? 'Programado' : 'Vazio';
+
+    this.salvarValor.emit({ metaId, mesId, valor });
+    this.verificarMetaCompleta(meta);
   }
 
   private getCellKey(metaId: string | number, mesId: string | number): string {
@@ -191,9 +227,6 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.removeDropdownFromBody();
-    if (this.editarValorSubscription) {
-      this.editarValorSubscription.unsubscribe();
-    }
   }
 
   private removeDropdownFromBody(): void {
@@ -267,13 +300,23 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
 
   selecionarStatusByOverlay(status: StatusMeta): void {
     if (!this.activeMeta || this.activeMesId === null) return;
-    this.selecionarStatus(this.activeMeta, this.activeMesId, status);
+    const mesIndex =
+      this.activeMeta.meses?.findIndex((m) => m.id === this.activeMesId) ?? -1;
+    if (mesIndex < 0) return;
+    this.selecionarStatus(this.activeMeta, this.activeMesId, mesIndex, status);
     this.closeDropdown();
   }
 
-  toggleDropdown(meta: MetaExtended, mesId: number, event: MouseEvent): void {
+  toggleDropdown(
+    meta: MetaExtended,
+    mesId: number,
+    mesIndex: number,
+    event: MouseEvent,
+  ): void {
     event?.stopPropagation();
     event?.preventDefault();
+
+    if (this.mesEstaDesabilitado(meta, mesIndex)) return;
 
     const key = this.getCellKey(meta.id, mesId);
     if (this.openDropdownKey === key) {
@@ -568,8 +611,11 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   selecionarStatus(
     meta: MetaExtended,
     mesId: number,
+    mesIndex: number,
     status: StatusMeta,
   ): void {
+    if (this.mesEstaDesabilitado(meta, mesIndex)) return;
+
     const mes = meta.meses.find((m) => m.id === mesId);
     if (!mes) return;
 
@@ -589,93 +635,13 @@ export class ExecutandoMetasComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private verificarMetaCompleta(meta: MetaExtended): void {
-    const valorMeta = Number(meta.valorMeta) || 0;
-    if (valorMeta <= 0) return;
+    if (!metaEstaConcluida(meta)) return;
 
-    const valorAtual = Number(meta.valorAtual) || 0;
-    const valorPago = (meta.meses ?? [])
-      .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0);
-
-    const totalRealizado = valorAtual + valorPago;
-    const progresso = Number(((totalRealizado * 100) / valorMeta).toFixed(2));
-
-    const temMesesPagos = (meta.meses ?? []).some((x) => x.status === 'Pago');
-    if (progresso >= 100 && temMesesPagos && !this.jaMostrouParabens(meta.id)) {
-      this.metaCompleta.emit({
-        metaId: meta.id,
-        metaNome: meta.nome,
-        valorMeta: meta.valorMeta,
-      });
-
-      this.marcarParabensMostrado(meta.id);
-
-      this.marcarMesesComoFinalizado(meta);
-    }
-  }
-
-  private marcarParabensMostrado(metaId: string | number): void {
-    try {
-      const parabensMostrados = this.getParabensMostrados();
-      parabensMostrados.push(String(metaId));
-      localStorage.setItem(
-        'metas_parabens_mostrados',
-        JSON.stringify(parabensMostrados),
-      );
-    } catch (error) {}
-  }
-
-  private jaMostrouParabens(metaId: string | number): boolean {
-    try {
-      const parabensMostrados = this.getParabensMostrados();
-      return parabensMostrados.includes(String(metaId));
-    } catch (error) {
-      return false;
-    }
-  }
-
-  private getParabensMostrados(): string[] {
-    try {
-      const stored = localStorage.getItem('metas_parabens_mostrados');
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      return [];
-    }
-  }
-
-  private marcarMesesComoFinalizado(meta: MetaExtended): void {
-    if (!meta.meses || meta.meses.length === 0) return;
-
-    const mesesParaFinalizar = meta.meses.filter(
-      (mes) => mes.status !== 'Pago',
-    );
-
-    if (mesesParaFinalizar.length === 0) {
-      return;
-    }
-
-    mesesParaFinalizar.forEach((mes) => {
-      (mes as any).status = 'Finalizado';
-      mes.valor = 0;
+    this.metaCompleta.emit({
+      metaId: meta.id,
+      metaNome: meta.nome,
+      valorMeta: meta.valorMeta,
     });
-
-    meta.mesesNecessarios = 0;
-
-    this.metasService
-      .updateMeta(meta.id, {
-        meses: meta.meses.map((m) => ({ ...m })),
-        mesesNecessarios: 0,
-      })
-      .subscribe({
-        next: () => {
-          this.alternarStatus.emit({
-            metaId: meta.id,
-            mesId: 0,
-            status: 'Finalizado' as any,
-          });
-        },
-        error: (_error) => {},
-      });
   }
 
   getTotalContribuicoesMeta(meta: Meta): number {

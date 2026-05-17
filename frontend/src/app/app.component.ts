@@ -35,14 +35,6 @@ export class AppComponent implements OnInit, OnDestroy {
     isOpen: false,
   };
 
-  editarValorState = {
-    isOpen: false,
-    meta: null as any,
-    mesId: -1,
-    valor: 0,
-    meses: [] as string[],
-  };
-
   confirmarExcluirReceitaState = {
     isOpen: false,
     message: '',
@@ -56,7 +48,6 @@ export class AppComponent implements OnInit, OnDestroy {
   private sucessoSubscription?: Subscription;
   private confirmarDeleteSubscription?: Subscription;
   private sucessoDeleteSubscription?: Subscription;
-  private editarValorSubscription?: Subscription;
   private confirmarExcluirReceitaSubscription?: Subscription;
   private sucessoExcluirReceitaSubscription?: Subscription;
 
@@ -83,10 +74,6 @@ export class AppComponent implements OnInit, OnDestroy {
         this.sucessoDeleteState = { ...state };
       });
 
-    this.editarValorSubscription =
-      this.metasService.editarValorState$.subscribe((state) => {
-        this.editarValorState = { ...state };
-      });
   }
 
   ngOnDestroy(): void {
@@ -94,7 +81,6 @@ export class AppComponent implements OnInit, OnDestroy {
     this.sucessoSubscription?.unsubscribe();
     this.confirmarDeleteSubscription?.unsubscribe();
     this.sucessoDeleteSubscription?.unsubscribe();
-    this.editarValorSubscription?.unsubscribe();
     this.confirmarExcluirReceitaSubscription?.unsubscribe();
     this.sucessoExcluirReceitaSubscription?.unsubscribe();
   }
@@ -160,16 +146,4 @@ export class AppComponent implements OnInit, OnDestroy {
     this.metasService.closeSucessoDelete();
   }
 
-  onValorChange(value: number): void {
-    this.metasService.updateValorEditarValor(value);
-  }
-
-  onSaveEditarValor(): void {
-    this.metasService.triggerSaveEditarValor();
-  }
-
-  onCancelEditarValor(): void {
-    this.metasService.closeEditarValor();
-    this.metasService.resetEditarValor();
-  }
 }

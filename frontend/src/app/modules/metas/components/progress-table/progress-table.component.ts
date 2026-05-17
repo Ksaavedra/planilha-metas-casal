@@ -12,6 +12,10 @@ import {
 } from '@angular/core';
 import { MetaExtended } from '../../../../core/interfaces/metas/mes-meta';
 import { AVAILABLE_META_ICONS } from '../../../../core/constants/meta-icons.constant';
+import {
+  getValorFaltanteMeta,
+  getValorRealizadoMeta,
+} from '@core/interfaces/metas/metas-parabens';
 
 @Component({
   selector: 'app-progress-table',
@@ -56,29 +60,21 @@ export class ProgressTableComponent
   }
 
   getProgressoRealMeta(meta: MetaExtended): number {
-    const valorAtual = meta.valorAtual || 0;
-    const valorPago = meta.meses
-      .filter((mes) => mes.status === 'Pago')
-      .reduce((total, mes) => total + (mes.valor || 0), 0);
+    const valorMeta = Number(meta.valorMeta) || 0;
+    if (valorMeta <= 0) return 0;
 
-    const totalRealizado = valorAtual + valorPago;
-    const percentual = (totalRealizado / meta.valorMeta) * 100;
+    const totalRealizado = getValorRealizadoMeta(meta);
+    const percentual = (totalRealizado / valorMeta) * 100;
 
-    return Math.min(percentual, 100);
+    return Math.min(Number(percentual.toFixed(2)), 100);
   }
 
   getValorRealizadoMeta(meta: MetaExtended): number {
-    const valorAtual = meta.valorAtual || 0;
-    const valorPago = meta.meses
-      .filter((mes) => mes.status === 'Pago')
-      .reduce((total, mes) => total + (mes.valor || 0), 0);
-
-    return valorAtual + valorPago;
+    return getValorRealizadoMeta(meta);
   }
 
   getValorFaltanteMeta(meta: MetaExtended): number {
-    const valorRealizado = this.getValorRealizadoMeta(meta);
-    return Math.max(meta.valorMeta - valorRealizado, 0);
+    return getValorFaltanteMeta(meta);
   }
 
   formatarMoeda(valor: number): string {

@@ -8,6 +8,8 @@ import { MetasPageComponent } from './containers/metas-page/metas-page.component
 import { ElaborandoMetasComponent } from './components/lista-metas/elaborando-metas/elaborando-metas.component';
 import { ExecutandoMetasComponent } from './components/lista-metas/executando-metas/executando-metas.component';
 import { ProgressTableComponent } from './components/progress-table/progress-table.component';
+import { EditarValorDialogComponent } from './components/editar-valor-dialog/editar-valor-dialog.component';
+import { ParabensDialogComponent } from './components/parabens-dialog/parabens-dialog.component';
 import { SharedModule } from 'shared/shared.module';
 
 @NgModule({
@@ -16,6 +18,8 @@ import { SharedModule } from 'shared/shared.module';
     ElaborandoMetasComponent,
     ExecutandoMetasComponent,
     ProgressTableComponent,
+    EditarValorDialogComponent,
+    ParabensDialogComponent,
   ],
   imports: [
     CommonModule,

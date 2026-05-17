@@ -22,13 +22,6 @@ type ConfirmarDeleteState = {
   metaId: number | null;
   metaNome: string;
 };
-type EditarValorState = {
-  isOpen: boolean;
-  meta: any;
-  mesId: number;
-  valor: number;
-  meses: string[];
-};
 type ConfirmReceitaState = { isOpen: boolean; message: string };
 
 describe('AppComponent', () => {
@@ -43,7 +36,6 @@ describe('AppComponent', () => {
   let sucessoStateSubject: BehaviorSubject<SucessoState>;
   let confirmarDeleteStateSubject: BehaviorSubject<ConfirmarDeleteState>;
   let sucessoDeleteStateSubject: BehaviorSubject<{ isOpen: boolean }>;
-  let editarValorStateSubject: BehaviorSubject<EditarValorState>;
   let confirmStateSubject: BehaviorSubject<ConfirmReceitaState>;
   let successStateSubject: BehaviorSubject<{ isOpen: boolean }>;
 
@@ -71,13 +63,6 @@ describe('AppComponent', () => {
     sucessoDeleteStateSubject = new BehaviorSubject<{ isOpen: boolean }>({
       isOpen: false,
     });
-    editarValorStateSubject = new BehaviorSubject<EditarValorState>({
-      isOpen: false,
-      meta: null,
-      mesId: -1,
-      valor: 0,
-      meses: [],
-    });
     confirmStateSubject = new BehaviorSubject<ConfirmReceitaState>({
       isOpen: false,
       message: '',
@@ -91,7 +76,6 @@ describe('AppComponent', () => {
       sucessoState$: sucessoStateSubject.asObservable(),
       confirmarDeleteState$: confirmarDeleteStateSubject.asObservable(),
       sucessoDeleteState$: sucessoDeleteStateSubject.asObservable(),
-      editarValorState$: editarValorStateSubject.asObservable(),
       updateNome: jest.fn(),
       updateValorMetaRaw: jest.fn(),
       updateValorPorMesRaw: jest.fn(),
@@ -105,10 +89,6 @@ describe('AppComponent', () => {
       confirmDelete: jest.fn(),
       closeConfirmarDelete: jest.fn(),
       closeSucessoDelete: jest.fn(),
-      updateValorEditarValor: jest.fn(),
-      triggerSaveEditarValor: jest.fn(),
-      closeEditarValor: jest.fn(),
-      resetEditarValor: jest.fn(),
     } as unknown as jest.Mocked<MetasService>;
 
     receitasService = {
@@ -191,24 +171,6 @@ describe('AppComponent', () => {
     it('deve atualizar sucessoDeleteState quando sucessoDeleteState$ emite', () => {
       sucessoDeleteStateSubject.next({ isOpen: true });
       expect(component.sucessoDeleteState).toEqual({ isOpen: true });
-    });
-
-    it('deve atualizar editarValorState quando editarValorState$ emite', () => {
-      const meta = { id: 1, nome: 'Carro' };
-      editarValorStateSubject.next({
-        isOpen: true,
-        meta,
-        mesId: 3,
-        valor: 200,
-        meses: ['Jan', 'Fev', 'Mar'],
-      });
-      expect(component.editarValorState).toEqual({
-        isOpen: true,
-        meta,
-        mesId: 3,
-        valor: 200,
-        meses: ['Jan', 'Fev', 'Mar'],
-      });
     });
 
     it('deve atualizar confirmarExcluirReceitaState quando confirmState$ emite', () => {
@@ -316,21 +278,6 @@ describe('AppComponent', () => {
       expect(metasService.closeSucessoDelete).toHaveBeenCalled();
     });
 
-    it('onValorChange chama metasService.updateValorEditarValor', () => {
-      component.onValorChange(350);
-      expect(metasService.updateValorEditarValor).toHaveBeenCalledWith(350);
-    });
-
-    it('onSaveEditarValor chama metasService.triggerSaveEditarValor', () => {
-      component.onSaveEditarValor();
-      expect(metasService.triggerSaveEditarValor).toHaveBeenCalled();
-    });
-
-    it('onCancelEditarValor chama metasService.closeEditarValor e resetEditarValor', () => {
-      component.onCancelEditarValor();
-      expect(metasService.closeEditarValor).toHaveBeenCalled();
-      expect(metasService.resetEditarValor).toHaveBeenCalled();
-    });
   });
 
   describe('event handlers vazios', () => {

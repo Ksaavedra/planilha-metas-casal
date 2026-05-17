@@ -54,6 +54,8 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^/opt/nodejs/(.*)$': '<rootDir>/test/_mocks_/layerMock.js',
+    '^@core/(.*)$': '<rootDir>/src/app/core/$1',
+    '^@app/(.*)$': '<rootDir>/src/app/$1',
     'src(.*)$': '<rootDir>/src$1',
     'code/(.*)$': '<rootDir>/src/app/code/$1',
     'core/components/(.*)$': '<rootDir>/src/app/core/components/$1',

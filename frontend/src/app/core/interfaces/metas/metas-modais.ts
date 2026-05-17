@@ -1,4 +1,3 @@
-import { MetaExtended } from './mes-meta';
 import { MesMeta } from './mes-meta';
 
 // --- Request types (API) ---
@@ -42,15 +41,6 @@ export interface ModalConfirmarDeleteState {
 
 export interface ModalSucessoDeleteState {
   isOpen: boolean;
-}
-
-// --- Estado do modal Editar Valor ---
-export interface ModalEditarValorState {
-  isOpen: boolean;
-  meta: MetaExtended | null;
-  mesId: number;
-  valor: number;
-  meses: string[];
 }
 
 export interface ModalStateSalvar {

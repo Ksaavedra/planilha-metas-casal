@@ -4,10 +4,8 @@ import { tap, catchError } from 'rxjs/operators';
 import {
   CreateMetaRequest,
   Meta,
-  MetaExtended,
   ModalAdicionarMetaState,
   ModalConfirmarDeleteState,
-  ModalEditarValorState,
   ModalSucessoDeleteState,
   ModalSucessoState,
   UpdateMetaRequest,
@@ -16,7 +14,7 @@ import { ApiService } from '../api/api.service';
 import { environment } from 'src/environments';
 
 /**
- * Serviço principal de metas: API + modal adicionar meta + modais de exclusão + modal editar valor.
+ * Serviço principal de metas: API + modal adicionar meta + modais de exclusão.
  */
 @Injectable({ providedIn: 'root' })
 export class MetasService {
@@ -67,31 +65,6 @@ export class MetasService {
     new BehaviorSubject<ModalSucessoDeleteState>({ isOpen: false });
   public sucessoDeleteState$: Observable<ModalSucessoDeleteState> =
     this.sucessoDeleteStateSubject.asObservable();
-
-  // --- Modal Editar Valor ---
-  private readonly initialStateEditarValor: ModalEditarValorState = {
-    isOpen: false,
-    meta: null,
-    mesId: -1,
-    valor: 0,
-    meses: [],
-  };
-  private stateEditarValorSubject = new BehaviorSubject<ModalEditarValorState>(
-    this.initialStateEditarValor,
-  );
-  public editarValorState$: Observable<ModalEditarValorState> =
-    this.stateEditarValorSubject.asObservable();
-
-  private saveEditarValorSubject = new Subject<{
-    metaId: number | string;
-    mesId: number;
-    valor: number;
-  }>();
-  public editarValorSave$: Observable<{
-    metaId: number | string;
-    mesId: number;
-    valor: number;
-  }> = this.saveEditarValorSubject.asObservable();
 
   constructor(private apiService: ApiService) {
     console.log('🎯 MetasService inicializado');
@@ -266,52 +239,5 @@ export class MetasService {
 
   closeSucessoDelete(): void {
     this.sucessoDeleteStateSubject.next({ isOpen: false });
-  }
-
-  // ========== Modal Editar Valor ==========
-  getEditarValorState(): ModalEditarValorState {
-    return this.stateEditarValorSubject.value;
-  }
-
-  openEditarValor(meta: MetaExtended, mesId: number, meses: string[]): void {
-    const mes = meta.meses.find((m) => m.id === mesId);
-    if (!mes) return;
-    this.stateEditarValorSubject.next({
-      isOpen: true,
-      meta,
-      mesId,
-      valor: mes.valor,
-      meses,
-    });
-  }
-
-  closeEditarValor(): void {
-    this.stateEditarValorSubject.next({
-      ...this.stateEditarValorSubject.value,
-      isOpen: false,
-    });
-  }
-
-  updateValorEditarValor(valor: number): void {
-    this.stateEditarValorSubject.next({
-      ...this.stateEditarValorSubject.value,
-      valor,
-    });
-  }
-
-  triggerSaveEditarValor(): void {
-    const state = this.stateEditarValorSubject.value;
-    if (state.meta && state.mesId !== -1) {
-      this.saveEditarValorSubject.next({
-        metaId: state.meta.id,
-        mesId: state.mesId,
-        valor: state.valor,
-      });
-    }
-    this.closeEditarValor();
-  }
-
-  resetEditarValor(): void {
-    this.stateEditarValorSubject.next(this.initialStateEditarValor);
   }
 }

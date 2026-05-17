@@ -3,7 +3,6 @@ import { of, throwError } from 'rxjs';
 import {
   CreateMetaRequest,
   Meta,
-  MetaExtended,
   UpdateMetaRequest,
 } from '../../interfaces/metas';
 import { ApiService } from '../api/api.service';
@@ -395,79 +394,4 @@ describe('MetasService', () => {
     });
   });
 
-  // ========== Modal Editar Valor ==========
-  describe('getEditarValorState / openEditarValor / closeEditarValor / updateValorEditarValor / triggerSaveEditarValor / resetEditarValor', () => {
-    const metaExtended: MetaExtended = {
-      id: 1,
-      nome: 'Meta',
-      valorMeta: 1000,
-      valorPorMes: 100,
-      mesesNecessarios: 10,
-      valorAtual: 0,
-      meses: [
-        { id: 1, nome: 'Jan', valor: 100, status: 'Vazio' },
-        { id: 2, nome: 'Fev', valor: 100, status: 'Vazio' },
-      ],
-    } as MetaExtended;
-
-    it('getEditarValorState retorna estado inicial', () => {
-      expect(service.getEditarValorState().isOpen).toBe(false);
-      expect(service.getEditarValorState().mesId).toBe(-1);
-    });
-
-    it('openEditarValor com mesId existente abre modal com valor do mês', () => {
-      service.openEditarValor(metaExtended, 1, ['Jan', 'Fev']);
-      const state = service.getEditarValorState();
-      expect(state.isOpen).toBe(true);
-      expect(state.meta).toBe(metaExtended);
-      expect(state.mesId).toBe(1);
-      expect(state.valor).toBe(100);
-      expect(state.meses).toEqual(['Jan', 'Fev']);
-    });
-
-    it('openEditarValor com mesId inexistente não altera state', () => {
-      const antes = service.getEditarValorState();
-      service.openEditarValor(metaExtended, 99, []);
-      expect(service.getEditarValorState()).toEqual(antes);
-    });
-
-    it('closeEditarValor seta isOpen false', () => {
-      service.openEditarValor(metaExtended, 1, []);
-      service.closeEditarValor();
-      expect(service.getEditarValorState().isOpen).toBe(false);
-    });
-
-    it('updateValorEditarValor atualiza valor no state', () => {
-      service.openEditarValor(metaExtended, 1, []);
-      service.updateValorEditarValor(250);
-      expect(service.getEditarValorState().valor).toBe(250);
-    });
-
-    it('triggerSaveEditarValor emite no editarValorSave$ e fecha modal', (done) => {
-      service.openEditarValor(metaExtended, 1, []);
-      service.updateValorEditarValor(300);
-      service.editarValorSave$.subscribe((payload) => {
-        expect(payload).toEqual({ metaId: 1, mesId: 1, valor: 300 });
-        done();
-      });
-      service.triggerSaveEditarValor();
-      expect(service.getEditarValorState().isOpen).toBe(false);
-    });
-
-    it('triggerSaveEditarValor sem meta ou mesId -1 não emite mas fecha', () => {
-      const spy = jest.fn();
-      service.editarValorSave$.subscribe(spy);
-      service.triggerSaveEditarValor();
-      expect(spy).not.toHaveBeenCalled();
-      expect(service.getEditarValorState().isOpen).toBe(false);
-    });
-
-    it('resetEditarValor volta ao estado inicial', () => {
-      service.openEditarValor(metaExtended, 1, []);
-      service.resetEditarValor();
-      expect(service.getEditarValorState().isOpen).toBe(false);
-      expect(service.getEditarValorState().meta).toBeNull();
-      expect(service.getEditarValorState().mesId).toBe(-1);
-    });
-  });
 });

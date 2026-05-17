@@ -95,6 +95,39 @@
     background-color: #f8fafc;
   }
 
+  .status-cell.mes-desabilitado {
+    background-color: #f1f5f9 !important;
+  }
+
+  .status-dropdown-container.is-disabled {
+    pointer-events: none;
+    opacity: 0.65;
+  }
+
+  .valor-desabilitado,
+  .valor-finalizado {
+    color: #9ca3af !important;
+    cursor: not-allowed !important;
+  }
+
+  .status-indicator.status-desabilitado,
+  .status-indicator.status-finalizado {
+    background: #e5e7eb !important;
+    border-color: #d1d5db !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+  }
+
+  .status-indicator.status-desabilitado .material-icons,
+  .status-indicator.status-finalizado .material-icons {
+    color: #9ca3af !important;
+  }
+
+  .status-indicator.status-desabilitado:hover,
+  .status-indicator.status-finalizado:hover {
+    transform: none !important;
+  }
+
   /* Responsividade */
   @media (max-width: 768px) {
     .metas-container {

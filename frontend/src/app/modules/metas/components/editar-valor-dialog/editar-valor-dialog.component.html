@@ -1,0 +1,45 @@
+<div class="editar-valor-dialog">
+  <h2 mat-dialog-title class="dialog-titulo">
+    <span class="material-icons dialog-titulo-icone" aria-hidden="true">edit</span>
+    Editar Valor
+  </h2>
+
+  <mat-dialog-content class="dialog-body">
+    <div class="modal-info">
+      <p><strong>Meta:</strong> {{ data.meta.nome }}</p>
+      <p><strong>Mês:</strong> {{ mesNome }}</p>
+      <p><strong>Meta total:</strong> {{ formatarMoeda(data.meta.valorMeta) }}</p>
+      <p class="falta-concluir">
+        <strong>Falta para concluir:</strong>
+        {{ formatarMoeda(valorFaltanteParaConcluir) }}
+      </p>
+    </div>
+
+    <div class="modal-input-group">
+      <label for="valor-input">Valor:</label>
+      <div class="input-with-prefix">
+        <input id="valor-input" type="text" inputmode="decimal" class="modal-input" placeholder="0,00"
+          [class.input-invalido]="valorUltrapassaLimite" [ngModel]="valorInput"
+          (ngModelChange)="onValorChange($event)" (keydown.enter)="podeSalvar && salvar()" (blur)="onValorBlur()"
+          (keypress)="validarApenasNumeros($event)" autofocus />
+      </div>
+      <p class="validacao-erro" *ngIf="valorUltrapassaLimite" role="alert">
+        O valor máximo permitido neste mês é {{ formatarMoeda(valorMaximoPermitido) }}.
+      </p>
+    </div>
+
+    <div class="modal-input-group">
+      <label>Resultado:</label>
+      <div class="resultado-formatado">
+        <span class="valor-formatado">{{ formatarMoeda(valor) }}</span>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-acoes">
+    <button type="button" mat-stroked-button (click)="fechar()">Cancelar</button>
+    <button type="button" mat-flat-button color="primary" [disabled]="!podeSalvar" (click)="salvar()">
+      Salvar
+    </button>
+  </mat-dialog-actions>
+</div>

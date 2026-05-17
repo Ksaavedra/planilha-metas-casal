@@ -5,6 +5,7 @@ import { MetasPageComponent } from './metas-page.component';
 import { MetasService } from '../../../../core/services/metas/metas.service';
 import { Meta, StatusMeta } from '../../../../core/interfaces/metas/mes-meta';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 
 describe('MetasPageComponent', () => {
   let component: MetasPageComponent;
@@ -49,7 +50,13 @@ describe('MetasPageComponent', () => {
     await TestBed.configureTestingModule({
       declarations: [MetasPageComponent],
       imports: [HttpClientTestingModule],
-      providers: [MetasService],
+      providers: [
+        MetasService,
+        {
+          provide: MatDialog,
+          useValue: { open: jest.fn().mockReturnValue({ afterClosed: () => of(undefined) }) },
+        },
+      ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
 
@@ -763,14 +770,27 @@ describe('MetasPageComponent', () => {
   });
 
   describe('onMetaCompleta', () => {
-    it('não lança e aceita o evento', () => {
-      expect(() =>
-        component.onMetaCompleta({
-          metaId: 1,
-          metaNome: 'X',
-          valorMeta: 100,
-        }),
-      ).not.toThrow();
+    it('deve abrir dialog de parabéns quando meta está concluída', () => {
+      localStorage.removeItem('metas_parabens_exibidos_v3');
+      (component as any).parabensDialogAberto = false;
+
+      const dialog = TestBed.inject(MatDialog);
+      const openSpy = jest.spyOn(dialog, 'open');
+      component.metas = [
+        {
+          id: 1,
+          nome: 'Casa',
+          valorMeta: 1000,
+          valorAtual: 1000,
+          valorPorMes: 0,
+          mesesNecessarios: 0,
+          meses: [],
+        } as any,
+      ];
+
+      component.onMetaCompleta({ metaId: 1, metaNome: 'Casa', valorMeta: 1000 });
+
+      expect(openSpy).toHaveBeenCalled();
     });
   });
 

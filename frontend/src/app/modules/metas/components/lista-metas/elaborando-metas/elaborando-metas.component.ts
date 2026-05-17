@@ -18,6 +18,11 @@ import {
   ModalStateSalvar,
   ValoresSalvarMetaModal,
 } from '@app/core/interfaces/metas/metas-modais';
+import {
+  getValorFaltanteMeta as calcularValorFaltante,
+  getValorRealizadoMeta as calcularValorRealizado,
+  metaEstaConcluida,
+} from '@core/interfaces/metas/metas-parabens';
 
 @Component({
   selector: 'app-elaborando-metas',
@@ -54,7 +59,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
   modalSucessoAdd = { isOpen: false };
   modalSucessoDelete = { isOpen: false };
   modalConfirmarDelete = { isOpen: false };
-  modalParabens = { isOpen: false, metaNome: '', valorMeta: 0 };
   metaParaExcluir: any = null;
 
   trackById = (_: number, m: MetaExtended) => m.id;
@@ -485,32 +489,17 @@ export class ElaborandoMetasComponent implements OnDestroy {
     return meta.meses.reduce((total, mes) => total + mes.valor, 0);
   }
 
+  metaConcluida(meta: MetaExtended): boolean {
+    return metaEstaConcluida(meta);
+  }
+
   // Calcular progresso real de uma meta (quanto já temos + quanto já pagamos)
   getProgressoRealMeta(meta: MetaExtended): number {
     const valorMeta = Number(meta.valorMeta) || 0;
     if (valorMeta <= 0) return 0;
 
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
-    const valorPago = (meta.meses ?? [])
-      .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
-
-    const totalRealizado = valorAtual + valorPago;
-    const progresso = Number(((totalRealizado * 100) / valorMeta).toFixed(2));
-
-    // Debug: verificar condições para parabéns
-    const temMesesPagos = (meta.meses ?? []).some((x) => x.status === 'Pago');
-    const jaMostrou = this.jaMostrouParabens(meta.id);
-
-    // Verificar se atingiu 100% E tem pelo menos um mês pago
-    if (progresso >= 100 && temMesesPagos && !jaMostrou) {
-      this.mostrarParabens(meta);
-
-      // Marcar meses restantes como "Finalizado" quando meta atinge 100%
-      this.marcarMesesComoFinalizado(meta);
-    }
-
-    return progresso;
+    const totalRealizado = calcularValorRealizado(meta);
+    return Number(((totalRealizado * 100) / valorMeta).toFixed(2));
   }
 
   // Calcular meses restantes baseado nos meses pagos
@@ -539,110 +528,12 @@ export class ElaborandoMetasComponent implements OnDestroy {
     return mesesRestantes;
   }
 
-  // Calcular valor que ainda falta pagar
   getValorFaltanteMeta(meta: MetaExtended): number {
-    const valorMeta = Number(meta.valorMeta) || 0;
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
-    const valorPago = (meta.meses ?? [])
-      .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
-
-    const totalRealizado = valorAtual + valorPago;
-    return Math.max(0, valorMeta - totalRealizado);
+    return calcularValorFaltante(meta);
   }
 
-  // Calcular valor total realizado (quanto já temos + quanto já pagamos)
   getValorRealizadoMeta(meta: MetaExtended): number {
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
-    const valorPago = (meta.meses ?? [])
-      .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
-
-    return valorAtual + valorPago;
-  }
-
-  // Mostrar modal de parabéns quando meta atinge 100%
-  private mostrarParabens(meta: MetaExtended): void {
-    this.modalParabens = {
-      isOpen: true,
-      metaNome: meta.nome,
-      valorMeta: meta.valorMeta,
-    };
-    // Marcar que já mostrou parabéns para esta meta (persistir no localStorage)
-    this.marcarParabensMostrado(meta.id);
-  }
-
-  // Marcar que já mostrou parabéns para uma meta (persistir no localStorage)
-  private marcarParabensMostrado(metaId: string | number): void {
-    try {
-      const parabensMostrados = this.getParabensMostrados();
-      parabensMostrados.push(String(metaId));
-      localStorage.setItem(
-        'metas_parabens_mostrados',
-        JSON.stringify(parabensMostrados),
-      );
-    } catch (error) {
-      // Erro ao salvar parabéns no localStorage
-    }
-  }
-
-  // Verificar se já mostrou parabéns para uma meta
-  private jaMostrouParabens(metaId: string | number): boolean {
-    try {
-      const parabensMostrados = this.getParabensMostrados();
-      return parabensMostrados.includes(String(metaId));
-    } catch (error) {
-      return false;
-    }
-  }
-
-  // Obter lista de metas que já mostraram parabéns
-  private getParabensMostrados(): string[] {
-    try {
-      const stored = localStorage.getItem('metas_parabens_mostrados');
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      return [];
-    }
-  }
-
-  // Fechar modal de parabéns
-  fecharParabens(): void {
-    this.modalParabens.isOpen = false;
-  }
-
-  // Marcar meses restantes como "Finalizado" quando meta atinge 100%
-  private marcarMesesComoFinalizado(meta: MetaExtended): void {
-    if (!meta.meses || meta.meses.length === 0) return;
-
-    // Encontrar meses que ainda não foram pagos (status diferente de 'Pago')
-    const mesesParaFinalizar = meta.meses.filter(
-      (mes) => mes.status !== 'Pago',
-    );
-
-    if (mesesParaFinalizar.length === 0) {
-      return;
-    }
-
-    // Marcar todos os meses restantes como "Finalizado"
-    mesesParaFinalizar.forEach((mes) => {
-      mes.status = 'Finalizado';
-      mes.valor = 0; // Zerar o valor já que a meta foi completada
-    });
-
-    // Salvar no servidor (apenas os meses, pois mesesNecessarios é calculado dinamicamente)
-    this.metasService
-      .updateMeta(meta.id, {
-        meses: meta.meses.map((m) => ({ ...m })),
-      })
-      .subscribe({
-        next: () => {
-          this.metasAtualizadas.emit();
-        },
-        error: (_error) => {
-          // Erro ao finalizar meta
-        },
-      });
+    return calcularValorRealizado(meta);
   }
 
   private reloadMetas(
