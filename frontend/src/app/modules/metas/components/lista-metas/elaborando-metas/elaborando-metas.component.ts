@@ -6,18 +6,21 @@ import {
   OnDestroy,
 } from '@angular/core';
 import {
-  MesMeta,
   Meta,
   MetaExtended,
-  ModalAdicionarMeta,
 } from '../../../../../core/interfaces/metas/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { Subscription } from 'rxjs';
-import { CreateMetaRequest } from '@app/core/interfaces/metas/metas-modais';
 import {
-  ModalStateSalvar,
-  ValoresSalvarMetaModal,
-} from '@app/core/interfaces/metas/metas-modais';
+  getValorFaltanteMeta as calcularValorFaltante,
+  getValorRealizadoMeta as calcularValorRealizado,
+  metaEstaConcluida,
+} from '@core/interfaces/metas/metas-parabens';
+import {
+  mesesTotaisDoPlano,
+  metaVisivelNoExercicio,
+  regenerarMesesMeta,
+} from '@core/utils/metas-meses.util';
 
 @Component({
   selector: 'app-elaborando-metas',
@@ -33,7 +36,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
   @Input() totalMesesNecessariosView = 0;
   @Input() totalValorAtualView = 0;
   @Input() totalContribuicoesView = 0;
-  @Output() addMeta = new EventEmitter<void>();
   @Output() editar = new EventEmitter<{
     meta: MetaExtended;
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual';
@@ -54,33 +56,13 @@ export class ElaborandoMetasComponent implements OnDestroy {
   modalSucessoAdd = { isOpen: false };
   modalSucessoDelete = { isOpen: false };
   modalConfirmarDelete = { isOpen: false };
-  modalParabens = { isOpen: false, metaNome: '', valorMeta: 0 };
   metaParaExcluir: any = null;
 
   trackById = (_: number, m: MetaExtended) => m.id;
 
-  // Modal de adicionar meta
-  modalAdicionarMeta: ModalAdicionarMeta = {
-    isOpen: false,
-    nome: '',
-    valorMeta: 0,
-    valorPorMes: 0,
-    valorAtual: 0,
-  };
-
-  // Valores como string durante a digitação (sem formatação automática)
-  valorMetaRaw: string = '';
-  valorPorMesRaw: string = '';
-  valorAtualRaw: string = '';
-
-  private saveSubscription?: Subscription;
   private confirmDeleteSubscription?: Subscription;
 
   constructor(private metasService: MetasService) {
-    this.saveSubscription = this.metasService.save$.subscribe(() => {
-      this.salvarMetaModal();
-    });
-
     this.confirmDeleteSubscription = this.metasService.confirmDelete$.subscribe(
       (metaId) => {
         this.processarExclusao(metaId);
@@ -89,7 +71,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.saveSubscription?.unsubscribe();
     this.confirmDeleteSubscription?.unsubscribe();
   }
 
@@ -98,6 +79,10 @@ export class ElaborandoMetasComponent implements OnDestroy {
     meta: MetaExtended,
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
   ): void {
+    if (this.metaConcluida(meta)) {
+      return;
+    }
+
     // Limpar estado anterior
     this.limparEstadosEdicao(meta);
 
@@ -126,6 +111,10 @@ export class ElaborandoMetasComponent implements OnDestroy {
     const meta = this.metas.find((m) => String(m.id) === String(id));
     if (!meta) {
       alert('Meta não encontrada.');
+      return;
+    }
+
+    if (this.metaConcluida(meta)) {
       return;
     }
 
@@ -231,6 +220,11 @@ export class ElaborandoMetasComponent implements OnDestroy {
     meta: MetaExtended,
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
   ): void {
+    if (this.metaConcluida(meta)) {
+      this.limparEstadosEdicao(meta);
+      return;
+    }
+
     const chave = `${meta.id}-${campo}`;
 
     if (this.camposProcessados.has(chave)) {
@@ -386,17 +380,31 @@ export class ElaborandoMetasComponent implements OnDestroy {
   ): Record<string, unknown> {
     const patch: Record<string, unknown> = { [campo]: novo };
 
-    if (campo === 'valorPorMes') {
-      patch.mesesNecessarios =
-        novo > 0 ? Math.ceil((meta.valorMeta || 0) / novo) : 0;
+    const anoInicio = meta.ano ?? this.metasService.getAnoSelecionado();
 
-      if (meta.meses && meta.meses.length > 0) {
-        patch.meses = meta.meses.map((mes) => ({
-          ...mes,
-          valor: novo > 0 ? novo : 0,
-          status: novo > 0 ? 'Programado' : 'Vazio',
-        }));
+    if (campo === 'valorPorMes') {
+      const mesesNecessarios =
+        novo > 0 ? Math.ceil((meta.valorMeta || 0) / novo) : 0;
+      patch.mesesNecessarios = mesesNecessarios;
+      if (mesesNecessarios > 0) {
+        patch.meses = regenerarMesesMeta(
+          meta,
+          anoInicio,
+          mesesNecessarios,
+          novo,
+        );
       }
+    }
+
+    if (campo === 'valorMeta' && meta.valorPorMes > 0) {
+      const mesesNecessarios = Math.ceil(novo / meta.valorPorMes);
+      patch.mesesNecessarios = mesesNecessarios;
+      patch.meses = regenerarMesesMeta(
+        meta,
+        anoInicio,
+        mesesNecessarios,
+        meta.valorPorMes,
+      );
     }
 
     return patch;
@@ -407,11 +415,15 @@ export class ElaborandoMetasComponent implements OnDestroy {
     campo: 'valorMeta' | 'valorPorMes' | 'valorAtual',
     novo: number,
   ): void {
-    if (campo === 'valorPorMes' && meta.meses && meta.meses.length > 0) {
-      meta.meses.forEach((mes) => {
-        mes.valor = novo > 0 ? novo : 0;
-        mes.status = novo > 0 ? 'Programado' : 'Vazio';
-      });
+    if (
+      (campo === 'valorPorMes' || campo === 'valorMeta') &&
+      meta.meses &&
+      meta.meses.length > 0
+    ) {
+      const patch = this.buildPatchCampoNumerico(meta, campo, novo);
+      if (Array.isArray(patch.meses)) {
+        meta.meses = patch.meses as typeof meta.meses;
+      }
     }
 
     meta.savedTickCampo = true;
@@ -452,7 +464,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
     );
 
     this.totalMesesNecessariosView = this.metas.reduce(
-      (t, m) => t + (Number(m.mesesNecessarios) || 0),
+      (t, m) => t + mesesTotaisDoPlano(m),
       0,
     );
 
@@ -485,32 +497,33 @@ export class ElaborandoMetasComponent implements OnDestroy {
     return meta.meses.reduce((total, mes) => total + mes.valor, 0);
   }
 
+  metaConcluida(meta: MetaExtended): boolean {
+    return metaEstaConcluida(meta);
+  }
+
   // Calcular progresso real de uma meta (quanto já temos + quanto já pagamos)
   getProgressoRealMeta(meta: MetaExtended): number {
     const valorMeta = Number(meta.valorMeta) || 0;
     if (valorMeta <= 0) return 0;
 
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
-    const valorPago = (meta.meses ?? [])
-      .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
+    const totalRealizado = calcularValorRealizado(meta);
+    return Number(((totalRealizado * 100) / valorMeta).toFixed(2));
+  }
 
-    const totalRealizado = valorAtual + valorPago;
-    const progresso = Number(((totalRealizado * 100) / valorMeta).toFixed(2));
+  /** Total de meses do plano (ex.: 500.000 ÷ 5.000 = 100). */
+  getMesesDoPlano(meta: MetaExtended): number {
+    return mesesTotaisDoPlano(meta);
+  }
 
-    // Debug: verificar condições para parabéns
-    const temMesesPagos = (meta.meses ?? []).some((x) => x.status === 'Pago');
-    const jaMostrou = this.jaMostrouParabens(meta.id);
-
-    // Verificar se atingiu 100% E tem pelo menos um mês pago
-    if (progresso >= 100 && temMesesPagos && !jaMostrou) {
-      this.mostrarParabens(meta);
-
-      // Marcar meses restantes como "Finalizado" quando meta atinge 100%
-      this.marcarMesesComoFinalizado(meta);
+  getMesesRestantesLabel(meta: MetaExtended): string {
+    const restantes = this.getMesesRestantes(meta);
+    if (restantes === -1) {
+      return '';
     }
-
-    return progresso;
+    if (restantes === 0) {
+      return ' · concluída';
+    }
+    return ` · faltam ${restantes}`;
   }
 
   // Calcular meses restantes baseado nos meses pagos
@@ -539,110 +552,12 @@ export class ElaborandoMetasComponent implements OnDestroy {
     return mesesRestantes;
   }
 
-  // Calcular valor que ainda falta pagar
   getValorFaltanteMeta(meta: MetaExtended): number {
-    const valorMeta = Number(meta.valorMeta) || 0;
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
-    const valorPago = (meta.meses ?? [])
-      .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
-
-    const totalRealizado = valorAtual + valorPago;
-    return Math.max(0, valorMeta - totalRealizado);
+    return calcularValorFaltante(meta);
   }
 
-  // Calcular valor total realizado (quanto já temos + quanto já pagamos)
   getValorRealizadoMeta(meta: MetaExtended): number {
-    const valorAtual = Number(meta.valorAtual) || 0; // "Quanto já temos"
-    const valorPago = (meta.meses ?? [])
-      .filter((x) => x.status === 'Pago')
-      .reduce((s, x) => s + (Number(x.valor) || 0), 0); // "Quanto já pagamos"
-
-    return valorAtual + valorPago;
-  }
-
-  // Mostrar modal de parabéns quando meta atinge 100%
-  private mostrarParabens(meta: MetaExtended): void {
-    this.modalParabens = {
-      isOpen: true,
-      metaNome: meta.nome,
-      valorMeta: meta.valorMeta,
-    };
-    // Marcar que já mostrou parabéns para esta meta (persistir no localStorage)
-    this.marcarParabensMostrado(meta.id);
-  }
-
-  // Marcar que já mostrou parabéns para uma meta (persistir no localStorage)
-  private marcarParabensMostrado(metaId: string | number): void {
-    try {
-      const parabensMostrados = this.getParabensMostrados();
-      parabensMostrados.push(String(metaId));
-      localStorage.setItem(
-        'metas_parabens_mostrados',
-        JSON.stringify(parabensMostrados),
-      );
-    } catch (error) {
-      // Erro ao salvar parabéns no localStorage
-    }
-  }
-
-  // Verificar se já mostrou parabéns para uma meta
-  private jaMostrouParabens(metaId: string | number): boolean {
-    try {
-      const parabensMostrados = this.getParabensMostrados();
-      return parabensMostrados.includes(String(metaId));
-    } catch (error) {
-      return false;
-    }
-  }
-
-  // Obter lista de metas que já mostraram parabéns
-  private getParabensMostrados(): string[] {
-    try {
-      const stored = localStorage.getItem('metas_parabens_mostrados');
-      return stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      return [];
-    }
-  }
-
-  // Fechar modal de parabéns
-  fecharParabens(): void {
-    this.modalParabens.isOpen = false;
-  }
-
-  // Marcar meses restantes como "Finalizado" quando meta atinge 100%
-  private marcarMesesComoFinalizado(meta: MetaExtended): void {
-    if (!meta.meses || meta.meses.length === 0) return;
-
-    // Encontrar meses que ainda não foram pagos (status diferente de 'Pago')
-    const mesesParaFinalizar = meta.meses.filter(
-      (mes) => mes.status !== 'Pago',
-    );
-
-    if (mesesParaFinalizar.length === 0) {
-      return;
-    }
-
-    // Marcar todos os meses restantes como "Finalizado"
-    mesesParaFinalizar.forEach((mes) => {
-      mes.status = 'Finalizado';
-      mes.valor = 0; // Zerar o valor já que a meta foi completada
-    });
-
-    // Salvar no servidor (apenas os meses, pois mesesNecessarios é calculado dinamicamente)
-    this.metasService
-      .updateMeta(meta.id, {
-        meses: meta.meses.map((m) => ({ ...m })),
-      })
-      .subscribe({
-        next: () => {
-          this.metasAtualizadas.emit();
-        },
-        error: (_error) => {
-          // Erro ao finalizar meta
-        },
-      });
+    return calcularValorRealizado(meta);
   }
 
   private reloadMetas(
@@ -652,32 +567,33 @@ export class ElaborandoMetasComponent implements OnDestroy {
     // Preservar estado savedTickCampo da meta que acabou de ser salva
     const savedMetaState = Boolean(preserveSavedTick && savedMetaId);
 
-    this.metasService.getMetas().subscribe((metas: Meta[]) => {
-      // Filtrar apenas metas válidas (com ID válido e nome não vazio)
-      const metasValidas = metas.filter((meta) => {
-        // Aceitar qualquer ID válido (não vazio, não 0, não undefined)
+    const ano = this.metasService.getAnoSelecionado();
+    this.metasService.getMetas(ano).subscribe((metas: Meta[]) => {
+      const anoAtual = new Date().getFullYear();
+      const metasDoAno = metas.filter((m) =>
+        metaVisivelNoExercicio(m, ano, anoAtual),
+      );
+      const metasValidas = metasDoAno.filter((meta) => {
         const idValido =
           meta.id && meta.id !== 0 && String(meta.id).trim() !== '';
-        // Aceitar nomes válidos (não vazios, não undefined)
         const nomeValido =
           meta.nome && meta.nome.trim().length > 0 && meta.nome !== 'undefined';
         return idValido && nomeValido;
       });
 
       this.metas = metasValidas.map((m) => {
-        // Preservar savedTickCampo se for a meta que acabou de ser salva
         const shouldPreserveTick = Boolean(
           savedMetaId && String(m.id) === String(savedMetaId) && savedMetaState,
         );
 
         const metaExtended: MetaExtended = {
           ...m,
-          id: m.id, // Padronizar todos os IDs como string
+          id: m.id,
           valorMeta: this.toNum(m.valorMeta),
           valorPorMes: this.toNum(m.valorPorMes),
           valorAtual: this.toNum(m.valorAtual),
           mesesNecessarios: this.toNum(m.mesesNecessarios),
-          icon: m.icon || 'bi-bullseye', // Preservar o ícone da meta
+          icon: m.icon || 'bi-bullseye',
           editandoNome: false,
           nomeTemp: '',
           savingNome: false,
@@ -694,261 +610,15 @@ export class ElaborandoMetasComponent implements OnDestroy {
     });
   }
 
-  // Métodos para o modal de adicionar meta
-  abrirModalAdicionarMeta(): void {
-    this.metasService.open();
-    // Sincronizar estado local
-    this.modalAdicionarMeta.isOpen = true;
-    this.modalAdicionarMeta.nome = '';
-    this.modalAdicionarMeta.valorMeta = 0;
-    this.modalAdicionarMeta.valorPorMes = 0;
-    this.modalAdicionarMeta.valorAtual = 0;
-    this.valorMetaRaw = '';
-    this.valorPorMesRaw = '';
-    this.valorAtualRaw = '';
-  }
-
-  fecharModalAdicionarMeta(): void {
-    this.metasService.close();
-    // Sincronizar estado local
-    this.modalAdicionarMeta.isOpen = false;
-    this.modalAdicionarMeta.nome = '';
-    this.modalAdicionarMeta.valorMeta = 0;
-    this.modalAdicionarMeta.valorPorMes = 0;
-    this.modalAdicionarMeta.valorAtual = 0;
-    this.valorMetaRaw = '';
-    this.valorPorMesRaw = '';
-    this.valorAtualRaw = '';
-  }
-
-  salvarMetaModal(): void {
-    const modalState = this.metasService.getState() as ModalStateSalvar;
-
-    const valores = this.validarEstadoModalSalvar(modalState);
-    if (!valores) return;
-
-    const dadosParaEnviar = this.buildDadosMetaParaEnviar(modalState, valores);
-
-    this.metasService.createMeta(dadosParaEnviar).subscribe({
-      next: () => this.onSalvarMetaSuccess(),
-      error: (err) => this.onSalvarMetaError(err),
-    });
-  }
-
-  private validarEstadoModalSalvar(
-    modalState: ModalStateSalvar,
-  ): ValoresSalvarMetaModal | null {
-    const valores = this.extrairValoresModalSalvar(modalState);
-
-    const erro = this.validarValoresModalSalvar(modalState, valores);
-    if (erro) return this.alertAndReturn(erro);
-
-    return valores;
-  }
-
-  private extrairValoresModalSalvar(
-    modalState: ModalStateSalvar,
-  ): ValoresSalvarMetaModal {
-    const nome = (modalState.nome ?? '').trim();
-
-    const valorMeta = this.parseNumeroBR(modalState.valorMetaRaw);
-    const valorPorMes = this.parseNumeroBR(modalState.valorPorMesRaw);
-
-    const valorAtualRaw = (modalState.valorAtualRaw ?? '').trim();
-    const valorAtual = modalState.temValorAtual
-      ? this.parseNumeroBR(valorAtualRaw)
-      : 0;
-
-    return { nome, valorMeta, valorPorMes, valorAtual };
-  }
-
-  private validarValoresModalSalvar(
-    modalState: ModalStateSalvar,
-    valores: ValoresSalvarMetaModal,
-  ): string | null {
-    if (!valores.nome) return 'Por favor, preencha o nome da meta.';
-
-    if (valores.valorMeta <= 0)
-      return 'Por favor, preencha o valor da meta (deve ser maior que zero).';
-
-    if (valores.valorPorMes <= 0)
-      return 'Por favor, preencha o valor por mês (deve ser maior que zero).';
-
-    if (modalState.temValorAtual)
-      return this.validarValorAtual(modalState, valores);
-
-    return null;
-  }
-
-  private validarValorAtual(
-    modalState: ModalStateSalvar,
-    valores: ValoresSalvarMetaModal,
-  ): string | null {
-    const valorAtualRaw = (modalState.valorAtualRaw ?? '').trim();
-
-    if (!valorAtualRaw)
-      return 'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).';
-
-    if (valores.valorAtual < 0)
-      return 'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).';
-
-    return null;
-  }
-
-  private buildDadosMetaParaEnviar(
-    modalState: ModalStateSalvar,
-    valores: ValoresSalvarMetaModal,
-  ): CreateMetaRequest {
-    const mesesPadrao = this.getMesesPadrao();
-    const iconSelecionado = this.getIconSelecionado(modalState);
-
-    const mesesNecessarios =
-      valores.valorPorMes > 0
-        ? Math.ceil(valores.valorMeta / valores.valorPorMes)
-        : 0;
-
-    const valorAtualFinal = modalState.temValorAtual ? valores.valorAtual : 0;
-
-    return {
-      nome: valores.nome,
-      valorMeta: valores.valorMeta,
-      valorPorMes: valores.valorPorMes,
-      mesesNecessarios,
-      valorAtual: valorAtualFinal,
-      icon: iconSelecionado,
-      meses: this.buildMeses(mesesPadrao, valores.valorPorMes),
-    };
-  }
-
-  private getMesesPadrao(): string[] {
-    return [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
-    ];
-  }
-
-  private getIconSelecionado(modalState: ModalStateSalvar): string {
-    return modalState.icon && modalState.icon.trim() !== ''
-      ? modalState.icon
-      : 'bi-bullseye';
-  }
-
-  private buildMeses(
-    mesesPadrao: string[],
-    valorPorMes: number,
-  ): Partial<MesMeta>[] {
-    const valor = valorPorMes > 0 ? valorPorMes : 0;
-    const status = (valorPorMes > 0 ? 'Programado' : 'Vazio') as
-      | 'Programado'
-      | 'Vazio';
-
-    return mesesPadrao.map((nome, i) => ({
-      id: i + 1,
-      nome,
-      valor,
-      status,
-    }));
-  }
-
-  private onSalvarMetaSuccess(): void {
-    this.metasAtualizadas.emit();
-
-    this.metasService.close();
-    this.metasService.reset();
-    this.fecharModalAdicionarMeta();
-
-    this.metasService.showSucesso(
-      'Meta adicionada!',
-      'Sua meta foi criada com sucesso.',
-    );
-  }
-
-  private onSalvarMetaError(err: {
-    status?: number;
-    statusText?: string;
-    message?: string;
-  }): void {
-    if (err.status === 0 || err.statusText === 'Unknown Error') {
-      alert(
-        '⚠️ Erro de conexão: Não foi possível conectar ao servidor.\n\n' +
-          'Verifique se o backend está rodando em http://localhost:3000\n\n' +
-          'Erro: ' +
-          (err.message || 'Conexão recusada'),
-      );
-      return;
-    }
-
-    alert('Erro ao criar meta: ' + (err.message || 'Tente novamente.'));
-  }
-
-  private alertAndReturn(message: string): null {
-    alert(message);
-    return null;
-  }
-
-  cancelarAdicionarMeta(): void {
-    this.fecharModalAdicionarMeta();
-  }
-
-  // Métodos para o modal de adicionar meta
-  onValorMetaChange(valor: any): void {
-    // Remove caracteres inválidos, mantém apenas números, vírgula e ponto
-    const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
-    // Atualiza no serviço
-    this.metasService.updateValorMetaRaw(valorLimpo);
-    // Sincroniza estado local
-    this.valorMetaRaw = valorLimpo;
-    const valorProcessado = this.parseNumeroBR(valorLimpo);
-    this.modalAdicionarMeta.valorMeta = valorProcessado;
-  }
-
-  onValorPorMesChange(valor: any): void {
-    const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
-    this.metasService.updateValorPorMesRaw(valorLimpo);
-    this.valorPorMesRaw = valorLimpo;
-    const valorProcessado = this.parseNumeroBR(valorLimpo);
-    this.modalAdicionarMeta.valorPorMes = valorProcessado;
-  }
-
-  onValorAtualChange(valor: any): void {
-    const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
-    this.metasService.updateValorAtualRaw(valorLimpo);
-    this.valorAtualRaw = valorLimpo;
-    const valorProcessado = this.parseNumeroBR(valorLimpo);
-    this.modalAdicionarMeta.valorAtual = valorProcessado;
-  }
-
-  onValorMetaChangeEvent(event: any): void {
-    const valor = event.target?.value || event;
-    this.onValorMetaChange(valor);
-  }
-
-  onValorPorMesChangeEvent(event: any): void {
-    const valor = event.target?.value || event;
-    this.onValorPorMesChange(valor);
-  }
-
-  onValorAtualChangeEvent(event: any): void {
-    const valor = event.target?.value || event;
-    this.onValorAtualChange(valor);
-  }
-
   onKeyUp(
     ev: KeyboardEvent,
     meta: MetaExtended,
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
   ): void {
-    // Enter (inclui o do teclado numérico)
+    if (this.metaConcluida(meta)) {
+      return;
+    }
+
     if (ev.key === 'Enter' || ev.code === 'NumpadEnter') {
       ev.preventDefault();
       ev.stopPropagation();
@@ -960,7 +630,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
       return;
     }
 
-    // Escape
     if (ev.key === 'Escape') {
       ev.preventDefault();
       ev.stopPropagation();
@@ -968,9 +637,7 @@ export class ElaborandoMetasComponent implements OnDestroy {
     }
   }
 
-  // Método para validar apenas números nos campos de valor do modal
   validarApenasNumeros(event: KeyboardEvent): void {
-    // Permitir teclas de controle (não precisam validação)
     const teclasControle = [
       'Backspace',
       'Delete',
@@ -991,26 +658,23 @@ export class ElaborandoMetasComponent implements OnDestroy {
     ];
 
     if (teclasControle.includes(event.key)) {
-      return; // Permite teclas de controle
+      return;
     }
 
-    // Permitir teclas do teclado numérico (Numpad)
     if (event.code.startsWith('Numpad')) {
-      // Verificar se é número do numpad (0-9) ou vírgula/ponto
       if (
         event.code.includes('Comma') ||
         event.code.includes('Period') ||
         (event.code >= 'Numpad0' && event.code <= 'Numpad9')
       ) {
-        return; // Permite números do numpad, vírgula e ponto
+        return;
       }
     }
 
-    // Permitir apenas: números (0-9), vírgula (,) e ponto (.)
     const teclasPermitidas = /^[0-9,\.]$/;
 
     if (!teclasPermitidas.test(event.key)) {
-      event.preventDefault(); // Bloqueia qualquer outro caractere
+      event.preventDefault();
     }
   }
 }

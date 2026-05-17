@@ -1,26 +1,32 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-// import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { ExecutandoMetasComponent } from './executando-metas.component';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import {
   Meta,
   StatusMeta,
 } from '../../../../../core/interfaces/metas/mes-meta';
+import { EditarValorDialogComponent } from '../../editar-valor-dialog/editar-valor-dialog.component';
 import { of, Subject } from 'rxjs';
 
 describe('ExecutandoMetasComponent', () => {
   let component: ExecutandoMetasComponent;
   let fixture: ComponentFixture<ExecutandoMetasComponent>;
-  let editarValorSave$!: Subject<{
-    metaId: number | string;
-    mesId: number;
-    valor: number;
-  }>;
+  let dialogAfterClosed$!: Subject<
+    | {
+        metaId: number | string;
+        mesId: number;
+        valor: number;
+      }
+    | undefined
+  >;
+
+  const dialogMock = {
+    open: jest.fn(),
+  };
 
   const metasServiceMock = {
-    editarValorSave$: undefined as any,
-    openEditarValor: jest.fn(),
     updateMeta: jest.fn(),
   };
   const mockMetas: Meta[] = [
@@ -108,20 +114,28 @@ describe('ExecutandoMetasComponent', () => {
   ];
 
   beforeEach(async () => {
-    editarValorSave$ = new Subject<{
-      metaId: number | string;
-      mesId: number;
-      valor: number;
-    }>();
+    dialogAfterClosed$ = new Subject<
+      | {
+          metaId: number | string;
+          mesId: number;
+          valor: number;
+        }
+      | undefined
+    >();
 
-    metasServiceMock.editarValorSave$ = editarValorSave$.asObservable();
-    metasServiceMock.openEditarValor.mockClear();
+    dialogMock.open.mockReturnValue({
+      afterClosed: () => dialogAfterClosed$.asObservable(),
+    });
+
     metasServiceMock.updateMeta.mockReturnValue(of({}));
 
     await TestBed.configureTestingModule({
       declarations: [ExecutandoMetasComponent],
       imports: [HttpClientTestingModule],
-      providers: [{ provide: MetasService, useValue: metasServiceMock }],
+      providers: [
+        { provide: MetasService, useValue: metasServiceMock },
+        { provide: MatDialog, useValue: dialogMock },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ExecutandoMetasComponent);
@@ -160,19 +174,36 @@ describe('ExecutandoMetasComponent', () => {
     expect(component.trackByMesId(0, { id: 5 })).toBe(5);
   });
 
-  describe('ngOnInit', () => {
-    it('ngOnInit deve atualizar valor vindo do editarValorSave$', () => {
-      const spy = jest.spyOn(component.salvarValor, 'emit');
+  describe('abrirModalEdicao', () => {
+    it('deve abrir EditarValorDialogComponent via MatDialog', () => {
+      component.meses = ['Janeiro', 'Fevereiro'];
+      const meta = component.metas[0];
+      const event = { stopPropagation: jest.fn() } as unknown as MouseEvent;
 
-      editarValorSave$.next({
-        metaId: 1,
+      component.abrirModalEdicao(meta, 3, 2, event);
+
+      expect(event.stopPropagation).toHaveBeenCalled();
+      expect(dialogMock.open).toHaveBeenCalledTimes(1);
+
+      const [dialogComponent, dialogConfig] = dialogMock.open.mock.calls[0];
+      expect(dialogComponent).toBe(EditarValorDialogComponent);
+      expect(dialogConfig.width).toBe('min(420px, 96vw)');
+      expect(dialogConfig.data).toEqual({
+        meta,
         mesId: 3,
-        valor: 900,
+        meses: ['Janeiro', 'Fevereiro'],
       });
+    });
+
+    it('após fechar o dialog com valor deve atualizar mês e emitir salvarValor', () => {
+      const spy = jest.spyOn(component.salvarValor, 'emit');
+      const meta = component.metas[0];
+
+      component.abrirModalEdicao(meta, 3, 2);
+      dialogAfterClosed$.next({ metaId: 1, mesId: 3, valor: 900 });
 
       expect(component.metas[0].meses[2].valor).toBe(900);
       expect(component.metas[0].meses[2].status).toBe('Programado');
-
       expect(spy).toHaveBeenCalledWith({
         metaId: 1,
         mesId: 3,
@@ -180,44 +211,26 @@ describe('ExecutandoMetasComponent', () => {
       });
     });
 
-    it('ngOnInit deve deixar status Vazio quando valor for zero', () => {
-      editarValorSave$.next({
-        metaId: 1,
-        mesId: 3,
-        valor: 0,
-      });
+    it('deve deixar status Vazio quando valor for zero', () => {
+      const meta = component.metas[0];
+      component.abrirModalEdicao(meta, 3, 2);
+      dialogAfterClosed$.next({ metaId: 1, mesId: 3, valor: 0 });
 
       expect(component.metas[0].meses[2].valor).toBe(0);
       expect(component.metas[0].meses[2].status).toBe('Vazio');
     });
 
-    it('ngOnInit deve ignorar quando meta não existe', () => {
+    it('não deve emitir quando dialog for cancelado', () => {
       const spy = jest.spyOn(component.salvarValor, 'emit');
-
-      editarValorSave$.next({
-        metaId: 999,
-        mesId: 1,
-        valor: 100,
-      });
-
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-    it('ngOnInit deve ignorar quando mês não existe', () => {
-      const spy = jest.spyOn(component.salvarValor, 'emit');
-
-      editarValorSave$.next({
-        metaId: 1,
-        mesId: 999,
-        valor: 100,
-      });
-
+      component.abrirModalEdicao(component.metas[0], 3, 2);
+      dialogAfterClosed$.next(undefined);
       expect(spy).not.toHaveBeenCalled();
     });
   });
 
   describe('ngOnChanges', () => {
-    it('should handle metas changes', () => {
+    it('should normalize meses when metas input changes', () => {
+      component.meses = ['Janeiro/2026', 'Fevereiro/2026'];
       const changes = {
         metas: {
           currentValue: mockMetas,
@@ -227,89 +240,35 @@ describe('ExecutandoMetasComponent', () => {
         },
       };
 
-      const setHeaderSpy = jest.spyOn(component, 'setHeaderMesesFromData');
       const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
 
       component.ngOnChanges(changes);
 
-      expect(setHeaderSpy).toHaveBeenCalled();
       expect(normalizeSpy).toHaveBeenCalledTimes(mockMetas.length);
     });
 
-    it('should not process changes when metas is null', () => {
-      const changes = {
-        metas: {
-          currentValue: null,
-          previousValue: mockMetas,
+    it('should normalize when meses header changes', () => {
+      component.metas = mockMetas;
+      const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
+
+      component.ngOnChanges({
+        meses: {
+          currentValue: ['Janeiro/2026'],
+          previousValue: [],
           firstChange: false,
           isFirstChange: () => false,
         },
-      };
+      });
 
-      const setHeaderSpy = jest.spyOn(component, 'setHeaderMesesFromData');
-      const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
-
-      component.ngOnChanges(changes);
-
-      expect(setHeaderSpy).not.toHaveBeenCalled();
-      expect(normalizeSpy).not.toHaveBeenCalled();
+      expect(normalizeSpy).toHaveBeenCalledTimes(mockMetas.length);
     });
 
-    it('ngOnChanges deve ignorar quando não existe changes de metas', () => {
-      const spy = jest.spyOn(component, 'setHeaderMesesFromData');
+    it('ngOnChanges deve ignorar quando não há mudança em metas nem meses', () => {
+      const normalizeSpy = jest.spyOn(component as any, 'normalizeMeses');
 
       component.ngOnChanges({});
 
-      expect(spy).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('setHeaderMesesFromData', () => {
-    it('should set meses from metas data', () => {
-      component.metas = mockMetas;
-      component.setHeaderMesesFromData();
-
-      expect(component.meses).toContain('Janeiro');
-      expect(component.meses).toContain('Fevereiro');
-      expect(component.meses).toContain('Março');
-      expect(component.meses).toContain('Abril');
-      expect(component.meses).toContain('Maio');
-      expect(component.meses).toContain('Junho');
-    });
-
-    it('should handle empty metas array', () => {
-      component.metas = [];
-      component.setHeaderMesesFromData();
-
-      expect(component.meses).toEqual([
-        'Janeiro',
-        'Fevereiro',
-        'Março',
-        'Abril',
-        'Maio',
-        'Junho',
-        'Julho',
-        'Agosto',
-        'Setembro',
-        'Outubro',
-        'Novembro',
-        'Dezembro',
-      ]);
-    });
-
-    it('setHeaderMesesFromData deve ignorar meta sem meses e usar MESES_PADRAO', () => {
-      component.metas = [
-        {
-          ...mockMetas[0],
-          meses: undefined,
-        } as any,
-      ];
-
-      component.setHeaderMesesFromData();
-
-      expect(component.meses.length).toBe(12);
-      expect(component.meses[0]).toBe('Janeiro');
-      expect(component.meses[11]).toBe('Dezembro');
+      expect(normalizeSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -512,30 +471,10 @@ describe('ExecutandoMetasComponent', () => {
   });
 
   describe('ngOnDestroy', () => {
-    it('ngOnDestroy deve remover dropdown e cancelar subscription', () => {
+    it('ngOnDestroy deve remover dropdown do body', () => {
       const removeSpy = jest.spyOn(component as any, 'removeDropdownFromBody');
-
       component.ngOnDestroy();
-
       expect(removeSpy).toHaveBeenCalled();
-    });
-
-    it('ngOnDestroy deve cancelar subscription quando existir', () => {
-      const unsubscribeSpy = jest.fn();
-
-      component['editarValorSubscription'] = {
-        unsubscribe: unsubscribeSpy,
-      } as any;
-
-      component.ngOnDestroy();
-
-      expect(unsubscribeSpy).toHaveBeenCalled();
-    });
-
-    it('ngOnDestroy não deve quebrar quando não existir subscription', () => {
-      component['editarValorSubscription'] = undefined;
-
-      expect(() => component.ngOnDestroy()).not.toThrow();
     });
   });
 
@@ -640,7 +579,7 @@ describe('ExecutandoMetasComponent', () => {
 
       component.selecionarStatusByOverlay('Pago');
 
-      expect(spy).toHaveBeenCalledWith(component.metas[0], 1, 'Pago');
+      expect(spy).toHaveBeenCalledWith(component.metas[0], 1, 0, 'Pago');
     });
   });
 
@@ -665,7 +604,7 @@ describe('ExecutandoMetasComponent', () => {
         target: wrapper,
       } as unknown as MouseEvent;
 
-      component.toggleDropdown(component.metas[0] as any, 1, event);
+      component.toggleDropdown(component.metas[0] as any, 1, 0, event);
 
       expect(component.openDropdownKey).toBe('1_1');
       expect(component['activeMeta']).toBe(component.metas[0]);
@@ -686,7 +625,7 @@ describe('ExecutandoMetasComponent', () => {
         target: wrapper,
       } as unknown as MouseEvent;
 
-      component.toggleDropdown(component.metas[0] as any, 1, event);
+      component.toggleDropdown(component.metas[0] as any, 1, 0, event);
 
       expect(closeSpy).toHaveBeenCalled();
     });
@@ -699,7 +638,7 @@ describe('ExecutandoMetasComponent', () => {
         target: document.createElement('div'),
       } as unknown as MouseEvent;
 
-      component.toggleDropdown(component.metas[0] as any, 1, event);
+      component.toggleDropdown(component.metas[0] as any, 1, 0, event);
 
       expect(event.stopPropagation).toHaveBeenCalled();
       expect(event.preventDefault).toHaveBeenCalled();
@@ -1264,7 +1203,7 @@ describe('ExecutandoMetasComponent', () => {
       const meta = mockMetas[0];
       const spy = jest.spyOn(component.alternarStatus, 'emit');
 
-      component.selecionarStatus(meta, 999, 'Pago');
+      component.selecionarStatus(meta, 999, 0, 'Pago');
 
       expect(spy).not.toHaveBeenCalled();
     });
@@ -1273,7 +1212,7 @@ describe('ExecutandoMetasComponent', () => {
       const meta = mockMetas[0];
       const spy = jest.spyOn(component as any, 'verificarMetaCompleta');
 
-      component.selecionarStatus(meta, 1, 'Pago');
+      component.selecionarStatus(meta, 1, 0, 'Pago');
 
       expect(spy).toHaveBeenCalledWith(meta);
     });
@@ -1282,7 +1221,7 @@ describe('ExecutandoMetasComponent', () => {
       const meta = mockMetas[0];
       const spy = jest.spyOn(component as any, 'verificarMetaCompleta');
 
-      component.selecionarStatus(meta, 1, 'Programado');
+      component.selecionarStatus(meta, 1, 0, 'Programado');
 
       expect(spy).not.toHaveBeenCalled();
     });
@@ -1300,11 +1239,6 @@ describe('ExecutandoMetasComponent', () => {
       };
 
       const spy = jest.spyOn(component.metaCompleta, 'emit');
-      const marcarSpy = jest.spyOn(component as any, 'marcarParabensMostrado');
-      const finalizarSpy = jest.spyOn(
-        component as any,
-        'marcarMesesComoFinalizado',
-      );
 
       component['verificarMetaCompleta'](meta);
 
@@ -1313,8 +1247,6 @@ describe('ExecutandoMetasComponent', () => {
         metaNome: meta.nome,
         valorMeta: meta.valorMeta,
       });
-      expect(marcarSpy).toHaveBeenCalledWith(meta.id);
-      expect(finalizarSpy).toHaveBeenCalledWith(meta);
     });
 
     it('should not emit when valorMeta is 0 or negative', () => {
@@ -1343,11 +1275,11 @@ describe('ExecutandoMetasComponent', () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
-    it('should not emit when no months are paid', () => {
+    it('deve emitir quando concluída só com valorAtual (sem mês pago)', () => {
       const meta = {
         ...mockMetas[0],
-        valorMeta: 1000,
-        valorAtual: 1000,
+        valorMeta: 4124,
+        valorAtual: 8000,
         meses: [
           { id: 1, nome: 'Janeiro', valor: 0, status: 'Vazio' as StatusMeta },
         ],
@@ -1357,25 +1289,11 @@ describe('ExecutandoMetasComponent', () => {
 
       component['verificarMetaCompleta'](meta);
 
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-    it('should not emit when congratulations already shown', () => {
-      const meta = {
-        ...mockMetas[0],
-        valorMeta: 1000,
-        valorAtual: 500,
-        meses: [
-          { id: 1, nome: 'Janeiro', valor: 500, status: 'Pago' as StatusMeta },
-        ],
-      };
-
-      jest.spyOn(component as any, 'jaMostrouParabens').mockReturnValue(true);
-      const spy = jest.spyOn(component.metaCompleta, 'emit');
-
-      component['verificarMetaCompleta'](meta);
-
-      expect(spy).not.toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith({
+        metaId: meta.id,
+        metaNome: meta.nome,
+        valorMeta: meta.valorMeta,
+      });
     });
 
     it('verificarMetaCompleta deve usar valorAtual 0 quando vier undefined', () => {
@@ -1389,20 +1307,13 @@ describe('ExecutandoMetasComponent', () => {
       };
 
       const spy = jest.spyOn(component.metaCompleta, 'emit');
-      jest.spyOn(component as any, 'jaMostrouParabens').mockReturnValue(false);
-      jest
-        .spyOn(component as any, 'marcarParabensMostrado')
-        .mockImplementation();
-      jest
-        .spyOn(component as any, 'marcarMesesComoFinalizado')
-        .mockImplementation();
 
       component['verificarMetaCompleta'](meta as any);
 
       expect(spy).toHaveBeenCalled();
     });
 
-    it('verificarMetaCompleta deve usar lista vazia quando meses vier undefined', () => {
+    it('deve emitir quando concluída só com valorAtual e meses undefined', () => {
       const meta = {
         ...mockMetas[0],
         valorMeta: 1000,
@@ -1414,200 +1325,7 @@ describe('ExecutandoMetasComponent', () => {
 
       component['verificarMetaCompleta'](meta as any);
 
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-    it('jaMostrouParabens deve retornar false quando getParabensMostrados der erro', () => {
-      jest
-        .spyOn(component as any, 'getParabensMostrados')
-        .mockImplementation(() => {
-          throw new Error('erro');
-        });
-
-      const result = component['jaMostrouParabens'](123);
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('marcarParabensMostrado', () => {
-    it('should save meta ID to localStorage', () => {
-      const metaId = 123;
-      const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
-
-      component['marcarParabensMostrado'](metaId);
-
-      expect(setItemSpy).toHaveBeenCalledWith(
-        'metas_parabens_mostrados',
-        JSON.stringify(['123']),
-      );
-    });
-
-    it('should handle localStorage error gracefully', () => {
-      const metaId = 123;
-      jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-        throw new Error('Storage error');
-      });
-
-      expect(() => component['marcarParabensMostrado'](metaId)).not.toThrow();
-    });
-  });
-
-  describe('jaMostrouParabens', () => {
-    it('should return true if meta already showed congratulations', () => {
-      const metaId = 123;
-      jest
-        .spyOn(Storage.prototype, 'getItem')
-        .mockReturnValue(JSON.stringify(['123', '456']));
-
-      const result = component['jaMostrouParabens'](metaId);
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false if meta has not shown congratulations', () => {
-      const metaId = 789;
-      jest
-        .spyOn(Storage.prototype, 'getItem')
-        .mockReturnValue(JSON.stringify(['123', '456']));
-
-      const result = component['jaMostrouParabens'](metaId);
-
-      expect(result).toBe(false);
-    });
-
-    it('should handle localStorage error gracefully', () => {
-      const metaId = 123;
-      jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-        throw new Error('Storage error');
-      });
-
-      const result = component['jaMostrouParabens'](metaId);
-
-      expect(result).toBe(false);
-    });
-
-    it('should return false when localStorage is empty (null)', () => {
-      const metaId = 123;
-
-      jest.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
-
-      const result = component['jaMostrouParabens'](metaId);
-
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('getParabensMostrados', () => {
-    it('should return parsed array from localStorage', () => {
-      const storedData = ['123', '456'];
-      jest
-        .spyOn(Storage.prototype, 'getItem')
-        .mockReturnValue(JSON.stringify(storedData));
-
-      const result = component['getParabensMostrados']();
-
-      expect(result).toEqual(storedData);
-    });
-
-    it('should return empty array when localStorage is empty', () => {
-      jest.spyOn(Storage.prototype, 'getItem').mockReturnValue(null);
-
-      const result = component['getParabensMostrados']();
-
-      expect(result).toEqual([]);
-    });
-
-    it('should handle localStorage error gracefully', () => {
-      jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-        throw new Error('Storage error');
-      });
-
-      const result = component['getParabensMostrados']();
-
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe('marcarMesesComoFinalizado', () => {
-    it('should handle meta with no meses', () => {
-      metasServiceMock.updateMeta.mockClear();
-
-      const meta = { ...mockMetas[0], meses: [] };
-
-      component['marcarMesesComoFinalizado'](meta as any);
-
-      expect(metasServiceMock.updateMeta).not.toHaveBeenCalled();
-    });
-
-    it('should handle meta with all months already paid', () => {
-      metasServiceMock.updateMeta.mockClear();
-
-      const meta = {
-        ...mockMetas[0],
-        meses: [
-          { id: 1, nome: 'Janeiro', valor: 500, status: 'Pago' as StatusMeta },
-          {
-            id: 2,
-            nome: 'Fevereiro',
-            valor: 500,
-            status: 'Pago' as StatusMeta,
-          },
-        ],
-      };
-
-      component['marcarMesesComoFinalizado'](meta as any);
-
-      expect(metasServiceMock.updateMeta).not.toHaveBeenCalled();
-    });
-
-    it('should call updateMeta service', () => {
-      const meta = mockMetas[0];
-      const updateSpy = jest
-        .spyOn(component['metasService'], 'updateMeta')
-        .mockReturnValue({
-          subscribe: jest.fn(),
-        } as any);
-
-      component['marcarMesesComoFinalizado'](meta);
-
-      expect(updateSpy).toHaveBeenCalledWith(meta.id, {
-        meses: meta.meses.map((m) => ({ ...m })),
-        mesesNecessarios: 0,
-      });
-    });
-
-    it('should emit alternarStatus on successful update', () => {
-      const meta = mockMetas[0];
-      const emitSpy = jest.spyOn(component.alternarStatus, 'emit');
-
-      jest.spyOn(component['metasService'], 'updateMeta').mockReturnValue({
-        subscribe: jest.fn((callback) => {
-          callback.next();
-          return { unsubscribe: jest.fn() };
-        }),
-      } as any);
-
-      component['marcarMesesComoFinalizado'](meta);
-
-      expect(emitSpy).toHaveBeenCalledWith({
-        metaId: meta.id,
-        mesId: 0,
-        status: 'Finalizado',
-      });
-    });
-
-    it('should handle update error gracefully', () => {
-      const meta = mockMetas[0];
-
-      jest.spyOn(component['metasService'], 'updateMeta').mockReturnValue({
-        subscribe: jest.fn((callbacks) => {
-          callbacks.error();
-          return { unsubscribe: jest.fn() };
-        }),
-      } as any);
-
-      expect(() => component['marcarMesesComoFinalizado'](meta)).not.toThrow();
+      expect(spy).toHaveBeenCalled();
     });
   });
 
@@ -1784,7 +1502,7 @@ describe('ExecutandoMetasComponent', () => {
     const spy = jest.spyOn(component.alternarStatus, 'emit');
     const mockMeta = mockMetas[0];
 
-    component.selecionarStatus(mockMeta, 1, 'Pago');
+    component.selecionarStatus(mockMeta, 1, 0, 'Pago');
 
     expect(spy).toHaveBeenCalledWith({
       metaId: 1,

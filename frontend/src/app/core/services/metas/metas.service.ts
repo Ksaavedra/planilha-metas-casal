@@ -4,10 +4,7 @@ import { tap, catchError } from 'rxjs/operators';
 import {
   CreateMetaRequest,
   Meta,
-  MetaExtended,
-  ModalAdicionarMetaState,
   ModalConfirmarDeleteState,
-  ModalEditarValorState,
   ModalSucessoDeleteState,
   ModalSucessoState,
   UpdateMetaRequest,
@@ -16,30 +13,16 @@ import { ApiService } from '../api/api.service';
 import { environment } from 'src/environments';
 
 /**
- * Serviço principal de metas: API + modal adicionar meta + modais de exclusão + modal editar valor.
+ * Serviço principal de metas: API + modais de sucesso/exclusão.
  */
 @Injectable({ providedIn: 'root' })
 export class MetasService {
   private readonly API_URL = `${environment.apiUrl}/metas`;
-
-  // --- Modal Adicionar Meta ---
-  private readonly initialStateAdicionar: ModalAdicionarMetaState = {
-    isOpen: false,
-    nome: '',
-    valorMetaRaw: '',
-    valorPorMesRaw: '',
-    valorAtualRaw: '',
-    temValorAtual: false,
-    icon: 'bi-bullseye',
-  };
-  private stateAdicionarSubject = new BehaviorSubject<ModalAdicionarMetaState>(
-    this.initialStateAdicionar,
+  private readonly ANO_STORAGE_KEY = 'metas_ano_selecionado';
+  private readonly anoSelecionadoSubject = new BehaviorSubject<number>(
+    this.readAnoSalvo(),
   );
-  public state$: Observable<ModalAdicionarMetaState> =
-    this.stateAdicionarSubject.asObservable();
-
-  private saveAdicionarSubject = new Subject<void>();
-  public save$: Observable<void> = this.saveAdicionarSubject.asObservable();
+  readonly anoSelecionado$ = this.anoSelecionadoSubject.asObservable();
 
   private sucessoStateSubject = new BehaviorSubject<ModalSucessoState>({
     isOpen: false,
@@ -68,31 +51,6 @@ export class MetasService {
   public sucessoDeleteState$: Observable<ModalSucessoDeleteState> =
     this.sucessoDeleteStateSubject.asObservable();
 
-  // --- Modal Editar Valor ---
-  private readonly initialStateEditarValor: ModalEditarValorState = {
-    isOpen: false,
-    meta: null,
-    mesId: -1,
-    valor: 0,
-    meses: [],
-  };
-  private stateEditarValorSubject = new BehaviorSubject<ModalEditarValorState>(
-    this.initialStateEditarValor,
-  );
-  public editarValorState$: Observable<ModalEditarValorState> =
-    this.stateEditarValorSubject.asObservable();
-
-  private saveEditarValorSubject = new Subject<{
-    metaId: number | string;
-    mesId: number;
-    valor: number;
-  }>();
-  public editarValorSave$: Observable<{
-    metaId: number | string;
-    mesId: number;
-    valor: number;
-  }> = this.saveEditarValorSubject.asObservable();
-
   constructor(private apiService: ApiService) {
     console.log('🎯 MetasService inicializado');
     console.log('🌐 API URL:', this.API_URL);
@@ -105,10 +63,37 @@ export class MetasService {
     );
   }
 
+  getAnoSelecionado(): number {
+    return this.anoSelecionadoSubject.value;
+  }
+
+  setAnoSelecionado(ano: number): void {
+    this.anoSelecionadoSubject.next(ano);
+    try {
+      localStorage.setItem(this.ANO_STORAGE_KEY, String(ano));
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  private readAnoSalvo(): number {
+    try {
+      const stored = localStorage.getItem(this.ANO_STORAGE_KEY);
+      const parsed = stored ? parseInt(stored, 10) : NaN;
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    } catch {
+      // ignore storage errors
+    }
+    return new Date().getFullYear();
+  }
+
   // ========== API ==========
-  getMetas(): Observable<Meta[]> {
-    this.logRequest('GET', '');
-    return this.apiService.get<Meta[]>('/metas').pipe(
+  getMetas(ano?: number): Observable<Meta[]> {
+    const anoConsulta = ano ?? this.getAnoSelecionado();
+    this.logRequest('GET', `?ano=${anoConsulta}`);
+    return this.apiService.get<Meta[]>(`/metas?ano=${anoConsulta}`).pipe(
       tap((response) => {
         console.log(`📊 Total de metas retornadas: ${response.length}`);
       }),
@@ -134,78 +119,6 @@ export class MetasService {
     return this.apiService.delete(`/metas/${id}`);
   }
 
-  // ========== Modal Adicionar Meta ==========
-  getState(): ModalAdicionarMetaState {
-    return this.stateAdicionarSubject.value;
-  }
-
-  open(): void {
-    this.stateAdicionarSubject.next({
-      ...this.initialStateAdicionar,
-      isOpen: true,
-    });
-  }
-
-  close(): void {
-    this.stateAdicionarSubject.next({
-      ...this.stateAdicionarSubject.value,
-      isOpen: false,
-    });
-  }
-
-  updateNome(nome: string): void {
-    this.stateAdicionarSubject.next({
-      ...this.stateAdicionarSubject.value,
-      nome,
-    });
-  }
-
-  updateValorMetaRaw(valor: string): void {
-    this.stateAdicionarSubject.next({
-      ...this.stateAdicionarSubject.value,
-      valorMetaRaw: valor,
-    });
-  }
-
-  updateValorPorMesRaw(valor: string): void {
-    this.stateAdicionarSubject.next({
-      ...this.stateAdicionarSubject.value,
-      valorPorMesRaw: valor,
-    });
-  }
-
-  updateValorAtualRaw(valor: string): void {
-    this.stateAdicionarSubject.next({
-      ...this.stateAdicionarSubject.value,
-      valorAtualRaw: valor,
-    });
-  }
-
-  updateTemValorAtual(temValorAtual: boolean): void {
-    this.stateAdicionarSubject.next({
-      ...this.stateAdicionarSubject.value,
-      temValorAtual,
-      valorAtualRaw: temValorAtual
-        ? this.stateAdicionarSubject.value.valorAtualRaw
-        : '',
-    });
-  }
-
-  updateIcon(icon: string): void {
-    this.stateAdicionarSubject.next({
-      ...this.stateAdicionarSubject.value,
-      icon,
-    });
-  }
-
-  triggerSave(): void {
-    this.saveAdicionarSubject.next();
-  }
-
-  reset(): void {
-    this.stateAdicionarSubject.next(this.initialStateAdicionar);
-  }
-
   getSucessoState(): ModalSucessoState {
     return this.sucessoStateSubject.value;
   }
@@ -219,8 +132,6 @@ export class MetasService {
       ...this.sucessoStateSubject.value,
       isOpen: false,
     });
-    this.close();
-    this.reset();
   }
 
   getConfirmarDeleteState(): ModalConfirmarDeleteState {
@@ -266,52 +177,5 @@ export class MetasService {
 
   closeSucessoDelete(): void {
     this.sucessoDeleteStateSubject.next({ isOpen: false });
-  }
-
-  // ========== Modal Editar Valor ==========
-  getEditarValorState(): ModalEditarValorState {
-    return this.stateEditarValorSubject.value;
-  }
-
-  openEditarValor(meta: MetaExtended, mesId: number, meses: string[]): void {
-    const mes = meta.meses.find((m) => m.id === mesId);
-    if (!mes) return;
-    this.stateEditarValorSubject.next({
-      isOpen: true,
-      meta,
-      mesId,
-      valor: mes.valor,
-      meses,
-    });
-  }
-
-  closeEditarValor(): void {
-    this.stateEditarValorSubject.next({
-      ...this.stateEditarValorSubject.value,
-      isOpen: false,
-    });
-  }
-
-  updateValorEditarValor(valor: number): void {
-    this.stateEditarValorSubject.next({
-      ...this.stateEditarValorSubject.value,
-      valor,
-    });
-  }
-
-  triggerSaveEditarValor(): void {
-    const state = this.stateEditarValorSubject.value;
-    if (state.meta && state.mesId !== -1) {
-      this.saveEditarValorSubject.next({
-        metaId: state.meta.id,
-        mesId: state.mesId,
-        valor: state.valor,
-      });
-    }
-    this.closeEditarValor();
-  }
-
-  resetEditarValor(): void {
-    this.stateEditarValorSubject.next(this.initialStateEditarValor);
   }
 }

@@ -45,7 +45,7 @@ describe('SidebarComponent', () => {
     );
 
     expect(linkTexts).toContain('📊 Dashboard');
-    expect(linkTexts).toContain('🎯 Metas');
+    expect(linkTexts).toContain('🎯 Objetivos');
     expect(linkTexts).toContain('💰 Investimentos');
     expect(linkTexts).toContain('💸 Despesas');
     expect(linkTexts).toContain('💵 Receitas');

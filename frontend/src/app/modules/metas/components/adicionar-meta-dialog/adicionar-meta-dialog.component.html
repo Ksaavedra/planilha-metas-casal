@@ -1,0 +1,99 @@
+<div class="adicionar-meta-dialog">
+  <h2 mat-dialog-title class="dialog-titulo">
+    <span class="material-icons dialog-titulo-icone" aria-hidden="true">track_changes</span>
+    {{ tituloDialog }}
+  </h2>
+
+  <mat-dialog-content class="dialog-body">
+    <form id="form-meta-dialog" [formGroup]="form" (ngSubmit)="salvar()" class="meta-form" novalidate>
+      <div class="modal-input-group" [class.has-error]="form.get('nome')?.invalid && form.get('nome')?.touched">
+        <label for="nome-nova-meta">Nome da Meta: <span class="required">*</span></label>
+        <input id="nome-nova-meta" type="text" class="modal-input" formControlName="nome"
+          placeholder="Digite o nome da meta" autocomplete="off" />
+        @if (form.get('nome')?.hasError('required') && form.get('nome')?.touched) {
+        <span class="error-message">Nome da meta é <strong>obrigatório</strong></span>
+        }
+      </div>
+
+      <div class="modal-input-group icon-selector-group">
+        <label for="icon-select">Ícone da Meta:</label>
+        <div class="icon-selector">
+          @for (iconOption of availableIcons; track iconOption.value) {
+          <button type="button" class="icon-option" [class.selected]="iconSelecionado === iconOption.value"
+            (click)="selecionarIcon(iconOption.value)" [title]="iconOption.label">
+            <i [class]="'bi ' + iconOption.icon"></i>
+          </button>
+          }
+        </div>
+      </div>
+
+      <div class="modal-input-group"
+        [class.has-error]="form.get('valorMeta')?.invalid && form.get('valorMeta')?.touched">
+        <label for="valor-meta">Valor da Meta: <span class="required">*</span></label>
+        <input id="valor-meta" type="text" inputmode="decimal" class="modal-input" formControlName="valorMeta"
+          placeholder="0,00" autocomplete="off" (keypress)="validarApenasNumeros($event)" />
+        @if (form.get('valorMeta')?.hasError('required') && form.get('valorMeta')?.touched) {
+        <span class="error-message">Valor da meta é <strong>obrigatório</strong></span>
+        }
+        @if (form.get('valorMeta')?.hasError('mustBeGreaterThanZero') &&
+        !form.get('valorMeta')?.hasError('required') && form.get('valorMeta')?.touched) {
+        <span class="error-message">O valor deve ser <strong>maior que zero</strong></span>
+        }
+      </div>
+
+      <div class="modal-input-group"
+        [class.has-error]="form.get('valorPorMes')?.invalid && form.get('valorPorMes')?.touched">
+        <label for="valor-mes">Valor por Mês: <span class="required">*</span></label>
+        <input id="valor-mes" type="text" inputmode="decimal" class="modal-input" formControlName="valorPorMes"
+          placeholder="0,00" autocomplete="off" (keypress)="validarApenasNumeros($event)" />
+        @if (form.get('valorPorMes')?.hasError('required') && form.get('valorPorMes')?.touched) {
+        <span class="error-message">Valor por mês é <strong>obrigatório</strong></span>
+        }
+        @if (form.get('valorPorMes')?.hasError('mustBeGreaterThanZero') &&
+        !form.get('valorPorMes')?.hasError('required') && form.get('valorPorMes')?.touched) {
+        <span class="error-message">O valor deve ser <strong>maior que zero</strong></span>
+        }
+      </div>
+
+      <div class="modal-input-group checkbox-group">
+        <label class="checkbox-label">
+          <input type="checkbox" formControlName="temValorAtual" />
+          <span>Tenho valor já guardado
+            @if (temValorAtual) {
+            <strong>*</strong>
+            }
+          </span>
+        </label>
+      </div>
+
+      <div class="modal-input-group"
+        [class.has-error]="form.get('valorAtual')?.invalid && form.get('valorAtual')?.touched">
+        <label for="valor-atual">Valor Já Temos:
+          @if (temValorAtual) {
+          <span class="required">*</span>
+          }
+        </label>
+        <input id="valor-atual" type="text" inputmode="decimal" class="modal-input" formControlName="valorAtual"
+          placeholder="0,00" autocomplete="off" (keypress)="validarApenasNumeros($event)" />
+        @if (form.get('valorAtual')?.hasError('required') && form.get('valorAtual')?.touched) {
+        <span class="error-message">Valor já temos é <strong>obrigatório</strong> quando o checkbox está
+          marcado</span>
+        }
+        @if (form.get('valorAtual')?.hasError('mustBeGreaterOrEqualZero') &&
+        !form.get('valorAtual')?.hasError('required') && form.get('valorAtual')?.touched) {
+        <span class="error-message">O valor deve ser <strong>maior ou igual a zero</strong></span>
+        }
+      </div>
+
+      <p class="erro-form" *ngIf="erro" role="alert">{{ erro }}</p>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-acoes">
+    <button type="button" mat-stroked-button (click)="fechar()">Cancelar</button>
+    <button type="submit" mat-flat-button color="primary" form="form-meta-dialog" [disabled]="saving || form.invalid">
+      <span *ngIf="!saving">Adicionar</span>
+      <span *ngIf="saving">Salvando…</span>
+    </button>
+  </mat-dialog-actions>
+</div>

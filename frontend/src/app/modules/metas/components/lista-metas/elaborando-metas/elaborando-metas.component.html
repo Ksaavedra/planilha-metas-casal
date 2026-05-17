@@ -1,43 +1,50 @@
-<div class="section-elaborando">
-  <div class="section-header">
-    <h2>ELABORANDO AS METAS DO CASAL</h2>
-  </div>
+<div class="elaborando-section">
+  <div class="elaborando-hero__accent" aria-hidden="true"></div>
+  <header class="section-header">
+    <div class="section-header__brand">
+      <!-- <div class="section-header__icon-wrap" aria-hidden="true">
+        <span class="material-icons">edit_note</span>
+      </div> -->
+      <div class="section-header__text">
+        <h2>Elaborando as metas do casal</h2>
+        <p class="section-header__subtitle">Planeje valores, prazos e progresso do casal</p>
+      </div>
+    </div>
+  </header>
 
-  <!-- Progress Bar Geral -->
   <div class="progress-container">
-    <div class="progress-text">{{ percentualPagoView | number:'1.0-1' }}%</div>
-    <div class="progress-bar">
+    <div class="progress-summary">
+      <span class="progress-label">Progresso geral</span>
+      <span class="progress-text">{{ percentualPagoView | number:'1.0-1' }}%</span>
+    </div>
+    <div class="progress-bar" role="progressbar" [attr.aria-valuenow]="percentualPagoView" aria-valuemin="0"
+      aria-valuemax="100">
       <div class="progress-fill" [style.width.%]="percentualPagoView"></div>
     </div>
   </div>
 
-  <!-- Botão Adicionar Meta -->
-  <div class="add-meta-container">
-    <button class="add-meta-btn" (click)="abrirModalAdicionarMeta()" [disabled]="metas.length >= 15">
-      <span class="material-icons">add</span>
-      Adicionar Meta
-      <span class="meta-count">({{ metas.length }}/15)</span>
-    </button>
-  </div>
   <div class="table-container">
     <table class="metas-table">
       <thead>
         <tr>
-          <th>QUAL É A META?</th>
+          <th>Objetivo</th>
           <th>VALOR DA META</th>
           <th>QUANTO POR MÊS?</th>
-          <th>QUANTOS MESES?</th>
+          <th class="col-meses">QUANTOS MESES?</th>
           <th>QUANTO JÁ TEMOS?</th>
           <th>PROGRESSO</th>
           <th>AÇÕES</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let meta of metas; trackBy: trackById; let i = index;" [class.alternate]="i % 2 === 1">
+        <tr *ngFor="let meta of metas; trackBy: trackById; let i = index;" [class.alternate]="i % 2 === 1"
+          [class.meta-row--finalizada]="metaConcluida(meta)" [attr.aria-disabled]="metaConcluida(meta) || null">
           <td class="col-nome" [attr.data-meta-id]="meta.id">
             <!-- Visual -->
             <ng-container *ngIf="!meta.editandoNome; else editNome">
-              <button class="cell-btn" (click)="editarCampo(meta, 'nome')" title="Editar nome da meta">
+              <button class="cell-btn" type="button" [disabled]="metaConcluida(meta)"
+                [class.cell-btn--readonly]="metaConcluida(meta)" (click)="editarCampo(meta, 'nome')"
+                [title]="metaConcluida(meta) ? 'Meta finalizada — somente leitura' : 'Editar nome da meta'">
                 <span class="cell-text">{{ meta.nome || 'Defina um nome' }}</span>
                 <span class="material-icons ok" *ngIf="meta.savedTickCampo === true">check_circle</span>
               </button>
@@ -51,7 +58,9 @@
           </td>
           <td [attr.data-meta-id]="meta.id">
             <ng-container *ngIf="!meta.editandoValorMeta; else editValorMeta">
-              <button class="cell-btn" (click)="editarCampo(meta, 'valorMeta')" title="Editar valor da meta">
+              <button class="cell-btn" type="button" [disabled]="metaConcluida(meta)"
+                [class.cell-btn--readonly]="metaConcluida(meta)" (click)="editarCampo(meta, 'valorMeta')"
+                [title]="metaConcluida(meta) ? 'Meta finalizada — somente leitura' : 'Editar valor da meta'">
                 <span class="cell-text">{{ meta.valorMeta | currency:'BRL' }}</span>
                 <span class="material-icons ok" *ngIf="meta.savedTickCampo === true">check_circle</span>
               </button>
@@ -63,7 +72,9 @@
           </td>
           <td [attr.data-meta-id]="meta.id">
             <ng-container *ngIf="!meta.editandoValorPorMes; else editValorMes">
-              <button class="cell-btn" (click)="editarCampo(meta, 'valorPorMes')" title="Editar contribuição mensal">
+              <button class="cell-btn" type="button" [disabled]="metaConcluida(meta)"
+                [class.cell-btn--readonly]="metaConcluida(meta)" (click)="editarCampo(meta, 'valorPorMes')"
+                [title]="metaConcluida(meta) ? 'Meta finalizada — somente leitura' : 'Editar contribuição mensal'">
                 <span class="cell-text">{{ meta.valorPorMes | currency:'BRL' }}</span>
                 <span class="material-icons ok" *ngIf="meta.savedTickCampo === true">check_circle</span>
               </button>
@@ -73,17 +84,23 @@
                 (keyup)="onKeyUp($event, meta, 'valorPorMes')" (blur)="confirmarCampoBlur(meta, 'valorPorMes')" />
             </ng-template>
           </td>
-          <td>
-            <ng-container *ngIf="getMesesRestantes(meta) === -1; else mesesTemplate">
-              0
+          <td class="col-meses">
+            <ng-container *ngIf="getMesesDoPlano(meta) > 0; else mesesSemPlano">
+              <span class="cell-text cell-text--meses"
+                [attr.title]="'Planejamento: ' + getMesesDoPlano(meta) + ' meses' + getMesesRestantesLabel(meta)">
+                {{ getMesesDoPlano(meta) }}
+                <small class="meses-restantes-hint" *ngIf="getMesesRestantes(meta) >= 0 && getMesesRestantes(meta) !== getMesesDoPlano(meta)">
+                  ({{ getMesesRestantes(meta) === 0 ? 'ok' : getMesesRestantes(meta) + ' rest.' }})
+                </small>
+              </span>
             </ng-container>
-            <ng-template #mesesTemplate>
-              {{ getMesesRestantes(meta) === 0 ? 'Finalizado' : getMesesRestantes(meta) }}
-            </ng-template>
+            <ng-template #mesesSemPlano>0</ng-template>
           </td>
           <td [attr.data-meta-id]="meta.id">
             <ng-container *ngIf="!meta.editandoValorAtual; else editValorAtual">
-              <button class="cell-btn" (click)="editarCampo(meta, 'valorAtual')" title="Editar quanto já temos">
+              <button class="cell-btn" type="button" [disabled]="metaConcluida(meta)"
+                [class.cell-btn--readonly]="metaConcluida(meta)" (click)="editarCampo(meta, 'valorAtual')"
+                [title]="metaConcluida(meta) ? 'Meta finalizada — somente leitura' : 'Editar quanto já temos'">
                 <span class="cell-text">{{ meta.valorAtual | currency:'BRL' }}</span>
                 <span class="material-icons ok" *ngIf="meta.savedTickCampo === true">check_circle</span>
               </button>
@@ -104,29 +121,26 @@
           </td>
           <td class="actions-cell">
             <div class="actions">
-              <button class="remove-meta-btn" (click)="removerMeta(meta.id)" [disabled]="metas.length <= 1 || !meta.id"
-                title="Remover meta">
+              <button class="remove-meta-btn" type="button" (click)="removerMeta(meta.id)"
+                [disabled]="metas.length <= 1 || !meta.id || metaConcluida(meta)"
+                [class.remove-meta-btn--finalizada]="metaConcluida(meta)"
+                [attr.aria-label]="metaConcluida(meta) ? 'Exclusão indisponível — meta finalizada' : 'Remover meta'"
+                [title]="metaConcluida(meta) ? 'Meta finalizada — não pode ser excluída (histórico)' : 'Remover meta'">
                 <i class="bi bi-trash"></i>
               </button>
             </div>
           </td>
         </tr>
         <tr class="total-row">
-          <td><strong>Total</strong></td>
-          <td><strong>{{ totalValorMetaView | currency:'BRL' }}</strong></td>
-          <td><strong>{{ totalValorPorMesView | currency:'BRL' }}</strong></td>
-          <td><strong>{{ totalMesesNecessariosView }}</strong></td>
-          <td><strong>{{ totalValorAtualView | currency:'BRL' }}</strong></td>
-          <td><strong>{{ percentualPagoView | number:'1.0-1' }}%</strong></td>
+          <td>Total</td>
+          <td>{{ totalValorMetaView | currency:'BRL' }}</td>
+          <td>{{ totalValorPorMesView | currency:'BRL' }}</td>
+          <td class="col-meses">{{ totalMesesNecessariosView }}</td>
+          <td>{{ totalValorAtualView | currency:'BRL' }}</td>
+          <td class="progress-cell">{{ percentualPagoView | number:'1.0-1' }}%</td>
           <td></td>
         </tr>
       </tbody>
     </table>
   </div>
-
-
-  <!-- Modal de Parabéns -->
-  <app-parabens-modal [isOpen]="modalParabens.isOpen" [metaNome]="modalParabens.metaNome"
-    [valorMeta]="modalParabens.valorMeta" (close)="fecharParabens()">
-  </app-parabens-modal>
 </div>

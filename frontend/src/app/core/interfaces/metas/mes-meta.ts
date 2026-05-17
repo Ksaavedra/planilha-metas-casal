@@ -2,6 +2,7 @@ export type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
 
 export interface Meta {
   id: number;
+  ano?: number;
   nome: string;
   valorMeta: number;
   valorPorMes: number;

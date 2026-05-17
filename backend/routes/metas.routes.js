@@ -3,10 +3,99 @@ const db = require("../scripts/db");
 
 const router = express.Router();
 
-//GET /api/metas
+function ensureAnoColumn() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      name TEXT PRIMARY KEY,
+      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  const cols = db.prepare("PRAGMA table_info(metas)").all();
+  if (!cols.some((c) => c.name === "ano")) {
+    db.exec(`ALTER TABLE metas ADD COLUMN ano INTEGER`);
+  }
+
+  const migracaoAplicada = db
+    .prepare("SELECT 1 FROM schema_migrations WHERE name = ?")
+    .get("metas_ano_legado_null");
+
+  if (!migracaoAplicada) {
+    db.exec(`UPDATE metas SET ano = NULL`);
+    db.prepare("INSERT INTO schema_migrations (name) VALUES (?)").run(
+      "metas_ano_legado_null",
+    );
+  }
+
+  const migracaoAnoExercicio = db
+    .prepare("SELECT 1 FROM schema_migrations WHERE name = ?")
+    .get("metas_ano_legado_exercicio_atual");
+
+  if (!migracaoAnoExercicio) {
+    const anoAtual = new Date().getFullYear();
+    db.prepare("UPDATE metas SET ano = ? WHERE ano IS NULL").run(anoAtual);
+    db.prepare("INSERT INTO schema_migrations (name) VALUES (?)").run(
+      "metas_ano_legado_exercicio_atual",
+    );
+  }
+
+  // Metas criadas antes do campo "ano" passam a valer para o exercício atual
+  const anoAtual = new Date().getFullYear();
+  const corrigidas = db
+    .prepare("UPDATE metas SET ano = ? WHERE ano IS NULL")
+    .run(anoAtual);
+  if (corrigidas.changes > 0) {
+    console.log(
+      `[metas] ${corrigidas.changes} meta(s) legada(s) vinculada(s) ao ano ${anoAtual}`,
+    );
+  }
+}
+
+ensureAnoColumn();
+
+function listarMetasPorAno(anoQuery) {
+  const anoAtual = new Date().getFullYear();
+
+  if (anoQuery === anoAtual) {
+    db.prepare("UPDATE metas SET ano = ? WHERE ano IS NULL").run(anoAtual);
+  }
+
+  const sufixoAno = `/${anoQuery}`;
+
+  // Criada no ano, parcelas com /ano no nome, ou planejamento longo (ex. 18 meses 2026→2027)
+  return db
+    .prepare(
+      `
+      SELECT DISTINCT m.* FROM metas m
+      WHERE m.ano = ?
+         OR (m.ano IS NULL AND ? = ?)
+         OR EXISTS (
+           SELECT 1 FROM meses ms
+           WHERE ms.metaId = m.id AND ms.nome LIKE '%' || ?
+         )
+         OR (
+           m.ano IS NOT NULL
+           AND m.mesesNecessarios > 0
+           AND m.ano <= ?
+           AND (m.ano + (m.mesesNecessarios - 1) / 12) >= ?
+         )
+      ORDER BY m.id
+    `,
+    )
+    .all(anoQuery, anoQuery, anoAtual, sufixoAno, anoQuery, anoQuery);
+}
+
+//GET /api/metas?ano=2026  (ano obrigatório)
 router.get("/", (req, res) => {
   try {
-    const metas = db.prepare("SELECT * FROM metas ORDER BY id").all();
+    const anoQuery = parseInt(req.query.ano, 10);
+    if (!Number.isFinite(anoQuery)) {
+      return res.status(400).json({
+        error: "Informe o parâmetro ano (ex.: ?ano=2026)",
+      });
+    }
+
+    const metas = listarMetasPorAno(anoQuery);
 
     // Para cada meta, buscar seus meses
     const metasComMeses = metas.map((meta) => {
@@ -75,12 +164,18 @@ router.post("/", (req, res) => {
       valorAtual,
       icon,
       meses,
+      ano,
     } = req.body;
+
+    const anoMeta = parseInt(ano, 10);
+    const anoInserir = Number.isFinite(anoMeta)
+      ? anoMeta
+      : new Date().getFullYear();
 
     // Inserir meta
     const insertMeta = db.prepare(`
-      INSERT INTO metas (nome, valorMeta, valorPorMes, mesesNecessarios, valorAtual, icon)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO metas (nome, valorMeta, valorPorMes, mesesNecessarios, valorAtual, icon, ano)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     const iconValue = icon && icon.trim() !== "" ? icon : "bi-bullseye";
@@ -94,6 +189,7 @@ router.post("/", (req, res) => {
       mesesNecessarios || 0,
       valorAtual || 0,
       iconValue,
+      anoInserir,
     );
 
     const metaId = result.lastInsertRowid;
@@ -156,6 +252,7 @@ router.patch("/:id", (req, res) => {
       "mesesNecessarios",
       "valorAtual",
       "icon",
+      "ano",
     ];
     const camposParaAtualizar = {};
 
