@@ -1,19 +1,25 @@
-<div class="section-execucao">
-  <div class="section-header">
-    <h2>EXECUTANDO AS METAS DO CASAL</h2>
-  </div>
+<div class="executando-section">
+  <div class="executando-hero__accent" aria-hidden="true"></div>
+  <header class="section-header">
+    <div class="section-header__brand">
+      <div class="section-header__text">
+        <h2>Executando as metas do casal</h2>
+        <p class="section-header__subtitle">Acompanhe as contribuições mês a mês</p>
+      </div>
+    </div>
+  </header>
   <div class="table-container">
     <table class="execucao-table">
       <thead>
         <tr>
-          <th>QUAL É A META?</th>
+          <th>Objetivo</th>
           <th *ngFor="let mes of meses">{{ mes }}</th>
           <th>Total</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let meta of metas; trackBy: trackByMetaId; let i = index;" [class.alternate]="i % 2 === 1">
-          <td>{{ meta.nome }}</td>
+          <td class="col-nome">{{ meta.nome }}</td>
           <td *ngFor="let mes of meta.meses; trackBy: trackByMesId; let mi = index" class="status-cell"
             [class.mes-desabilitado]="mesEstaDesabilitado(meta, mi)" [attr.data-meta-id]="meta.id"
             [attr.data-mes-id]="mes.id">
@@ -38,14 +44,14 @@
               </div>
             </div>
           </td>
-          <td><strong>{{ getTotalContribuicoesMetaExtended(meta) | currency:'BRL' }}</strong></td>
+          <td class="col-valor">{{ getTotalContribuicoesMetaExtended(meta) | currency:'BRL' }}</td>
         </tr>
         <tr class="total-row">
-          <td><strong>Total</strong></td>
+          <td>Total</td>
           <td *ngFor="let total of totalContribuicoesPorMes">
-            <strong>{{ total | currency:'BRL' }}</strong>
+            {{ total | currency:'BRL' }}
           </td>
-          <td><strong>{{ totalContribuicoesView | currency:'BRL' }}</strong></td>
+          <td>{{ totalContribuicoesView | currency:'BRL' }}</td>
         </tr>
       </tbody>
     </table>

@@ -71,6 +71,10 @@ export class ElaborandoMetasComponent implements OnDestroy {
     meta: MetaExtended,
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
   ): void {
+    if (this.metaConcluida(meta)) {
+      return;
+    }
+
     // Limpar estado anterior
     this.limparEstadosEdicao(meta);
 
@@ -99,6 +103,10 @@ export class ElaborandoMetasComponent implements OnDestroy {
     const meta = this.metas.find((m) => String(m.id) === String(id));
     if (!meta) {
       alert('Meta não encontrada.');
+      return;
+    }
+
+    if (this.metaConcluida(meta)) {
       return;
     }
 
@@ -204,6 +212,11 @@ export class ElaborandoMetasComponent implements OnDestroy {
     meta: MetaExtended,
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
   ): void {
+    if (this.metaConcluida(meta)) {
+      this.limparEstadosEdicao(meta);
+      return;
+    }
+
     const chave = `${meta.id}-${campo}`;
 
     if (this.camposProcessados.has(chave)) {
@@ -559,6 +572,10 @@ export class ElaborandoMetasComponent implements OnDestroy {
     meta: MetaExtended,
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual',
   ): void {
+    if (this.metaConcluida(meta)) {
+      return;
+    }
+
     // Enter (inclui o do teclado numérico)
     if (ev.key === 'Enter' || ev.code === 'NumpadEnter') {
       ev.preventDefault();

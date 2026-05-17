@@ -133,6 +133,20 @@ describe('ElaborandoMetasComponent', () => {
       expect(meta.valorAtualTemp).toBe('0');
     });
 
+    it('should not edit fields when meta is concluded', () => {
+      const meta = makeMeta({
+        valorMeta: 1000,
+        valorPorMes: 100,
+        valorAtual: 1000,
+        meses: [{ id: 1, nome: 'Jan', valor: 0, status: 'Pago' as const }],
+      }) as any;
+
+      component.editarCampo(meta, 'nome');
+
+      expect(meta.editandoNome).toBeFalsy();
+      expect(component.metaConcluida(meta)).toBe(true);
+    });
+
     it('should handle null values in editarCampo', () => {
       const meta = {
         ...[makeMeta()][0],
@@ -1517,6 +1531,22 @@ describe('ElaborandoMetasComponent', () => {
       component.removerMeta(mockMeta.id);
 
       expect(component.metaParaExcluir).toEqual(mockMeta);
+    });
+
+    it('should not open delete modal when meta is concluded', () => {
+      const meta = makeMeta({
+        valorMeta: 1000,
+        valorPorMes: 100,
+        valorAtual: 1000,
+        meses: [{ id: 1, nome: 'Jan', valor: 0, status: 'Pago' as const }],
+      }) as any;
+      component.metas = [meta];
+      const openSpy = jest.spyOn(metasService, 'openConfirmarDelete');
+
+      component.removerMeta(meta.id);
+
+      expect(openSpy).not.toHaveBeenCalled();
+      expect(component.metaParaExcluir).toBeNull();
     });
 
     it('should call openConfirmarDelete with meta.id and meta.nome (or empty string)', () => {
