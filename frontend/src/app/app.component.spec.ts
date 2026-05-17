@@ -6,15 +6,6 @@ import { AppComponent } from './app.component';
 import { MetasService } from './core/services/metas/metas.service';
 import { ReceitasService } from './core/services/receitas/receitas.service';
 
-type ModalState = {
-  isOpen: boolean;
-  nome: string;
-  valorMetaRaw: string;
-  valorPorMesRaw: string;
-  valorAtualRaw: string;
-  temValorAtual: boolean;
-  icon: string;
-};
 type SucessoState = { isOpen: boolean; title: string; message: string };
 type ConfirmarDeleteState = {
   isOpen: boolean;
@@ -32,7 +23,6 @@ describe('AppComponent', () => {
     Pick<ReceitasService, keyof ReceitasService>
   >;
 
-  let stateSubject: BehaviorSubject<ModalState>;
   let sucessoStateSubject: BehaviorSubject<SucessoState>;
   let confirmarDeleteStateSubject: BehaviorSubject<ConfirmarDeleteState>;
   let sucessoDeleteStateSubject: BehaviorSubject<{ isOpen: boolean }>;
@@ -40,15 +30,6 @@ describe('AppComponent', () => {
   let successStateSubject: BehaviorSubject<{ isOpen: boolean }>;
 
   beforeEach(async () => {
-    stateSubject = new BehaviorSubject<ModalState>({
-      isOpen: false,
-      nome: '',
-      valorMetaRaw: '',
-      valorPorMesRaw: '',
-      valorAtualRaw: '',
-      temValorAtual: false,
-      icon: 'bi-bullseye',
-    });
     sucessoStateSubject = new BehaviorSubject<SucessoState>({
       isOpen: false,
       title: '',
@@ -72,19 +53,9 @@ describe('AppComponent', () => {
     });
 
     metasService = {
-      state$: stateSubject.asObservable(),
       sucessoState$: sucessoStateSubject.asObservable(),
       confirmarDeleteState$: confirmarDeleteStateSubject.asObservable(),
       sucessoDeleteState$: sucessoDeleteStateSubject.asObservable(),
-      updateNome: jest.fn(),
-      updateValorMetaRaw: jest.fn(),
-      updateValorPorMesRaw: jest.fn(),
-      updateValorAtualRaw: jest.fn(),
-      updateTemValorAtual: jest.fn(),
-      updateIcon: jest.fn(),
-      triggerSave: jest.fn(),
-      close: jest.fn(),
-      reset: jest.fn(),
       closeSucesso: jest.fn(),
       confirmDelete: jest.fn(),
       closeConfirmarDelete: jest.fn(),
@@ -119,27 +90,6 @@ describe('AppComponent', () => {
   });
 
   describe('ngOnInit – subscriptions', () => {
-    it('deve atualizar modalState quando state$ emite', () => {
-      stateSubject.next({
-        isOpen: true,
-        nome: 'Meta X',
-        valorMetaRaw: '1000',
-        valorPorMesRaw: '100',
-        valorAtualRaw: '500',
-        temValorAtual: true,
-        icon: 'bi-star',
-      });
-      expect(component.modalState).toEqual({
-        isOpen: true,
-        nome: 'Meta X',
-        valorMetaRaw: '1000',
-        valorPorMesRaw: '100',
-        valorAtualRaw: '500',
-        temValorAtual: true,
-        icon: 'bi-star',
-      });
-    });
-
     it('deve atualizar sucessoState quando sucessoState$ emite', () => {
       sucessoStateSubject.next({
         isOpen: true,
@@ -191,73 +141,12 @@ describe('AppComponent', () => {
   });
 
   describe('ngOnDestroy', () => {
-    it('deve executar sem erros e deixar de reagir a state$ após destroy', () => {
-      stateSubject.next({
-        isOpen: true,
-        nome: 'Antes',
-        valorMetaRaw: '',
-        valorPorMesRaw: '',
-        valorAtualRaw: '',
-        temValorAtual: false,
-        icon: 'bi-bullseye',
-      });
-      expect(component.modalState.nome).toBe('Antes');
-      component.ngOnDestroy();
-      stateSubject.next({
-        isOpen: true,
-        nome: 'Depois',
-        valorMetaRaw: '',
-        valorPorMesRaw: '',
-        valorAtualRaw: '',
-        temValorAtual: false,
-        icon: 'bi-bullseye',
-      });
-      expect(component.modalState.nome).toBe('Antes');
+    it('deve executar sem erros', () => {
+      expect(() => component.ngOnDestroy()).not.toThrow();
     });
   });
 
   describe('handlers MetasService', () => {
-    it('onNomeChange chama metasService.updateNome', () => {
-      component.onNomeChange('Nova Meta');
-      expect(metasService.updateNome).toHaveBeenCalledWith('Nova Meta');
-    });
-
-    it('onValorMetaChange chama metasService.updateValorMetaRaw', () => {
-      component.onValorMetaChange('2000');
-      expect(metasService.updateValorMetaRaw).toHaveBeenCalledWith('2000');
-    });
-
-    it('onValorPorMesChange chama metasService.updateValorPorMesRaw', () => {
-      component.onValorPorMesChange('150');
-      expect(metasService.updateValorPorMesRaw).toHaveBeenCalledWith('150');
-    });
-
-    it('onValorAtualChange chama metasService.updateValorAtualRaw', () => {
-      component.onValorAtualChange('300');
-      expect(metasService.updateValorAtualRaw).toHaveBeenCalledWith('300');
-    });
-
-    it('onTemValorAtualChange chama metasService.updateTemValorAtual', () => {
-      component.onTemValorAtualChange(true);
-      expect(metasService.updateTemValorAtual).toHaveBeenCalledWith(true);
-    });
-
-    it('onIconChange chama metasService.updateIcon', () => {
-      component.onIconChange('bi-heart');
-      expect(metasService.updateIcon).toHaveBeenCalledWith('bi-heart');
-    });
-
-    it('onSave chama metasService.triggerSave', () => {
-      component.onSave();
-      expect(metasService.triggerSave).toHaveBeenCalled();
-    });
-
-    it('onCancel chama metasService.close e reset', () => {
-      component.onCancel();
-      expect(metasService.close).toHaveBeenCalled();
-      expect(metasService.reset).toHaveBeenCalled();
-    });
-
     it('onCloseSucesso chama metasService.closeSucesso', () => {
       component.onCloseSucesso();
       expect(metasService.closeSucesso).toHaveBeenCalled();
@@ -280,23 +169,4 @@ describe('AppComponent', () => {
 
   });
 
-  describe('event handlers vazios', () => {
-    it('onValorMetaChangeEvent não quebra (pode ser usado para formatação)', () => {
-      expect(() =>
-        component.onValorMetaChangeEvent(new Event('change')),
-      ).not.toThrow();
-    });
-
-    it('onValorPorMesChangeEvent não quebra', () => {
-      expect(() =>
-        component.onValorPorMesChangeEvent(new Event('change')),
-      ).not.toThrow();
-    });
-
-    it('onValorAtualChangeEvent não quebra', () => {
-      expect(() =>
-        component.onValorAtualChangeEvent(new Event('change')),
-      ).not.toThrow();
-    });
-  });
 });

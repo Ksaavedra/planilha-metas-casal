@@ -10,6 +10,7 @@ import { ExecutandoMetasComponent } from './components/lista-metas/executando-me
 import { ProgressTableComponent } from './components/progress-table/progress-table.component';
 import { EditarValorDialogComponent } from './components/editar-valor-dialog/editar-valor-dialog.component';
 import { ParabensDialogComponent } from './components/parabens-dialog/parabens-dialog.component';
+import { AdicionarMetaDialogComponent } from './components/adicionar-meta-dialog/adicionar-meta-dialog.component';
 import { SharedModule } from 'shared/shared.module';
 
 @NgModule({
@@ -20,6 +21,7 @@ import { SharedModule } from 'shared/shared.module';
     ProgressTableComponent,
     EditarValorDialogComponent,
     ParabensDialogComponent,
+    AdicionarMetaDialogComponent,
   ],
   imports: [
     CommonModule,

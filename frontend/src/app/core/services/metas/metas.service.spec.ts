@@ -225,87 +225,6 @@ describe('MetasService', () => {
     });
   });
 
-  // ========== Modal Adicionar Meta ==========
-  describe('getState / open / close / reset', () => {
-    it('getState retorna estado inicial com isOpen false', () => {
-      expect(service.getState().isOpen).toBe(false);
-      expect(service.getState().nome).toBe('');
-    });
-
-    it('open seta isOpen true no state$', () => {
-      service.open();
-      expect(service.getState().isOpen).toBe(true);
-    });
-
-    it('close seta isOpen false', () => {
-      service.open();
-      service.close();
-      expect(service.getState().isOpen).toBe(false);
-    });
-
-    it('reset volta ao estado inicial', () => {
-      service.open();
-      service.updateNome('X');
-      service.reset();
-      expect(service.getState()).toEqual({
-        isOpen: false,
-        nome: '',
-        valorMetaRaw: '',
-        valorPorMesRaw: '',
-        valorAtualRaw: '',
-        temValorAtual: false,
-        icon: 'bi-bullseye',
-      });
-    });
-  });
-
-  describe('updateNome / updateValorMetaRaw / updateValorPorMesRaw / updateValorAtualRaw / updateTemValorAtual / updateIcon', () => {
-    it('updateNome atualiza nome no state', () => {
-      service.updateNome('Minha Meta');
-      expect(service.getState().nome).toBe('Minha Meta');
-    });
-
-    it('updateValorMetaRaw atualiza valorMetaRaw', () => {
-      service.updateValorMetaRaw('5000');
-      expect(service.getState().valorMetaRaw).toBe('5000');
-    });
-
-    it('updateValorPorMesRaw atualiza valorPorMesRaw', () => {
-      service.updateValorPorMesRaw('500');
-      expect(service.getState().valorPorMesRaw).toBe('500');
-    });
-
-    it('updateValorAtualRaw atualiza valorAtualRaw', () => {
-      service.updateValorAtualRaw('1000');
-      expect(service.getState().valorAtualRaw).toBe('1000');
-    });
-
-    it('updateTemValorAtual(true) mantém valorAtualRaw, updateTemValorAtual(false) limpa valorAtualRaw', () => {
-      service.updateValorAtualRaw('2000');
-      service.updateTemValorAtual(true);
-      expect(service.getState().temValorAtual).toBe(true);
-      expect(service.getState().valorAtualRaw).toBe('2000');
-      service.updateTemValorAtual(false);
-      expect(service.getState().temValorAtual).toBe(false);
-      expect(service.getState().valorAtualRaw).toBe('');
-    });
-
-    it('updateIcon atualiza icon', () => {
-      service.updateIcon('bi-star');
-      expect(service.getState().icon).toBe('bi-star');
-    });
-  });
-
-  describe('triggerSave', () => {
-    it('emite no save$', (done) => {
-      service.save$.subscribe(() => {
-        expect(true).toBe(true);
-        done();
-      });
-      service.triggerSave();
-    });
-  });
-
   // ========== Sucesso ==========
   describe('getSucessoState / showSucesso / closeSucesso', () => {
     it('getSucessoState retorna estado inicial', () => {
@@ -321,13 +240,10 @@ describe('MetasService', () => {
       });
     });
 
-    it('closeSucesso fecha sucesso, close e reset do modal adicionar', () => {
-      service.open();
+    it('closeSucesso fecha o modal de sucesso', () => {
       service.showSucesso('A', 'B');
       service.closeSucesso();
       expect(service.getSucessoState().isOpen).toBe(false);
-      expect(service.getState().isOpen).toBe(false);
-      expect(service.getState().nome).toBe('');
     });
   });
 

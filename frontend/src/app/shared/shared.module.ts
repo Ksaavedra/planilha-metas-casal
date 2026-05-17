@@ -7,7 +7,6 @@ import { CommonModule } from '@angular/common';
 import { DSModule } from 'app/@ds';
 import { ConfirmModalComponent } from './components/confirm-modal/confirm-modal.component';
 import { SuccessModalComponent } from './components/success-modal/success-modal.component';
-import { AdicionarMetaModalComponent } from './components/adicionar-meta-modal/adicionar-meta-modal.component';
 import { SeletorMesDialogComponent } from './components/seletor-mes-dialog/seletor-mes-dialog.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
@@ -15,14 +14,12 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
   declarations: [
     ConfirmModalComponent,
     SuccessModalComponent,
-    AdicionarMetaModalComponent,
     SeletorMesDialogComponent,
   ],
   imports: [CommonModule, DSModule, FormsModule, ReactiveFormsModule],
   exports: [
     ConfirmModalComponent,
     SuccessModalComponent,
-    AdicionarMetaModalComponent,
     SeletorMesDialogComponent,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],

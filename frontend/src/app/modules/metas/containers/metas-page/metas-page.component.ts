@@ -2,6 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { MetasService } from '../../../../core/services/metas/metas.service';
 import {
+  AdicionarMetaDialogComponent,
+} from '../../components/adicionar-meta-dialog/adicionar-meta-dialog.component';
+import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
+import {
   Meta,
   MetaExtended,
   ModalEdicao,
@@ -105,6 +109,31 @@ export class MetasPageComponent implements OnInit {
       this.setHeaderMesesFromData();
       this.metas.forEach((m) => this.normalizeMeses(m));
       this.recalcResumo();
+    });
+  }
+
+  abrirModalAdicionarMeta(): void {
+    if (this.metas.length >= 15) return;
+
+    const ref = this.dialog.open(AdicionarMetaDialogComponent, {
+      width: 'min(520px, 96vw)',
+      maxHeight: '90vh',
+      autoFocus: 'dialog',
+      restoreFocus: true,
+    });
+
+    ref.afterClosed().subscribe((saved) => {
+      if (saved) {
+        this.reloadMetas();
+        this.dialog.open(SuccessModalComponent, {
+          width: 'min(420px, 96vw)',
+          data: {
+            title: 'Meta adicionada!',
+            message: 'Sua meta foi criada com sucesso.',
+            confirmText: 'OK',
+          },
+        });
+      }
     });
   }
 

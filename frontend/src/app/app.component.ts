@@ -8,16 +8,6 @@ import { MetasService } from './core/services/metas/metas.service';
   standalone: false,
 })
 export class AppComponent implements OnInit, OnDestroy {
-  modalState = {
-    isOpen: false,
-    nome: '',
-    valorMetaRaw: '',
-    valorPorMesRaw: '',
-    valorAtualRaw: '',
-    temValorAtual: false,
-    icon: 'bi-bullseye',
-  };
-
   sucessoState = {
     isOpen: false,
     title: '',
@@ -44,7 +34,6 @@ export class AppComponent implements OnInit, OnDestroy {
     isOpen: false,
   };
 
-  private subscription?: Subscription;
   private sucessoSubscription?: Subscription;
   private confirmarDeleteSubscription?: Subscription;
   private sucessoDeleteSubscription?: Subscription;
@@ -54,10 +43,6 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor(private metasService: MetasService) {}
 
   ngOnInit(): void {
-    this.subscription = this.metasService.state$.subscribe((state) => {
-      this.modalState = { ...state };
-    });
-
     this.sucessoSubscription = this.metasService.sucessoState$.subscribe(
       (state) => {
         this.sucessoState = { ...state };
@@ -77,57 +62,11 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
     this.sucessoSubscription?.unsubscribe();
     this.confirmarDeleteSubscription?.unsubscribe();
     this.sucessoDeleteSubscription?.unsubscribe();
     this.confirmarExcluirReceitaSubscription?.unsubscribe();
     this.sucessoExcluirReceitaSubscription?.unsubscribe();
-  }
-
-  onNomeChange(value: string): void {
-    this.metasService.updateNome(value);
-  }
-
-  onValorMetaChange(value: string): void {
-    this.metasService.updateValorMetaRaw(value);
-  }
-
-  onValorPorMesChange(value: string): void {
-    this.metasService.updateValorPorMesRaw(value);
-  }
-
-  onValorAtualChange(value: string): void {
-    this.metasService.updateValorAtualRaw(value);
-  }
-
-  onTemValorAtualChange(value: boolean): void {
-    this.metasService.updateTemValorAtual(value);
-  }
-
-  onIconChange(value: string): void {
-    this.metasService.updateIcon(value);
-  }
-
-  onValorMetaChangeEvent(_event: Event): void {
-    // Evento change - pode ser usado para formatação se necessário
-  }
-
-  onValorPorMesChangeEvent(_event: Event): void {
-    // Evento change - pode ser usado para formatação se necessário
-  }
-
-  onValorAtualChangeEvent(_event: Event): void {
-    // Evento change - pode ser usado para formatação se necessário
-  }
-
-  onSave(): void {
-    this.metasService.triggerSave();
-  }
-
-  onCancel(): void {
-    this.metasService.close();
-    this.metasService.reset();
   }
 
   onCloseSucesso(): void {

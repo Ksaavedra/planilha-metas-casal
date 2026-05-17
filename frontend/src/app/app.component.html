@@ -7,17 +7,6 @@
   </footer>
 </div>
 
-<!-- Modal de Adicionar Meta - Renderizado no nível mais alto da aplicação -->
-<app-adicionar-meta-modal [isOpen]="modalState.isOpen" [nome]="modalState.nome" [valorMetaRaw]="modalState.valorMetaRaw"
-  [valorPorMesRaw]="modalState.valorPorMesRaw" [valorAtualRaw]="modalState.valorAtualRaw"
-  [temValorAtual]="modalState.temValorAtual" [icon]="modalState.icon" (nomeChange)="onNomeChange($event)"
-  (valorMetaChange)="onValorMetaChange($event)" (valorPorMesChange)="onValorPorMesChange($event)"
-  (valorAtualChange)="onValorAtualChange($event)" (temValorAtualChange)="onTemValorAtualChange($event)"
-  (iconChange)="onIconChange($event)" (valorMetaChangeEvent)="onValorMetaChangeEvent($event)"
-  (valorPorMesChangeEvent)="onValorPorMesChangeEvent($event)" (valorAtualChangeEvent)="onValorAtualChangeEvent($event)"
-  (save)="onSave()" (cancel)="onCancel()">
-</app-adicionar-meta-modal>
-
 <!-- Modal de Sucesso - Renderizado no nível mais alto da aplicação -->
 <app-success-modal [isOpen]="sucessoState.isOpen" [title]="sucessoState.title" [message]="sucessoState.message"
   confirmText="Fechar" [autoCloseMs]="0" (close)="onCloseSucesso()">

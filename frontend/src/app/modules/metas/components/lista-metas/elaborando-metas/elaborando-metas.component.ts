@@ -5,19 +5,9 @@ import {
   Output,
   OnDestroy,
 } from '@angular/core';
-import {
-  MesMeta,
-  Meta,
-  MetaExtended,
-  ModalAdicionarMeta,
-} from '../../../../../core/interfaces/metas/mes-meta';
+import { Meta, MetaExtended } from '../../../../../core/interfaces/metas/mes-meta';
 import { MetasService } from '../../../../../core/services/metas/metas.service';
 import { Subscription } from 'rxjs';
-import { CreateMetaRequest } from '@app/core/interfaces/metas/metas-modais';
-import {
-  ModalStateSalvar,
-  ValoresSalvarMetaModal,
-} from '@app/core/interfaces/metas/metas-modais';
 import {
   getValorFaltanteMeta as calcularValorFaltante,
   getValorRealizadoMeta as calcularValorRealizado,
@@ -38,7 +28,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
   @Input() totalMesesNecessariosView = 0;
   @Input() totalValorAtualView = 0;
   @Input() totalContribuicoesView = 0;
-  @Output() addMeta = new EventEmitter<void>();
   @Output() editar = new EventEmitter<{
     meta: MetaExtended;
     campo: 'nome' | 'valorMeta' | 'valorPorMes' | 'valorAtual';
@@ -63,28 +52,9 @@ export class ElaborandoMetasComponent implements OnDestroy {
 
   trackById = (_: number, m: MetaExtended) => m.id;
 
-  // Modal de adicionar meta
-  modalAdicionarMeta: ModalAdicionarMeta = {
-    isOpen: false,
-    nome: '',
-    valorMeta: 0,
-    valorPorMes: 0,
-    valorAtual: 0,
-  };
-
-  // Valores como string durante a digitação (sem formatação automática)
-  valorMetaRaw: string = '';
-  valorPorMesRaw: string = '';
-  valorAtualRaw: string = '';
-
-  private saveSubscription?: Subscription;
   private confirmDeleteSubscription?: Subscription;
 
   constructor(private metasService: MetasService) {
-    this.saveSubscription = this.metasService.save$.subscribe(() => {
-      this.salvarMetaModal();
-    });
-
     this.confirmDeleteSubscription = this.metasService.confirmDelete$.subscribe(
       (metaId) => {
         this.processarExclusao(metaId);
@@ -93,7 +63,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.saveSubscription?.unsubscribe();
     this.confirmDeleteSubscription?.unsubscribe();
   }
 
@@ -583,255 +552,6 @@ export class ElaborandoMetasComponent implements OnDestroy {
       });
       this.recalcResumo();
     });
-  }
-
-  // Métodos para o modal de adicionar meta
-  abrirModalAdicionarMeta(): void {
-    this.metasService.open();
-    // Sincronizar estado local
-    this.modalAdicionarMeta.isOpen = true;
-    this.modalAdicionarMeta.nome = '';
-    this.modalAdicionarMeta.valorMeta = 0;
-    this.modalAdicionarMeta.valorPorMes = 0;
-    this.modalAdicionarMeta.valorAtual = 0;
-    this.valorMetaRaw = '';
-    this.valorPorMesRaw = '';
-    this.valorAtualRaw = '';
-  }
-
-  fecharModalAdicionarMeta(): void {
-    this.metasService.close();
-    // Sincronizar estado local
-    this.modalAdicionarMeta.isOpen = false;
-    this.modalAdicionarMeta.nome = '';
-    this.modalAdicionarMeta.valorMeta = 0;
-    this.modalAdicionarMeta.valorPorMes = 0;
-    this.modalAdicionarMeta.valorAtual = 0;
-    this.valorMetaRaw = '';
-    this.valorPorMesRaw = '';
-    this.valorAtualRaw = '';
-  }
-
-  salvarMetaModal(): void {
-    const modalState = this.metasService.getState() as ModalStateSalvar;
-
-    const valores = this.validarEstadoModalSalvar(modalState);
-    if (!valores) return;
-
-    const dadosParaEnviar = this.buildDadosMetaParaEnviar(modalState, valores);
-
-    this.metasService.createMeta(dadosParaEnviar).subscribe({
-      next: () => this.onSalvarMetaSuccess(),
-      error: (err) => this.onSalvarMetaError(err),
-    });
-  }
-
-  private validarEstadoModalSalvar(
-    modalState: ModalStateSalvar,
-  ): ValoresSalvarMetaModal | null {
-    const valores = this.extrairValoresModalSalvar(modalState);
-
-    const erro = this.validarValoresModalSalvar(modalState, valores);
-    if (erro) return this.alertAndReturn(erro);
-
-    return valores;
-  }
-
-  private extrairValoresModalSalvar(
-    modalState: ModalStateSalvar,
-  ): ValoresSalvarMetaModal {
-    const nome = (modalState.nome ?? '').trim();
-
-    const valorMeta = this.parseNumeroBR(modalState.valorMetaRaw);
-    const valorPorMes = this.parseNumeroBR(modalState.valorPorMesRaw);
-
-    const valorAtualRaw = (modalState.valorAtualRaw ?? '').trim();
-    const valorAtual = modalState.temValorAtual
-      ? this.parseNumeroBR(valorAtualRaw)
-      : 0;
-
-    return { nome, valorMeta, valorPorMes, valorAtual };
-  }
-
-  private validarValoresModalSalvar(
-    modalState: ModalStateSalvar,
-    valores: ValoresSalvarMetaModal,
-  ): string | null {
-    if (!valores.nome) return 'Por favor, preencha o nome da meta.';
-
-    if (valores.valorMeta <= 0)
-      return 'Por favor, preencha o valor da meta (deve ser maior que zero).';
-
-    if (valores.valorPorMes <= 0)
-      return 'Por favor, preencha o valor por mês (deve ser maior que zero).';
-
-    if (modalState.temValorAtual)
-      return this.validarValorAtual(modalState, valores);
-
-    return null;
-  }
-
-  private validarValorAtual(
-    modalState: ModalStateSalvar,
-    valores: ValoresSalvarMetaModal,
-  ): string | null {
-    const valorAtualRaw = (modalState.valorAtualRaw ?? '').trim();
-
-    if (!valorAtualRaw)
-      return 'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).';
-
-    if (valores.valorAtual < 0)
-      return 'Por favor, preencha o valor já temos (deve ser maior ou igual a zero).';
-
-    return null;
-  }
-
-  private buildDadosMetaParaEnviar(
-    modalState: ModalStateSalvar,
-    valores: ValoresSalvarMetaModal,
-  ): CreateMetaRequest {
-    const mesesPadrao = this.getMesesPadrao();
-    const iconSelecionado = this.getIconSelecionado(modalState);
-
-    const mesesNecessarios =
-      valores.valorPorMes > 0
-        ? Math.ceil(valores.valorMeta / valores.valorPorMes)
-        : 0;
-
-    const valorAtualFinal = modalState.temValorAtual ? valores.valorAtual : 0;
-
-    return {
-      nome: valores.nome,
-      valorMeta: valores.valorMeta,
-      valorPorMes: valores.valorPorMes,
-      mesesNecessarios,
-      valorAtual: valorAtualFinal,
-      icon: iconSelecionado,
-      meses: this.buildMeses(mesesPadrao, valores.valorPorMes),
-    };
-  }
-
-  private getMesesPadrao(): string[] {
-    return [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
-    ];
-  }
-
-  private getIconSelecionado(modalState: ModalStateSalvar): string {
-    return modalState.icon && modalState.icon.trim() !== ''
-      ? modalState.icon
-      : 'bi-bullseye';
-  }
-
-  private buildMeses(
-    mesesPadrao: string[],
-    valorPorMes: number,
-  ): Partial<MesMeta>[] {
-    const valor = valorPorMes > 0 ? valorPorMes : 0;
-    const status = (valorPorMes > 0 ? 'Programado' : 'Vazio') as
-      | 'Programado'
-      | 'Vazio';
-
-    return mesesPadrao.map((nome, i) => ({
-      id: i + 1,
-      nome,
-      valor,
-      status,
-    }));
-  }
-
-  private onSalvarMetaSuccess(): void {
-    this.metasAtualizadas.emit();
-
-    this.metasService.close();
-    this.metasService.reset();
-    this.fecharModalAdicionarMeta();
-
-    this.metasService.showSucesso(
-      'Meta adicionada!',
-      'Sua meta foi criada com sucesso.',
-    );
-  }
-
-  private onSalvarMetaError(err: {
-    status?: number;
-    statusText?: string;
-    message?: string;
-  }): void {
-    if (err.status === 0 || err.statusText === 'Unknown Error') {
-      alert(
-        '⚠️ Erro de conexão: Não foi possível conectar ao servidor.\n\n' +
-          'Verifique se o backend está rodando em http://localhost:3000\n\n' +
-          'Erro: ' +
-          (err.message || 'Conexão recusada'),
-      );
-      return;
-    }
-
-    alert('Erro ao criar meta: ' + (err.message || 'Tente novamente.'));
-  }
-
-  private alertAndReturn(message: string): null {
-    alert(message);
-    return null;
-  }
-
-  cancelarAdicionarMeta(): void {
-    this.fecharModalAdicionarMeta();
-  }
-
-  // Métodos para o modal de adicionar meta
-  onValorMetaChange(valor: any): void {
-    // Remove caracteres inválidos, mantém apenas números, vírgula e ponto
-    const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
-    // Atualiza no serviço
-    this.metasService.updateValorMetaRaw(valorLimpo);
-    // Sincroniza estado local
-    this.valorMetaRaw = valorLimpo;
-    const valorProcessado = this.parseNumeroBR(valorLimpo);
-    this.modalAdicionarMeta.valorMeta = valorProcessado;
-  }
-
-  onValorPorMesChange(valor: any): void {
-    const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
-    this.metasService.updateValorPorMesRaw(valorLimpo);
-    this.valorPorMesRaw = valorLimpo;
-    const valorProcessado = this.parseNumeroBR(valorLimpo);
-    this.modalAdicionarMeta.valorPorMes = valorProcessado;
-  }
-
-  onValorAtualChange(valor: any): void {
-    const valorLimpo = String(valor || '').replace(/[^0-9,\.]/g, '');
-    this.metasService.updateValorAtualRaw(valorLimpo);
-    this.valorAtualRaw = valorLimpo;
-    const valorProcessado = this.parseNumeroBR(valorLimpo);
-    this.modalAdicionarMeta.valorAtual = valorProcessado;
-  }
-
-  onValorMetaChangeEvent(event: any): void {
-    const valor = event.target?.value || event;
-    this.onValorMetaChange(valor);
-  }
-
-  onValorPorMesChangeEvent(event: any): void {
-    const valor = event.target?.value || event;
-    this.onValorPorMesChange(valor);
-  }
-
-  onValorAtualChangeEvent(event: any): void {
-    const valor = event.target?.value || event;
-    this.onValorAtualChange(valor);
   }
 
   onKeyUp(

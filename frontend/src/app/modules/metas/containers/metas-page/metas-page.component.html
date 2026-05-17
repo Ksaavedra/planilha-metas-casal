@@ -31,7 +31,8 @@
         </button> -->
       </div>
       <div class="metas-hero__actions">
-        <button type="button" class="btn-add-meta">
+        <button type="button" class="btn-add-meta" (click)="abrirModalAdicionarMeta()"
+          [disabled]="metas.length >= 15">
           <span class="material-icons" aria-hidden="true">add</span>
           Adicionar meta
         </button>
@@ -43,7 +44,7 @@
   <app-elaborando-metas [metas]="metas" [percentualPagoView]="percentualPagoView"
     [totalValorMetaView]="totalValorMetaView" [totalValorPorMesView]="totalValorPorMesView"
     [totalMesesNecessariosView]="totalMesesNecessariosView" [totalValorAtualView]="totalValorAtualView"
-    [totalContribuicoesView]="totalContribuicoesView" (metasAtualizadas)="reloadMetas()" (addMeta)="adicionarMeta()"
+    [totalContribuicoesView]="totalContribuicoesView" (metasAtualizadas)="reloadMetas()"
     (confirmar)="onConfirmarCampo($event)" (remover)="removerMeta($event)">
   </app-elaborando-metas>
 
@@ -55,4 +56,5 @@
     (alternarStatus)="onAlterarStatus($event)" (salvarValor)="onSalvarValorMes($event)"
     (metaCompleta)="onMetaCompleta($event)">
   </app-executando-metas>
+
 </div>
