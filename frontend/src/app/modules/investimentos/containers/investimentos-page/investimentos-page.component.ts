@@ -56,13 +56,13 @@ export class InvestimentosPageComponent
   @ViewChild('chartPatrimonio') chartPatrimonio!: ElementRef<HTMLDivElement>;
   @ViewChild('chartRendimento') chartRendimento!: ElementRef<HTMLDivElement>;
   @ViewChild('chartPizza') chartPizza!: ElementRef<HTMLDivElement>;
-
   readonly tiposOpcoes = TIPOS_INVESTIMENTO_OPCOES;
   readonly labelTipo = labelTipoInvestimento;
   readonly iconTipo = iconTipoInvestimento;
   readonly statusLabel = statusInvestimentoLabel;
   readonly statusClasse = statusInvestimentoClasse;
 
+  visaoInvestimentos: 'lista' | 'exemplos' | 'usuario' = 'lista';
   investimentos: Investimento[] = [];
   carregando = false;
   erroCarregar: string | null = null;
@@ -189,6 +189,13 @@ export class InvestimentosPageComponent
 
   onTipoFiltroChange(): void {
     this.carregar();
+  }
+
+  selecionarVisao(visao: 'lista' | 'exemplos' | 'usuario'): void {
+    this.visaoInvestimentos = visao;
+    if (visao === 'lista') {
+      setTimeout(() => this.atualizarGraficos(), 0);
+    }
   }
 
   anoAnterior(): void {

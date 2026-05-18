@@ -27,6 +27,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_investimentos_ano ON investimentos(ano)
 `);
 
+try {
+  db.exec(`ALTER TABLE investimentos ADD COLUMN pessoa TEXT`);
+} catch {
+  // coluna já existe
+}
+
 function calcularRentabilidade(valorInvestido, valorAtual) {
   const inv = Number(valorInvestido) || 0;
   const atual = Number(valorAtual) || 0;
@@ -52,6 +58,7 @@ function mapRow(row) {
     rentabilidadePercentual: row.rentabilidadePercentual ?? 0,
     statusInvestimento: row.statusInvestimento ?? 'crescendo',
     instituicao: row.instituicao,
+    pessoa: row.pessoa ?? null,
     ano: row.ano,
     dataInicio: row.dataInicio,
     observacoes: row.observacoes,
@@ -111,6 +118,7 @@ router.post('/', (req, res) => {
       aporteMensal,
       statusInvestimento,
       instituicao,
+      pessoa,
       ano,
       dataInicio,
       observacoes,
@@ -142,8 +150,8 @@ router.post('/', (req, res) => {
         `INSERT INTO investimentos
          (descricao, tipoInvestimento, valorInvestido, valorAtual, aporteMensal,
           rentabilidade, rentabilidadePercentual, statusInvestimento, instituicao,
-          ano, dataInicio, observacoes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          pessoa, ano, dataInicio, observacoes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         String(descricao).trim(),
@@ -155,6 +163,7 @@ router.post('/', (req, res) => {
         rentabilidadePercentual,
         status,
         instituicao ? String(instituicao).trim() : null,
+        pessoa ? String(pessoa).trim() : null,
         a,
         dataInicio || null,
         observacoes ? String(observacoes).trim() : null,
@@ -210,6 +219,8 @@ router.patch('/:id', (req, res) => {
       body.statusInvestimento ?? atual_row.statusInvestimento;
     const instituicao =
       body.instituicao !== undefined ? body.instituicao : atual_row.instituicao;
+    const pessoa =
+      body.pessoa !== undefined ? body.pessoa : atual_row.pessoa;
     const ano = body.ano != null ? parseInt(body.ano, 10) : atual_row.ano;
     const dataInicio =
       body.dataInicio !== undefined ? body.dataInicio : atual_row.dataInicio;
@@ -220,7 +231,7 @@ router.patch('/:id', (req, res) => {
       `UPDATE investimentos SET
         descricao = ?, tipoInvestimento = ?, valorInvestido = ?, valorAtual = ?,
         aporteMensal = ?, rentabilidade = ?, rentabilidadePercentual = ?,
-        statusInvestimento = ?, instituicao = ?, ano = ?, dataInicio = ?,
+        statusInvestimento = ?, instituicao = ?, pessoa = ?, ano = ?, dataInicio = ?,
         observacoes = ?, updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
     ).run(
@@ -233,6 +244,7 @@ router.patch('/:id', (req, res) => {
       rentabilidadePercentual,
       statusInvestimento,
       instituicao,
+      pessoa ? String(pessoa).trim() : null,
       ano,
       dataInicio,
       observacoes,

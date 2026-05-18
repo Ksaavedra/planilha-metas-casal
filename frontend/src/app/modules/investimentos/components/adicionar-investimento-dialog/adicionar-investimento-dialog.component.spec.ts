@@ -13,7 +13,9 @@ import {
   AdicionarInvestimentoDialogComponent,
   AdicionarInvestimentoDialogData,
 } from './adicionar-investimento-dialog.component';
+import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { InvestimentosService } from '@core/services/investimentos/investimentos.service';
+import { UsuariosService } from '@core/services/usuarios/usuarios.service';
 import { Investimento } from '@core/interfaces/investimentos/investimentos';
 
 describe('AdicionarInvestimentoDialogComponent', () => {
@@ -44,6 +46,11 @@ describe('AdicionarInvestimentoDialogComponent', () => {
     updateInvestimento: jest.fn(),
   };
 
+  const usuariosServiceMock = {
+    getUsuarios: jest.fn(),
+    createUsuario: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     dataMock.investimento = null;
@@ -53,6 +60,12 @@ describe('AdicionarInvestimentoDialogComponent', () => {
     investimentosServiceMock.updateInvestimento.mockReturnValue(
       of(mockInvestimento),
     );
+    usuariosServiceMock.getUsuarios.mockReturnValue(
+      of([{ id: 1, nome: 'Kelly' }]),
+    );
+    usuariosServiceMock.createUsuario.mockReturnValue(
+      of({ id: 1, nome: 'Kelly' }),
+    );
 
     await TestBed.configureTestingModule({
       declarations: [AdicionarInvestimentoDialogComponent],
@@ -60,12 +73,14 @@ describe('AdicionarInvestimentoDialogComponent', () => {
         ReactiveFormsModule,
         NoopAnimationsModule,
         MatDialogModule,
+        MatAutocompleteModule,
       ],
       providers: [
         FormBuilder,
         { provide: MAT_DIALOG_DATA, useValue: dataMock },
         { provide: MatDialogRef, useValue: dialogRefMock },
         { provide: InvestimentosService, useValue: investimentosServiceMock },
+        { provide: UsuariosService, useValue: usuariosServiceMock },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();
@@ -77,11 +92,11 @@ describe('AdicionarInvestimentoDialogComponent', () => {
 
   it('deve criar', () => {
     expect(component).toBeTruthy();
-    expect(component.titulo).toBe('Adicionar investimento');
+    expect(component.tituloDialog).toBe('Incluir investimento');
   });
 
-  it('cancelar fecha o dialog com false', () => {
-    component.cancelar();
+  it('fechar fecha o dialog com false', () => {
+    component.fechar();
     expect(dialogRefMock.close).toHaveBeenCalledWith(false);
   });
 
@@ -153,7 +168,7 @@ describe('AdicionarInvestimentoDialogComponent', () => {
     component.ngOnInit();
 
     expect(component.form.get('descricao')?.value).toBe('Reserva');
-    expect(component.titulo).toBe('Editar investimento');
+    expect(component.tituloDialog).toBe('Editar investimento');
   });
 
   it('ngOnInit em modo criação zera valorAtual', () => {

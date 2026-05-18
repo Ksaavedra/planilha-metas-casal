@@ -11,6 +11,7 @@ export interface Investimento {
   rentabilidadePercentual: number;
   statusInvestimento: StatusInvestimento;
   instituicao?: string | null;
+  pessoa?: string | null;
   ano: number;
   dataInicio?: string | null;
   observacoes?: string | null;
@@ -24,6 +25,7 @@ export interface CreateInvestimentoRequest {
   aporteMensal?: number;
   statusInvestimento?: StatusInvestimento;
   instituicao?: string;
+  pessoa?: string;
   ano: number;
   dataInicio?: string;
   observacoes?: string;

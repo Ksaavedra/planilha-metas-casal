@@ -14,7 +14,7 @@
         </div>
       </div>
 
-      <div class="investimentos-hero__filters">
+      <div class="investimentos-hero__filters" *ngIf="visaoInvestimentos !== 'exemplos'">
         <div class="investimentos-hero__field" aria-label="Ano de referência">
           <p class="investimentos-hero__label">Ano de referência</p>
           <div class="investimentos-hero__ano-nav">
@@ -33,7 +33,7 @@
           </div>
         </div>
 
-        <div class="investimentos-hero__field" aria-label="Tipo de investimento">
+        <div class="investimentos-hero__field" *ngIf="visaoInvestimentos === 'lista'" aria-label="Tipo de investimento">
           <p class="investimentos-hero__label">Tipo investimento</p>
           <div class="investimentos-hero__select-wrap">
             <select class="investimentos-hero__select" [(ngModel)]="tipoFiltro" (ngModelChange)="onTipoFiltroChange()"
@@ -47,9 +47,25 @@
       </div>
     </div>
 
-    <div class="investimentos-hero__toolbar">
+    <div class="investimentos-hero__toolbar" aria-label="Visão e ações de investimentos">
+      <div class="investimentos-hero__chips" role="tablist"
+        aria-label="Alternar entre carteira do ano, por pessoa e exemplos">
+        <button type="button" class="investimentos-hero__chip" [class.is-active]="visaoInvestimentos === 'lista'"
+          (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoInvestimentos === 'lista'">
+          Meus investimentos
+        </button>
+        <button type="button" class="investimentos-hero__chip" [class.is-active]="visaoInvestimentos === 'usuario'"
+          (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoInvestimentos === 'usuario'">
+          Por pessoa
+        </button>
+        <button type="button" class="investimentos-hero__chip" [class.is-active]="visaoInvestimentos === 'exemplos'"
+          (click)="selecionarVisao('exemplos')" role="tab" [attr.aria-selected]="visaoInvestimentos === 'exemplos'">
+          Exemplos
+        </button>
+      </div>
       <div class="investimentos-hero__actions">
-        <button type="button" class="btn-add-investimento" (click)="abrirModalAdicionar()">
+        <button type="button" class="btn-add-investimento" (click)="abrirModalAdicionar()"
+          *ngIf="visaoInvestimentos === 'lista'">
           <span class="material-icons" aria-hidden="true">add</span>
           Adicionar investimento
         </button>
@@ -57,16 +73,18 @@
     </div>
   </header>
 
-  <div *ngIf="carregando" class="investimentos-estado investimentos-estado--loading" role="status">
+  <div *ngIf="visaoInvestimentos === 'lista' && carregando" class="investimentos-estado investimentos-estado--loading"
+    role="status">
     <span class="material-icons">hourglass_top</span>
     Carregando investimentos de {{ anoSelecionado }}…
   </div>
 
-  <div *ngIf="erroCarregar && !carregando" class="investimentos-estado investimentos-estado--erro">
+  <div *ngIf="visaoInvestimentos === 'lista' && erroCarregar && !carregando"
+    class="investimentos-estado investimentos-estado--erro">
     {{ erroCarregar }}
   </div>
 
-  <div class="investimentos-ano-aviso" *ngIf="exibirAvisoVazio" role="status">
+  <div class="investimentos-ano-aviso" *ngIf="visaoInvestimentos === 'lista' && exibirAvisoVazio" role="status">
     <span class="material-icons investimentos-ano-aviso__icon">info</span>
     <div class="investimentos-ano-aviso__conteudo">
       <p class="investimentos-ano-aviso__texto">
@@ -86,7 +104,7 @@
     </div>
   </div>
 
-  <ng-container *ngIf="!ocultarConteudo && !carregando">
+  <ng-container *ngIf="visaoInvestimentos === 'lista' && !ocultarConteudo && !carregando">
     <section class="investimentos-resumo" aria-label="Resumo da carteira">
       <article class="resumo-card">
         <span class="resumo-card__icon" aria-hidden="true">
@@ -262,4 +280,8 @@
       </div>
     </section>
   </ng-container>
+
+  <app-investimentos-exemplos *ngIf="visaoInvestimentos === 'exemplos'"></app-investimentos-exemplos>
+  <app-investimentos-usuario *ngIf="visaoInvestimentos === 'usuario'" [investimentos]="investimentos"
+    [anoReferencia]="'' + anoSelecionado"></app-investimentos-usuario>
 </div>
