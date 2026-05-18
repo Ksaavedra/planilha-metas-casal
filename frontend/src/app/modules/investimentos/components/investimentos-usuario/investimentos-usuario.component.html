@@ -1,0 +1,119 @@
+<section class="investimentos-usuario" aria-label="Investimentos por pessoa no ano">
+  <h2 class="investimentos-usuario__h2" *ngIf="!usuarioFiltro">Por pessoa</h2>
+  <h2 class="investimentos-usuario__h2 investimentos-usuario__h2--pessoa" *ngIf="usuarioFiltro">
+    👉 Investimentos — {{ usuarioFiltro }}
+  </h2>
+
+  <p class="investimentos-usuario__passo" *ngIf="anoReferencia">
+    <strong>Referência:</strong> {{ anoReferencia }} — patrimônio e aportes por responsável.
+    Selecione quem cadastrou ou responde pelo investimento para ver os detalhes.
+  </p>
+  <p class="investimentos-usuario__passo" *ngIf="!anoReferencia">
+    Patrimônio por responsável. Use <strong>Responsável</strong> para escolher a pessoa e ver os lançamentos.
+  </p>
+
+  <ng-container *ngIf="linhasPorUsuario.length; else semDadosAno">
+    <div class="investimentos-usuario__filtro-linha">
+      <label class="investimentos-usuario__filtro-inline-label" for="investimentosUsuarioSelect">
+        Responsável:
+      </label>
+      <select id="investimentosUsuarioSelect" class="investimentos-usuario__filtro-select" [(ngModel)]="usuarioFiltro"
+        [attr.aria-label]="'Responsável no ano ' + (anoReferencia || 'atual')">
+        <option [ngValue]="''" *ngIf="!usuarioFiltro">Selecione uma pessoa</option>
+        <option *ngFor="let row of linhasPorUsuario" [ngValue]="row.usuario">
+          {{ row.usuario }}
+        </option>
+      </select>
+    </div>
+
+    <div class="investimentos-usuario__conteudo" *ngIf="usuarioFiltro">
+      <div class="tabelas-ano">
+        <section class="bloco-tabela" aria-labelledby="iu-h-andamento">
+          <h3 id="iu-h-andamento" class="bloco-titulo bloco-titulo--andamento">
+            <span class="material-icons">trending_up</span>
+            Em andamento
+          </h3>
+          <p class="bloco-sub">Crescendo ou estáveis — ainda fazem parte da carteira ativa.</p>
+          <div class="table-wrap" *ngIf="investimentosEmAndamentoUsuario.length; else vazioAndamento">
+            <table class="investimentos-usuario-table">
+              <thead>
+                <tr>
+                  <th>Objetivo</th>
+                  <th>Tipo</th>
+                  <th>Investido</th>
+                  <th>Patrimônio</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let inv of investimentosEmAndamentoUsuario">
+                  <td>{{ inv.descricao }}</td>
+                  <td>{{ labelTipo(inv.tipoInvestimento) }}</td>
+                  <td class="num">{{ inv.valorInvestido | currency : 'BRL' }}</td>
+                  <td class="num">{{ inv.valorAtual | currency : 'BRL' }}</td>
+                  <td>{{ statusLabel(inv.statusInvestimento) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="subtotal">
+            Subtotal em andamento: <strong>{{ subtotalEmAndamento | currency : 'BRL' }}</strong>
+          </p>
+          <ng-template #vazioAndamento>
+            <p class="vazio">Nenhum investimento em andamento para esta pessoa.</p>
+          </ng-template>
+        </section>
+
+        <section class="bloco-tabela" aria-labelledby="iu-h-final">
+          <h3 id="iu-h-final" class="bloco-titulo bloco-titulo--final">
+            <span class="material-icons">check_circle</span>
+            Finalizados
+          </h3>
+          <p class="bloco-sub">Objetivos já concluídos ou resgatados.</p>
+          <div class="table-wrap" *ngIf="investimentosFinalizadosUsuario.length; else vazioFinal">
+            <table class="investimentos-usuario-table">
+              <thead>
+                <tr>
+                  <th>Objetivo</th>
+                  <th>Tipo</th>
+                  <th>Investido</th>
+                  <th>Patrimônio</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let inv of investimentosFinalizadosUsuario">
+                  <td>{{ inv.descricao }}</td>
+                  <td>{{ labelTipo(inv.tipoInvestimento) }}</td>
+                  <td class="num">{{ inv.valorInvestido | currency : 'BRL' }}</td>
+                  <td class="num">{{ inv.valorAtual | currency : 'BRL' }}</td>
+                  <td>{{ statusLabel(inv.statusInvestimento) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="subtotal">
+            Subtotal finalizados: <strong>{{ subtotalFinalizado | currency : 'BRL' }}</strong>
+          </p>
+          <ng-template #vazioFinal>
+            <p class="vazio">Nenhum investimento finalizado para esta pessoa.</p>
+          </ng-template>
+        </section>
+      </div>
+
+      <div class="total-geral total-geral--final-usuario">
+        <div class="total-geral-header">
+          <span class="material-icons">savings</span>
+          <span>Patrimônio total:</span>
+        </div>
+        <div class="total-geral-valor">{{ patrimonioTotalUsuario | currency : 'BRL' }}</div>
+      </div>
+    </div>
+  </ng-container>
+
+  <ng-template #semDadosAno>
+    <p class="investimentos-usuario__vazio">
+      Nenhum investimento neste ano para agrupar por responsável.
+    </p>
+  </ng-template>
+</section>
