@@ -7,6 +7,7 @@ const receitasRoutes = require('./routes/receitas.routes');
 const despesasRoutes = require('./routes/despesas.routes');
 const metasRoutes = require('./routes/metas.routes');
 const investimentosRoutes = require('./routes/investimentos.routes');
+const dividasRoutes = require('./routes/dividas.routes');
 
 const app = express();
 const PORT = 3000;
@@ -23,6 +24,7 @@ app.use('/api/receitas', receitasRoutes);
 app.use('/api/despesas', despesasRoutes);
 app.use('/api/metas', metasRoutes);
 app.use('/api/investimentos', investimentosRoutes);
+app.use('/api/dividas', dividasRoutes);
 
 process.on('SIGINT', () => {
    console.log('\n🛑 Fechando conexão com o banco...');
@@ -38,4 +40,5 @@ app.listen(PORT, () => {
    console.log(`API despesas: http://localhost:${PORT}/api/despesas`);
    console.log(`API metas: http://localhost:${PORT}/api/metas`);
    console.log(`API investimentos: http://localhost:${PORT}/api/investimentos`);
+   console.log(`API dividas: http://localhost:${PORT}/api/dividas`);
 });

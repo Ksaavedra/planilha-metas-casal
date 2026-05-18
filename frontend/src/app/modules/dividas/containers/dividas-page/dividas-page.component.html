@@ -1,8 +1,219 @@
 <div class="dividas-container">
-  <h1>Dívidas</h1>
-  <p>Controle de dívidas e financiamentos</p>
-  <div class="placeholder">
-    <span class="material-icons">credit_card</span>
-    <p>Funcionalidade em desenvolvimento</p>
+  <header class="dividas-hero" role="banner" aria-label="Cabeçalho de dívidas">
+    <div class="dividas-hero__accent" aria-hidden="true"></div>
+    <div class="dividas-hero__inner">
+      <div class="dividas-hero__brand">
+        <div class="dividas-hero__icon-wrap" aria-hidden="true">
+          <span class="material-icons dividas-hero__icon">credit_card</span>
+        </div>
+        <div class="dividas-hero__text">
+          <h1 class="dividas-hero__title">Dívidas do casal</h1>
+          <p class="dividas-hero__subtitle">Acompanhando parcelas, pagamentos e valores restantes</p>
+        </div>
+      </div>
+      <div class="dividas-hero__filters" aria-label="Mês de referência">
+        <div class="dividas-hero__field">
+          <p class="dividas-hero__label">Mês de referência</p>
+          <div class="dividas-hero__mes-nav">
+            <button type="button" class="dividas-hero__nav-btn" (click)="mesAnterior()" title="Mês anterior"
+              aria-label="Mês anterior">
+              <span class="material-icons">chevron_left</span>
+            </button>
+            <div class="dividas-hero__mes-atual">
+              <span class="material-icons" aria-hidden="true">calendar_month</span>
+              <span>{{ nomeMesAtual }}</span>
+            </div>
+            <button type="button" class="dividas-hero__nav-btn" (click)="proximoMes()" title="Próximo mês"
+              aria-label="Próximo mês">
+              <span class="material-icons">chevron_right</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dividas-hero__toolbar">
+      <div class="dividas-hero__actions">
+        <button type="button" class="btn-add-divida" (click)="abrirModalAdicionar()">
+          <span class="material-icons" aria-hidden="true">add</span>
+          Adicionar dívida
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div *ngIf="carregando" class="dividas-estado dividas-estado--loading" role="status">
+    <span class="material-icons">hourglass_top</span>
+    Carregando dívidas de {{ nomeMesAtual }}…
   </div>
+
+  <div *ngIf="erroCarregar && !carregando" class="dividas-estado dividas-estado--erro">{{ erroCarregar }}</div>
+
+  <div class="dividas-ano-aviso" *ngIf="exibirAvisoVazio" role="status">
+    <span class="material-icons dividas-ano-aviso__icon">info</span>
+    <div class="dividas-ano-aviso__conteudo">
+      <p class="dividas-ano-aviso__texto">Nenhuma dívida cadastrada para <strong>{{ nomeMesAtual }}</strong>.</p>
+      <button type="button" class="dividas-ano-aviso__btn" (click)="abrirModalAdicionar()">Adicionar dívida</button>
+      <button type="button" class="dividas-ano-aviso__btn dividas-ano-aviso__btn--sec" *ngIf="exibirBotaoVoltarMesAtual"
+        (click)="voltarParaMesAtual()">Ver mês atual ({{ mesAtualLabel }})</button>
+      <button type="button" class="dividas-ano-aviso__btn dividas-ano-aviso__btn--sec"
+        *ngIf="estaEmMesFuturo && !exibirBotaoVoltarMesAtual" (click)="voltarParaMesAtual()">Voltar para
+        {{ mesAtualLabel }}</button>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!ocultarConteudo && !carregando">
+    <section class="dividas-resumo" aria-label="Resumo das dívidas">
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">account_balance</span></span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Total das dívidas</span>
+          <span class="resumo-card__valor">{{ resumo.totalDividas | currency:'BRL' }}</span>
+        </div>
+      </article>
+      <article class="resumo-card resumo-card--destaque">
+        <span class="resumo-card__icon resumo-card__icon--light" aria-hidden="true"><span
+            class="material-icons">payments</span></span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Pago no mês</span>
+          <span class="resumo-card__valor">{{ resumo.totalPago | currency:'BRL' }}</span>
+        </div>
+      </article>
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">trending_down</span></span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Valor restante</span>
+          <span class="resumo-card__valor">{{ resumo.valorRestante | currency:'BRL' }}</span>
+        </div>
+      </article>
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true"><span
+            class="material-icons">calendar_view_month</span></span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Parcelas ativas</span>
+          <span class="resumo-card__valor">{{ resumo.parcelasAtivas }}</span>
+        </div>
+      </article>
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">percent</span></span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Percentual quitado</span>
+          <span class="resumo-card__valor">{{ resumo.percentualQuitado | number:'1.1-1' }}%</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="dividas-graficos" aria-label="Gráficos">
+      <div class="grafico-card">
+        <div #chartEvolucao class="grafico-card__chart"></div>
+      </div>
+      <div class="grafico-card">
+        <div #chartPagoRestante class="grafico-card__chart"></div>
+      </div>
+      <div class="grafico-card">
+        <div #chartCategoria class="grafico-card__chart"></div>
+      </div>
+      <div class="grafico-card">
+        <div #chartPagamentos class="grafico-card__chart"></div>
+      </div>
+    </section>
+
+    <section class="dividas-evolucao" aria-labelledby="h-evolucao">
+      <h2 id="h-evolucao" class="secao-titulo"><span class="material-icons">insights</span> Evolução das dívidas</h2>
+      <div class="evolucao-scroll">
+        <article class="evolucao-card" *ngFor="let d of dividas">
+          <div class="evolucao-card__icon" aria-hidden="true"><span
+              class="material-icons">{{ iconTipo(d.tipoDivida) }}</span></div>
+          <h3 class="evolucao-card__nome">{{ d.objetivo }}</h3>
+          <p class="evolucao-card__linha"><span>Tipo</span><strong>{{ labelTipo(d.tipoDivida) }}</strong></p>
+          <p class="evolucao-card__linha"><span>Valor total</span><strong>{{ d.valorTotal | currency:'BRL' }}</strong>
+          </p>
+          <p class="evolucao-card__linha"><span>Parcela mensal</span><strong>{{ parcelaMensal(d) | currency:'BRL' }}</strong></p>
+          <p class="evolucao-card__linha"><span>Pago no mês</span><strong>{{ d.valorPagoNoMes | currency:'BRL' }}</strong></p>
+          <p class="evolucao-card__linha"><span>Valor
+              restante</span><strong>{{ d.valorRestante | currency:'BRL' }}</strong></p>
+          <span class="evolucao-card__status"
+            [ngClass]="statusMesClasse(d.statusParcelaMes)">{{ statusMesLabel(d.statusParcelaMes) }}</span>
+          <div class="evolucao-card__bar" aria-hidden="true"><span class="evolucao-card__bar-fill"
+              [style.width.%]="progresso(d)"></span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="dividas-tabela-secao" aria-labelledby="h-tabela">
+      <h2 id="h-tabela" class="secao-titulo"><span class="material-icons">table_chart</span> Controle das dívidas</h2>
+      <div class="table-wrap">
+        <table class="dividas-table">
+          <thead>
+            <tr>
+              <th>Objetivo</th>
+              <th>Tipo da dívida</th>
+              <th class="col-centro">Valor total</th>
+              <th class="col-centro">Parcela mensal</th>
+              <th class="col-centro">Pago no mês</th>
+              <th class="col-centro">Valor restante</th>
+              <th class="col-centro">Parcelas restantes</th>
+              <th class="col-centro">Progresso</th>
+              <th class="col-centro">Status</th>
+              <th class="col-centro">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of dividasPaginadas">
+              <td class="col-objetivo">{{ d.objetivo }}</td>
+              <td>{{ labelTipo(d.tipoDivida) }}</td>
+              <td class="num">{{ d.valorTotal | currency:'BRL' }}</td>
+              <td class="num">{{ parcelaMensal(d) | currency:'BRL' }}</td>
+              <td class="num">{{ d.valorPagoNoMes | currency:'BRL' }}</td>
+              <td class="num">{{ d.valorRestante | currency:'BRL' }}</td>
+              <td class="num">{{ d.parcelasRestantes }}</td>
+              <td class="col-centro">
+                <div class="progresso-inline">
+                  <div class="progresso-inline__track"><span class="progresso-inline__fill"
+                      [style.width.%]="progresso(d)"></span></div>
+                  <span class="progresso-inline__pct">{{ progresso(d) | number:'1.0-0' }}%</span>
+                </div>
+              </td>
+              <td class="col-centro"><span class="badge-status"
+                  [ngClass]="statusMesClasse(d.statusParcelaMes)">{{ statusMesLabel(d.statusParcelaMes) }}</span></td>
+              <td class="acoes col-centro">
+                <button type="button" class="btn-icone" (click)="editar(d)" title="Editar"><span
+                    class="material-icons">edit</span></button>
+                <button type="button" class="btn-icone btn-icone-excluir" (click)="confirmarExcluir(d)"
+                  title="Excluir"><span class="material-icons">delete</span></button>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot *ngIf="dividas.length > 0">
+            <tr class="dividas-table__total">
+              <td colspan="2" class="col-objetivo">Total</td>
+              <td class="num">{{ totaisTabela.valorTotal | currency:'BRL' }}</td>
+              <td class="num">{{ totaisTabela.parcelaMensal | currency:'BRL' }}</td>
+              <td class="num">{{ totaisTabela.valorPago | currency:'BRL' }}</td>
+              <td class="num">{{ totaisTabela.valorRestante | currency:'BRL' }}</td>
+              <td class="num">{{ totaisTabela.parcelasRestantes }}</td>
+              <td class="col-centro">
+                <span class="dividas-table__total-pct">{{ totaisTabela.percentualQuitado | number:'1.0-0' }}%</span>
+              </td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="dividas-paginacao" *ngIf="exibirPaginacaoTabela">
+        <span class="dividas-paginacao__info">Mostrando {{ exibindoDeTabela }}–{{ exibindoAteTabela }} de
+          {{ dividas.length }}</span>
+        <nav class="dividas-paginacao__nav" aria-label="Paginação">
+          <button type="button" class="dividas-paginacao__btn" (click)="paginaAnteriorTabela()"
+            [disabled]="paginaTabela <= 1">
+            <span class="material-icons" aria-hidden="true">chevron_left</span> Anterior
+          </button>
+          <span class="dividas-paginacao__paginas">Página {{ paginaTabela }} de {{ totalPaginasTabela }}</span>
+          <button type="button" class="dividas-paginacao__btn" (click)="paginaProximaTabela()"
+            [disabled]="paginaTabela >= totalPaginasTabela">
+            Próxima <span class="material-icons" aria-hidden="true">chevron_right</span>
+          </button>
+        </nav>
+      </div>
+    </section>
+  </ng-container>
 </div>
