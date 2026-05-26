@@ -1,0 +1,68 @@
+<div class="adicionar-cartao-dialog">
+  <h2 mat-dialog-title class="dialog-titulo">
+    <span class="material-icons dialog-titulo-icone" aria-hidden="true">credit_card</span>
+    {{ tituloDialog }}
+  </h2>
+
+  <mat-dialog-content class="dialog-body">
+    <form id="form-cartao-dialog" [formGroup]="form" (ngSubmit)="salvar()" class="cartoes-form" novalidate>
+      <div class="cartao-exemplo" aria-label="Exemplo de preenchimento">
+        <span class="material-icons cartao-exemplo__icon" aria-hidden="true">tips_and_updates</span>
+        <div>
+          <strong>Exemplo:</strong> Nubank · Limite R$ 5.000 · Fatura R$ 550 ·
+          fechamento dia 25 · vencimento dia 10 · melhor compra dia 26
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <label class="field">
+          <span class="field-label">Nome do cartão</span>
+          <input type="text" formControlName="nome" class="input-text" placeholder="Ex.: Nubank Ultravioleta"
+            autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Banco</span>
+          <select formControlName="banco" class="input-select">
+            <option value="" disabled>Selecione…</option>
+            <option *ngFor="let b of bancos" [value]="b.value">{{ b.label }}</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Limite (R$)</span>
+          <input type="number" formControlName="limite" class="input-text" min="0.01" step="0.01"
+            placeholder="Ex.: 5000" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Fechamento</span>
+          <input type="number" formControlName="diaFechamento" class="input-text" min="1" max="31" step="1"
+            placeholder="Ex.: 25" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Vencimento</span>
+          <input type="number" formControlName="diaVencimento" class="input-text" min="1" max="31" step="1"
+            placeholder="Ex.: 10" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Melhor dia de compra</span>
+          <input type="number" formControlName="diaMelhorCompra" class="input-text" min="1" max="31" step="1"
+            placeholder="Ex.: 26" />
+        </label>
+      </div>
+
+      <p class="erro-form" *ngIf="erro" role="alert">{{ erro }}</p>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-acoes">
+    <button type="button" mat-stroked-button (click)="fechar()">Cancelar</button>
+    <button type="submit" mat-flat-button color="primary" form="form-cartao-dialog" [disabled]="saving || form.invalid">
+      <span *ngIf="!saving">{{ isEdicao ? 'Atualizar' : 'Adicionar' }}</span>
+      <span *ngIf="saving">Salvando…</span>
+    </button>
+  </mat-dialog-actions>
+</div>

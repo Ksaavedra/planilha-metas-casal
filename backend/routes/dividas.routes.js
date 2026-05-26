@@ -29,6 +29,19 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_dividas_ano ON dividas(ano)
 `);
 
+for (const sql of [
+  'ALTER TABLE dividas ADD COLUMN limiteCartao REAL DEFAULT 0',
+  'ALTER TABLE dividas ADD COLUMN diaVencimento INTEGER',
+  'ALTER TABLE dividas ADD COLUMN diaMelhorCompra INTEGER',
+  'ALTER TABLE dividas ADD COLUMN cartaoId INTEGER',
+]) {
+  try {
+    db.exec(sql);
+  } catch (e) {
+    if (!String(e.message).includes('duplicate column')) throw e;
+  }
+}
+
 function parseNum(value, fallback = 0) {
   if (value == null || value === '') return fallback;
   const n = parseFloat(String(value).replace(',', '.'));
@@ -95,10 +108,34 @@ function mapRow(row) {
     percentualQuitado: row.percentualQuitado ?? 0,
     statusDivida: row.statusDivida ?? 'pagando',
     instituicao: row.instituicao,
+    limiteCartao: row.limiteCartao ?? 0,
+    diaVencimento: row.diaVencimento ?? null,
+    diaMelhorCompra: row.diaMelhorCompra ?? null,
+    cartaoId: row.cartaoId ?? null,
+    cartaoNome: row.cartaoNome ?? null,
+    cartaoBanco: row.cartaoBanco ?? null,
     ano: row.ano,
     dataInicio: row.dataInicio,
     observacoes: row.observacoes,
   };
+}
+
+function selectDividasBase() {
+  return `
+    SELECT d.*, c.nome AS cartaoNome, c.banco AS cartaoBanco
+    FROM dividas d
+    LEFT JOIN cartoes c ON c.id = d.cartaoId
+  `;
+}
+
+function getCartao(id) {
+  const cartaoId = parseIntSafe(id, null);
+  if (cartaoId == null) return null;
+  return db.prepare(`SELECT * FROM cartoes WHERE id = ?`).get(cartaoId);
+}
+
+function cartaoIdInformado(value) {
+  return value !== undefined && value !== null && value !== '';
 }
 
 function mergeStatus(statusBody, derivados) {
@@ -117,7 +154,9 @@ router.get('/', (req, res) => {
 
     const rows = db
       .prepare(
-        `SELECT * FROM dividas WHERE ano = ? ORDER BY objetivo ASC, id ASC`,
+        `${selectDividasBase()}
+         WHERE d.ano = ?
+         ORDER BY d.objetivo ASC, d.id ASC`,
       )
       .all(ano);
     res.json(rows.map(mapRow));
@@ -130,7 +169,9 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const row = db.prepare(`SELECT * FROM dividas WHERE id = ?`).get(id);
+    const row = db
+      .prepare(`${selectDividasBase()} WHERE d.id = ?`)
+      .get(id);
     if (!row) {
       return res.status(404).json({ error: 'Dívida não encontrada' });
     }
@@ -151,6 +192,10 @@ router.post('/', (req, res) => {
       quantidadeParcelas,
       statusDivida,
       instituicao,
+      limiteCartao,
+      diaVencimento,
+      diaMelhorCompra,
+      cartaoId,
       ano,
       dataInicio,
       observacoes,
@@ -180,14 +225,24 @@ router.post('/', (req, res) => {
       quantidadeParcelas,
     );
     const status = mergeStatus(statusDivida, derivados);
+    const cartao = getCartao(cartaoId);
+    if (cartaoIdInformado(cartaoId) && !cartao) {
+      return res.status(400).json({ error: 'Cartão informado não encontrado.' });
+    }
+    const cartaoIdFinal = cartao ? cartao.id : null;
+    const instituicaoFinal = cartao
+      ? cartao.banco
+      : instituicao
+        ? String(instituicao).trim()
+        : null;
 
     const result = db
       .prepare(
         `INSERT INTO dividas
          (objetivo, tipoDivida, valorTotal, valorPago, valorRestante, parcelaMensal,
           quantidadeParcelas, parcelasRestantes, percentualQuitado, statusDivida,
-          instituicao, ano, dataInicio, observacoes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          instituicao, limiteCartao, diaVencimento, diaMelhorCompra, cartaoId, ano, dataInicio, observacoes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         String(objetivo).trim(),
@@ -200,14 +255,18 @@ router.post('/', (req, res) => {
         derivados.parcelasRestantes,
         derivados.percentualQuitado,
         status,
-        instituicao ? String(instituicao).trim() : null,
+        instituicaoFinal,
+        parseNum(limiteCartao),
+        parseIntSafe(diaVencimento) || null,
+        parseIntSafe(diaMelhorCompra) || null,
+        cartaoIdFinal,
         a,
         dataInicio || null,
         observacoes ? String(observacoes).trim() : null,
       );
 
     const row = db
-      .prepare(`SELECT * FROM dividas WHERE id = ?`)
+      .prepare(`${selectDividasBase()} WHERE d.id = ?`)
       .get(result.lastInsertRowid);
     res.status(201).json(mapRow(row));
   } catch (error) {
@@ -258,6 +317,33 @@ router.patch('/:id', (req, res) => {
     );
     const instituicao =
       body.instituicao !== undefined ? body.instituicao : atual.instituicao;
+    const cartao = body.cartaoId !== undefined ? getCartao(body.cartaoId) : null;
+    if (cartaoIdInformado(body.cartaoId) && !cartao) {
+      return res.status(400).json({ error: 'Cartão informado não encontrado.' });
+    }
+    const cartaoId =
+      body.cartaoId !== undefined
+        ? cartao
+          ? cartao.id
+          : null
+        : atual.cartaoId;
+    const instituicaoFinal = cartao
+      ? cartao.banco
+      : instituicao !== undefined && instituicao !== null && instituicao !== ''
+        ? String(instituicao).trim()
+        : null;
+    const limiteCartao =
+      body.limiteCartao !== undefined
+        ? body.limiteCartao
+        : atual.limiteCartao;
+    const diaVencimento =
+      body.diaVencimento !== undefined
+        ? body.diaVencimento
+        : atual.diaVencimento;
+    const diaMelhorCompra =
+      body.diaMelhorCompra !== undefined
+        ? body.diaMelhorCompra
+        : atual.diaMelhorCompra;
     const ano = body.ano != null ? parseInt(body.ano, 10) : atual.ano;
     const dataInicio =
       body.dataInicio !== undefined ? body.dataInicio : atual.dataInicio;
@@ -269,7 +355,8 @@ router.patch('/:id', (req, res) => {
         objetivo = ?, tipoDivida = ?, valorTotal = ?, valorPago = ?,
         valorRestante = ?, parcelaMensal = ?, quantidadeParcelas = ?,
         parcelasRestantes = ?, percentualQuitado = ?, statusDivida = ?,
-        instituicao = ?, ano = ?, dataInicio = ?, observacoes = ?,
+        instituicao = ?, limiteCartao = ?, diaVencimento = ?, diaMelhorCompra = ?,
+        cartaoId = ?, ano = ?, dataInicio = ?, observacoes = ?,
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
     ).run(
@@ -283,14 +370,18 @@ router.patch('/:id', (req, res) => {
       derivados.parcelasRestantes,
       derivados.percentualQuitado,
       status,
-      instituicao,
+      instituicaoFinal,
+      parseNum(limiteCartao),
+      parseIntSafe(diaVencimento) || null,
+      parseIntSafe(diaMelhorCompra) || null,
+      cartaoId,
       ano,
       dataInicio,
       observacoes,
       id,
     );
 
-    const row = db.prepare(`SELECT * FROM dividas WHERE id = ?`).get(id);
+    const row = db.prepare(`${selectDividasBase()} WHERE d.id = ?`).get(id);
     res.json(mapRow(row));
   } catch (error) {
     console.error('Erro ao atualizar dívida:', error);

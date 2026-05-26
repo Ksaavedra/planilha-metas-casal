@@ -1,7 +1,9 @@
 import {
   Divida,
   DividaNoMes,
+  ResumoCartaoView,
   ResumoDividasView,
+  ResumoLimiteCartoesView,
   StatusDivida,
   StatusParcelaMes,
 } from '../interfaces/dividas/dividas';
@@ -35,12 +37,11 @@ export interface TotaisTabelaDividas {
   percentualQuitado: number;
 }
 
-export function calcularTotaisTabelaDividas(lista: Divida[]): TotaisTabelaDividas {
+export function calcularTotaisTabelaDividas(
+  lista: Divida[],
+): TotaisTabelaDividas {
   const resumo = calcularResumoDividas(lista);
-  const parcelaMensal = lista.reduce(
-    (s, d) => s + parcelaMensalDivida(d),
-    0,
-  );
+  const parcelaMensal = lista.reduce((s, d) => s + parcelaMensalDivida(d), 0);
   const parcelasRestantes = lista.reduce(
     (s, d) => s + (d.parcelasRestantes || 0),
     0,
@@ -121,10 +122,7 @@ export function calcularParcelaMensal(
 
 /** Valor da parcela para exibição (usa cálculo se o banco estiver desatualizado). */
 export function parcelaMensalDivida(d: Divida): number {
-  const calculada = calcularParcelaMensal(
-    d.valorTotal,
-    d.quantidadeParcelas,
-  );
+  const calculada = calcularParcelaMensal(d.valorTotal, d.quantidadeParcelas);
   if (calculada > 0) return calculada;
   return Math.max(0, d.parcelaMensal || 0);
 }
@@ -160,15 +158,15 @@ export function projetarEvolucaoRestante(
 }
 
 /** Valor de pagamento previsto em cada mês do ano. */
-export function projetarPagamentosMensais(parcelaMensalTotal: number): number[] {
+export function projetarPagamentosMensais(
+  parcelaMensalTotal: number,
+): number[] {
   const v = Math.round(parcelaMensalTotal * 100) / 100;
   return MESES_LABELS_GRAFICO.map(() => v);
 }
 
 /** Mês (1–12) extraído de dataInicio (YYYY-MM-DD). */
-export function mesDataInicioDivida(
-  dataInicio?: string | null,
-): number | null {
+export function mesDataInicioDivida(dataInicio?: string | null): number | null {
   if (!dataInicio || dataInicio.length < 7) return null;
   const m = parseInt(dataInicio.slice(5, 7), 10);
   return m >= 1 && m <= 12 ? m : null;
@@ -195,10 +193,7 @@ export function dividaVisivelNoMesReferencia(
   }
 
   const inicio = mesInicio ?? 1;
-  const duracao = Math.max(
-    1,
-    d.quantidadeParcelas || d.parcelasRestantes || 1,
-  );
+  const duracao = Math.max(1, d.quantidadeParcelas || d.parcelasRestantes || 1);
   const mesFim = Math.min(12, inicio + duracao - 1);
   return mes >= inicio && mes <= mesFim;
 }
@@ -211,7 +206,18 @@ export function filtrarDividasPorMesReferencia(
   return lista.filter((d) => dividaVisivelNoMesReferencia(d, ano, mes));
 }
 
-/** Quantas parcelas já foram pagas (pelo valor acumulado). */
+/** Texto "1/3", "2/3" para a parcela do mês vs total. */
+export function parcelasRestantesLabel(d: Divida | DividaNoMes): string {
+  const total = d.quantidadeParcelas || 0;
+  if ('indiceParcelaMes' in d && d.indiceParcelaMes > 0 && total > 0) {
+    return `${d.indiceParcelaMes}/${total}`;
+  }
+
+  const restantes = d.parcelasRestantes ?? 0;
+  if (total <= 0) return String(restantes);
+  return `${restantes}/${total}`;
+}
+
 export function parcelasPagasDivida(d: Divida): number {
   const parcela = parcelaMensalDivida(d);
   if (parcela <= 0) return 0;
@@ -241,6 +247,7 @@ export function statusParcelaMesLabel(status: StatusParcelaMes): string {
     pendente: 'Pendente ⏳',
     atrasada: 'Atrasada ⚠️',
     futura: 'A vencer 📅',
+    quitada: 'Quitada ✅',
   };
   return map[status] ?? status;
 }
@@ -251,8 +258,121 @@ export function statusParcelaMesClasse(status: StatusParcelaMes): string {
     pendente: 'status--pendente',
     atrasada: 'status--atrasada',
     futura: 'status--futura',
+    quitada: 'status--quitada',
   };
   return map[status] ?? '';
+}
+
+function chaveInstituicao(nome?: string | null): string {
+  const n = nome?.trim();
+  return n && n.length > 0 ? n : 'Sem instituição';
+}
+
+function dividaQuitada(d: Divida): boolean {
+  return (
+    d.statusDivida === 'quitada' ||
+    (d.valorRestante ?? 0) <= 0.009 ||
+    (d.percentualQuitado ?? 0) >= 99.99
+  );
+}
+
+/** Verifica atraso pela data de vencimento do cartão ou pelo mês calendário. */
+export function parcelaAtrasadaNoMes(
+  d: Divida,
+  ano: number,
+  mes: number,
+  hoje: Date = new Date(),
+): boolean {
+  if (dividaQuitada(d)) return false;
+
+  const anoHoje = hoje.getFullYear();
+  const mesHoje = hoje.getMonth() + 1;
+  const diaHoje = hoje.getDate();
+  const diaVenc = d.diaVencimento;
+
+  if (ano < anoHoje || (ano === anoHoje && mes < mesHoje)) return true;
+
+  if (
+    diaVenc != null &&
+    diaVenc >= 1 &&
+    diaVenc <= 31 &&
+    ano === anoHoje &&
+    mes === mesHoje &&
+    diaHoje > diaVenc
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+export function agruparResumoCartoes(lista: Divida[]): ResumoCartaoView[] {
+  const mapa = new Map<string, Divida[]>();
+  for (const d of lista) {
+    const k = chaveInstituicao(d.instituicao);
+    const arr = mapa.get(k) ?? [];
+    arr.push(d);
+    mapa.set(k, arr);
+  }
+
+  return [...mapa.entries()]
+    .map(([instituicao, itens]) => {
+      const limite = Math.max(
+        0,
+        ...itens.map((d) => Math.max(0, d.limiteCartao ?? 0)),
+      );
+      const utilizado = itens
+        .filter((d) => !dividaQuitada(d))
+        .reduce((s, d) => s + Math.max(0, d.valorRestante ?? 0), 0);
+      const disponivel = Math.max(0, limite - utilizado);
+      const comVenc = itens.find((d) => d.diaVencimento != null);
+      return {
+        instituicao,
+        limite: Math.round(limite * 100) / 100,
+        utilizado: Math.round(utilizado * 100) / 100,
+        disponivel: Math.round(disponivel * 100) / 100,
+        diaVencimento: comVenc?.diaVencimento ?? null,
+        diaMelhorCompra: comVenc?.diaMelhorCompra ?? null,
+        percentualUtilizado:
+          limite > 0 ? Math.min(100, (utilizado / limite) * 100) : 0,
+      };
+    })
+    .sort((a, b) => a.instituicao.localeCompare(b.instituicao, 'pt-BR'));
+}
+
+export function calcularResumoLimiteCartoes(
+  lista: Divida[],
+  hoje: Date = new Date(),
+): ResumoLimiteCartoesView {
+  const cartoes = agruparResumoCartoes(lista);
+  const limiteTotal = cartoes.reduce((s, c) => s + c.limite, 0);
+  const utilizado = cartoes.reduce((s, c) => s + c.utilizado, 0);
+  const disponivel = Math.max(0, limiteTotal - utilizado);
+
+  const diaHoje = hoje.getDate();
+  const comVenc = cartoes
+    .filter((c) => c.diaVencimento != null && c.utilizado > 0)
+    .map((c) => ({
+      cartao: c,
+      dias: (c.diaVencimento! - diaHoje + 31) % 31,
+    }))
+    .sort((a, b) => a.dias - b.dias);
+
+  let proximoVencimentoLabel = '—';
+  if (comVenc.length > 0) {
+    const c = comVenc[0].cartao;
+    proximoVencimentoLabel = `Dia ${c.diaVencimento}`;
+    if (c.diaMelhorCompra != null) {
+      proximoVencimentoLabel += ` · Melhor compra: dia ${c.diaMelhorCompra}`;
+    }
+  }
+
+  return {
+    limiteTotal: Math.round(limiteTotal * 100) / 100,
+    utilizado: Math.round(utilizado * 100) / 100,
+    disponivel: Math.round(disponivel * 100) / 100,
+    proximoVencimentoLabel,
+  };
 }
 
 /** Atualiza valor pago acumulado ao registrar pagamento só do mês de referência. */
@@ -293,14 +413,16 @@ export function projetarDividaNoMes(
   const valorPagoNoMes = parcelaMesPaga ? parcela : 0;
 
   let statusParcelaMes: StatusParcelaMes;
-  if (parcelaMesPaga) {
+  if (dividaQuitada(d)) {
+    statusParcelaMes = 'quitada';
+  } else if (parcelaMesPaga || valorPagoNoMes > 0) {
     statusParcelaMes = 'paga';
+  } else if (parcelaAtrasadaNoMes(d, ano, mes, hoje)) {
+    statusParcelaMes = 'atrasada';
   } else {
     const anoHoje = hoje.getFullYear();
     const mesHoje = hoje.getMonth() + 1;
-    if (ano < anoHoje || (ano === anoHoje && mes < mesHoje)) {
-      statusParcelaMes = 'atrasada';
-    } else if (ano > anoHoje || (ano === anoHoje && mes > mesHoje)) {
+    if (ano > anoHoje || (ano === anoHoje && mes > mesHoje)) {
       statusParcelaMes = 'futura';
     } else {
       statusParcelaMes = 'pendente';
@@ -333,8 +455,7 @@ export function calcularResumoDividasNoMes(
   const totalPagoNoMes = lista.reduce((s, d) => s + d.valorPagoNoMes, 0);
   const parcelasAtivas = lista.filter(
     (d) =>
-      d.statusParcelaMes === 'pendente' ||
-      d.statusParcelaMes === 'atrasada',
+      d.statusParcelaMes === 'pendente' || d.statusParcelaMes === 'atrasada',
   ).length;
 
   return {
@@ -342,6 +463,50 @@ export function calcularResumoDividasNoMes(
     totalPago: Math.round(totalPagoNoMes * 100) / 100,
     parcelasAtivas,
   };
+}
+
+/**
+ * Soma das parcelas devidas em cada mês do ano (ex.: mai R$225, jun R$225, jul R$100).
+ */
+export function projetarParcelaMensalAno(
+  lista: Divida[],
+  ano: number,
+): number[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const mes = i + 1;
+    const total = lista
+      .filter((d) => d.ano === ano)
+      .reduce((s, d) => {
+        if (indiceParcelaNoMes(d, ano, mes) == null) return s;
+        return s + parcelaMensalDivida(d);
+      }, 0);
+    return Math.round(total * 100) / 100;
+  });
+}
+
+/**
+ * Saldo devedor total projetado ao fim de cada mês (considera pagamentos já registrados).
+ */
+export function projetarSaldoRestanteAno(
+  lista: Divida[],
+  ano: number,
+): number[] {
+  return Array.from({ length: 12 }, (_, i) => {
+    const mes = i + 1;
+    const total = lista
+      .filter((d) => d.ano === ano)
+      .reduce((s, d) => {
+        const mesInicio = mesDataInicioDivida(d.dataInicio) ?? 1;
+        if (mes < mesInicio) return s;
+        const qtd = d.quantidadeParcelas || 0;
+        if (qtd > 0 && mes > mesInicio + qtd - 1) return s;
+        const parcela = parcelaMensalDivida(d);
+        const pagas = parcelasPagasDivida(d);
+        const pagoAteMes = Math.min(d.valorTotal, pagas * parcela);
+        return s + Math.max(0, d.valorTotal - pagoAteMes);
+      }, 0);
+    return Math.round(total * 100) / 100;
+  });
 }
 
 export function formatarMoedaGrafico(valor: number): string {
