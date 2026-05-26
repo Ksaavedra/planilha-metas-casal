@@ -1,0 +1,118 @@
+.dividas-exemplos {
+  margin-bottom: 2.5rem;
+  animation: dividas-exemplos-fade 0.25s ease;
+}
+
+@keyframes dividas-exemplos-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.dividas-exemplos__h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.dividas-exemplos__intro {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.dividas-exemplos__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.dividas-exemplos__card,
+.dividas-exemplos__dica {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.dividas-exemplos__card {
+  padding: 1rem 1.05rem;
+}
+
+.dividas-exemplos__badge {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.65rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: #f5f3ff;
+  color: #5b21b6;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.dividas-exemplos__h3 {
+  margin: 0 0 0.25rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #5b21b6;
+  letter-spacing: -0.02em;
+}
+
+.dividas-exemplos__meta {
+  margin: 0 0 0.9rem;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.dividas-exemplos__linhas {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+
+  p {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.7rem;
+    margin: 0;
+    font-size: 0.86rem;
+    color: #64748b;
+  }
+
+  strong {
+    color: #0f172a;
+    font-weight: 700;
+    text-align: right;
+  }
+}
+
+.dividas-exemplos__descricao {
+  margin: 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid #f1f5f9;
+  color: #475569;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.dividas-exemplos__dica {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(135deg, #f5f3ff 0%, #faf5ff 100%);
+  border-color: #e9d5ff;
+
+  p {
+    margin: 0;
+    color: #475569;
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+}

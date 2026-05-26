@@ -33,13 +33,6 @@
         </label>
 
         <label class="field">
-          <span class="field-label">Status</span>
-          <select formControlName="statusDivida" class="input-select">
-            <option *ngFor="let s of statusOpcoes" [value]="s.value">{{ s.label }}</option>
-          </select>
-        </label>
-
-        <label class="field">
           <span class="field-label">Valor total (R$)</span>
           <input type="number" formControlName="valorTotal" class="input-text" min="0.01" step="0.01" />
         </label>
@@ -64,9 +57,15 @@
           </span>
         </div>
 
-        <label class="field">
-          <span class="field-label">Instituição (opcional)</span>
-          <input type="text" formControlName="instituicao" class="input-text" autocomplete="off" />
+        <label class="field field-wide">
+          <span class="field-label">Cartão de origem (opcional)</span>
+          <select formControlName="cartaoId" class="input-select">
+            <option value="">Sem cartão</option>
+            <option *ngFor="let c of cartoes" [value]="c.id">
+              {{ c.nome }} · {{ c.banco }}
+            </option>
+          </select>
+          <span class="field-hint">Ex.: Roupa parcelada → Nubank. Empréstimo pessoal → sem cartão.</span>
         </label>
 
         <label class="field">

@@ -604,7 +604,7 @@
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
-  padding: 1.1rem 1.15rem;
+  padding: 1rem 1.1rem;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
   transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 
@@ -625,7 +625,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.65rem;
 
   .material-icons {
     font-size: 1.35rem;
@@ -633,11 +633,19 @@
 }
 
 .evolucao-card__nome {
-  margin: 0 0 0.75rem;
+  margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
   color: #0f172a;
   line-height: 1.35;
+}
+
+.evolucao-card__meta {
+  margin: 0.15rem 0 0.7rem;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .evolucao-card__linha {
@@ -765,11 +773,16 @@
 
   tfoot .dividas-table__total td {
     padding: 0.85rem 1rem;
-    border-top: 2px solid #c4b5fd;
+    border-top: 3px solid #c4b5fd;
     background: linear-gradient(180deg, #f5f3ff 0%, #ede9fe 100%);
     color: #312e81;
-    font-weight: 700;
+    font-weight: 500;
     border-bottom: none;
+  }
+
+  tfoot .dividas-table__total .col-objetivo,
+  tfoot .dividas-table__total .num {
+    font-weight: 700;
   }
 
   .dividas-table__total-pct {
@@ -788,15 +801,64 @@
     font-weight: 600;
     color: #0f172a;
   }
+
+  .col-banco {
+    min-width: 9rem;
+  }
+
+  .num--positivo {
+    color: #166534;
+    font-weight: 700;
+  }
+}
+
+.banco-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  color: #312e81;
+  white-space: nowrap;
+}
+
+.banco-tipo-cell {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.banco-tipo-cell__banco {
+  font-weight: 700;
+  color: #312e81;
+}
+
+.banco-tipo-cell__tipo {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: #94a3b8;
 }
 
 .badge-status {
   display: inline-block;
-  padding: 0.22rem 0.6rem;
+  padding: 0.18rem 0.45rem;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
   white-space: nowrap;
+  line-height: 1.15;
+}
+
+.badge-status--acao {
+  border: none;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+
+  &:hover {
+    filter: brightness(0.96);
+    transform: translateY(-1px);
+  }
 }
 
 .acoes {
@@ -805,6 +867,60 @@
 
   .btn-icone {
     vertical-align: middle;
+  }
+}
+
+.acoes__grupo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+}
+
+.btn-pagar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid #bbf7d0;
+  background: #dcfce7;
+  color: #166534;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: #bbf7d0;
+    border-color: #86efac;
+    color: #14532d;
+  }
+}
+
+.btn-desfazer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid #fed7aa;
+  background: #ffedd5;
+  color: #c2410c;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: #fed7aa;
+    border-color: #fdba74;
+    color: #9a3412;
   }
 }
 
@@ -891,14 +1007,173 @@
   }
 }
 
-.dividas-graficos{grid-template-columns:repeat(2,minmax(0,1fr));@media(max-width:900px){grid-template-columns:1fr}}
-.status--pagando{background:#dbeafe;color:#1e40af}
-.status--atrasada{background:#fee2e2;color:#b91c1c}
-.status--quitada{background:#dcfce7;color:#166534}
-.status--parcela-paga{background:#dcfce7;color:#166534}
-.status--pendente{background:#fef3c7;color:#b45309}
-.status--futura{background:#e0e7ff;color:#4338ca}
-.progresso-inline{display:flex;align-items:center;gap:.5rem;justify-content:center}
-.progresso-inline__track{flex:1;max-width:5rem;height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden}
-.progresso-inline__fill{display:block;height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:999px}
-.progresso-inline__pct{font-size:.75rem;font-weight:600;color:#64748b;min-width:2.5rem}
+.dividas-graficos {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  @media(max-width:900px) {
+    grid-template-columns: 1fr
+  }
+}
+
+.status--pagando {
+  background: #dbeafe;
+  color: #1e40af
+}
+
+.status--atrasada {
+  background: #fee2e2;
+  color: #b91c1c
+}
+
+.status--quitada {
+  background: #dcfce7;
+  color: #166534
+}
+
+.status--parcela-paga {
+  background: #dcfce7;
+  color: #166534
+}
+
+.status--pendente {
+  background: #fef3c7;
+  color: #b45309
+}
+
+.status--futura {
+  background: #e0e7ff;
+  color: #4338ca
+}
+
+.progresso-inline {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  justify-content: center
+}
+
+.progresso-inline__track {
+  flex: 1;
+  max-width: 5rem;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden
+}
+
+.progresso-inline__fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
+  border-radius: 999px
+}
+
+.progresso-inline__pct {
+  font-size: .75rem;
+  font-weight: 600;
+  color: #64748b;
+  min-width: 2.5rem
+}
+
+.dividas-cartoes-resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.resumo-card__valor--sm {
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.dividas-cartoes-lista {
+  margin-bottom: 1.25rem;
+}
+
+.cartoes-scroll {
+  display: flex;
+  gap: 0.85rem;
+  overflow-x: auto;
+  padding-bottom: 0.35rem;
+}
+
+.cartao-card {
+  flex: 0 0 min(280px, 88vw);
+  background: linear-gradient(145deg, #4c1d95 0%, #6d28d9 55%, #7c3aed 100%);
+  color: #fff;
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 8px 24px rgba(76, 29, 149, 0.35);
+}
+
+.cartao-card__top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.cartao-card__icone {
+  font-size: 1.5rem;
+  opacity: 0.95;
+}
+
+.cartao-card__nome {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.cartao-card__linha {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  margin-bottom: 0.35rem;
+  opacity: 0.92;
+
+  strong {
+    font-weight: 700;
+  }
+}
+
+.cartao-card__linha--destaque {
+  font-size: 0.92rem;
+  margin-top: 0.25rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.cartao-card__bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  margin: 0.5rem 0 0.35rem;
+  overflow: hidden;
+}
+
+.cartao-card__bar-fill {
+  display: block;
+  height: 100%;
+  background: #fde68a;
+  border-radius: 999px;
+}
+
+.cartao-card__pct {
+  margin: 0;
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
+.cartao-card__venc {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0.9;
+
+  .material-icons {
+    font-size: 0.95rem;
+  }
+}

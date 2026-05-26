@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
+import { ActivatedRoute } from '@angular/router';
 import * as echarts from 'echarts';
 import { Divida, DividaNoMes } from '@core/interfaces/dividas/dividas';
 import {
@@ -16,18 +17,19 @@ import {
 } from '@core/constants/dividas-tipos.constant';
 import { DividasService } from '@core/services/dividas/dividas.service';
 import {
+  calcularValorPagoAcumulado,
+  calcularResumoDividas,
   calcularResumoDividasNoMes,
   calcularTotaisTabelaDividasNoMes,
   formatarMoedaGrafico,
   MESES_LABELS_GRAFICO,
   parcelaMensalDivida,
+  parcelasRestantesLabel,
   progressoDivida,
   projetarDividasNoMes,
-  projetarEvolucaoRestante,
-  projetarPagamentosMensais,
+  projetarParcelaMensalAno,
   statusParcelaMesClasse,
   statusParcelaMesLabel,
-  totalParcelaMensalPendenteNoMes,
 } from '@core/utils/dividas.util';
 import {
   AdicionarDividaDialogComponent,
@@ -35,6 +37,8 @@ import {
 } from '../../components/adicionar-divida-dialog/adicionar-divida-dialog.component';
 import { ConfirmModalComponent } from 'shared/components/confirm-modal/confirm-modal.component';
 import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
+
+type ContextoDividas = 'emprestimos' | 'financiamentos';
 
 @Component({
   selector: 'app-dividas-page',
@@ -55,6 +59,7 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly statusMesClasse = statusParcelaMesClasse;
   readonly progresso = progressoDivida;
   readonly parcelaMensal = parcelaMensalDivida;
+  readonly parcelasLabel = parcelasRestantesLabel;
 
   dividas: DividaNoMes[] = [];
   private dividasAno: Divida[] = [];
@@ -62,6 +67,8 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   carregando = false;
   erroCarregar: string | null = null;
   mesAtual: Date = new Date();
+  visaoDividas: 'lista' | 'exemplos' = 'lista';
+  contextoDividas: ContextoDividas = 'emprestimos';
 
   readonly meses = [
     'Janeiro',
@@ -86,6 +93,7 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   constructor(
     private dividasService: DividasService,
     private dialog: MatDialog,
+    private route: ActivatedRoute,
   ) {}
 
   get resumo() {
@@ -94,6 +102,62 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   get totaisTabela() {
     return calcularTotaisTabelaDividasNoMes(this.dividas);
+  }
+
+  bancoLabel(d: DividaNoMes): string {
+    return d.cartaoBanco?.trim() || d.instituicao?.trim() || 'Sem cartão';
+  }
+
+  get tituloPagina(): string {
+    return this.contextoDividas === 'financiamentos'
+      ? 'Financiamentos do casal'
+      : 'Empréstimos do casal';
+  }
+
+  get subtituloPagina(): string {
+    return this.contextoDividas === 'financiamentos'
+      ? 'Acompanhando financiamentos, saldo devedor e parcelas restantes'
+      : 'Acompanhando empréstimos, pagamentos e saldo restante';
+  }
+
+  get labelAdicionar(): string {
+    return this.contextoDividas === 'financiamentos'
+      ? 'Adicionar financiamento'
+      : 'Adicionar empréstimo';
+  }
+
+  get tituloEvolucao(): string {
+    return this.contextoDividas === 'financiamentos'
+      ? 'Evolução dos financiamentos'
+      : 'Evolução dos empréstimos';
+  }
+
+  get tituloTabela(): string {
+    return this.contextoDividas === 'financiamentos'
+      ? 'Controle dos financiamentos'
+      : 'Controle dos empréstimos';
+  }
+
+  get labelTotalResumo(): string {
+    return this.contextoDividas === 'financiamentos'
+      ? 'Valor financiado'
+      : 'Total emprestado';
+  }
+
+  get labelRestanteResumo(): string {
+    return this.contextoDividas === 'financiamentos'
+      ? 'Saldo devedor'
+      : 'Saldo restante';
+  }
+
+  get labelVazio(): string {
+    return this.contextoDividas === 'financiamentos'
+      ? 'Nenhum financiamento cadastrado'
+      : 'Nenhum empréstimo cadastrado';
+  }
+
+  get resumoAnoGrafico() {
+    return calcularResumoDividas(this.dividasAno);
   }
 
   get exibirAvisoVazio(): boolean {
@@ -143,7 +207,7 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
     );
   }
 
-  get dividasPaginadas(): Divida[] {
+  get dividasPaginadas(): DividaNoMes[] {
     const start = (this.paginaTabela - 1) * this.tamanhoPagina;
     return this.dividas.slice(start, start + this.tamanhoPagina);
   }
@@ -177,7 +241,12 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.paginaTabela < this.totalPaginasTabela) this.paginaTabela++;
   }
 
+  selecionarVisao(visao: 'lista' | 'exemplos'): void {
+    this.visaoDividas = visao;
+  }
+
   ngOnInit(): void {
+    this.atualizarContextoPelaRota();
     this.mesAtual = this.dividasService.getMesReferencia();
     this.carregar();
   }
@@ -196,7 +265,7 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.erroCarregar = null;
     this.dividasService.getDividas(this.anoRef).subscribe({
       next: (lista) => {
-        this.dividasAno = lista;
+        this.dividasAno = this.filtrarPorContexto(lista);
         this.anoCarregado = this.anoRef;
         this.aplicarFiltroMes();
         this.carregando = false;
@@ -253,6 +322,22 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.normalizarIndicePagina();
   }
 
+  private atualizarContextoPelaRota(): void {
+    const contexto = this.route.snapshot.pathFromRoot
+      .map((r) => r.data['contextoDividas'])
+      .find(Boolean);
+    this.contextoDividas =
+      contexto === 'financiamentos' ? 'financiamentos' : 'emprestimos';
+  }
+
+  private filtrarPorContexto(lista: Divida[]): Divida[] {
+    const tipos =
+      this.contextoDividas === 'financiamentos'
+        ? ['financiamento']
+        : ['emprestimo'];
+    return lista.filter((d) => tipos.includes(d.tipoDivida));
+  }
+
   private normalizarIndicePagina(): void {
     const total = this.totalPaginasTabela;
     if (total === 0) this.paginaTabela = 1;
@@ -267,11 +352,104 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.abrirDialog(d);
   }
 
+  podePagarParcela(d: DividaNoMes): boolean {
+    return (
+      !d.parcelaMesPaga &&
+      d.statusParcelaMes !== 'futura' &&
+      d.statusParcelaMes !== 'quitada'
+    );
+  }
+
+  podeDesfazerPagamento(d: DividaNoMes): boolean {
+    return d.parcelaMesPaga && d.valorPagoNoMes > 0;
+  }
+
+  confirmarPagar(d: DividaNoMes): void {
+    const parcela = parcelaMensalDivida(d);
+    const ref = this.dialog.open(ConfirmModalComponent, {
+      width: 'min(420px, 96vw)',
+      data: {
+        title: 'Pagar parcela?',
+        message: `Deseja marcar a parcela ${this.parcelasLabel(d)} de "${d.objetivo}" como paga (${parcela.toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        })})?`,
+        confirmText: 'Sim, pagar',
+        cancelText: 'Não',
+      },
+    });
+
+    ref.afterClosed().subscribe((ok) => {
+      if (!ok) return;
+
+      const valorPago = calcularValorPagoAcumulado(
+        d.valorTotal,
+        d.quantidadeParcelas,
+        d.dataInicio || undefined,
+        this.mesRef,
+        parcela,
+      );
+
+      this.dividasService.updateDivida(d.id, { valorPago }).subscribe({
+        next: () => {
+          this.carregar();
+          this.dialog.open(SuccessModalComponent, {
+            width: 'min(420px, 96vw)',
+            data: {
+              title: 'Parcela paga!',
+              message: 'O pagamento do mês foi registrado com sucesso.',
+              confirmText: 'OK',
+            },
+          });
+        },
+      });
+    });
+  }
+
+  confirmarDesfazerPagamento(d: DividaNoMes): void {
+    const ref = this.dialog.open(ConfirmModalComponent, {
+      width: 'min(420px, 96vw)',
+      data: {
+        title: 'Desfazer pagamento',
+        message: 'Deseja desfazer este pagamento?',
+        confirmText: 'Sim, desfazer',
+        cancelText: 'Não',
+      },
+    });
+
+    ref.afterClosed().subscribe((ok) => {
+      if (!ok) return;
+
+      const valorPago = calcularValorPagoAcumulado(
+        d.valorTotal,
+        d.quantidadeParcelas,
+        d.dataInicio || undefined,
+        this.mesRef,
+        0,
+      );
+
+      this.dividasService.updateDivida(d.id, { valorPago }).subscribe({
+        next: () => {
+          this.carregar();
+          this.dialog.open(SuccessModalComponent, {
+            width: 'min(420px, 96vw)',
+            data: {
+              title: 'Pagamento desfeito!',
+              message: 'A parcela voltou para pendente.',
+              confirmText: 'OK',
+            },
+          });
+        },
+      });
+    });
+  }
+
   private abrirDialog(divida: DividaNoMes | null): void {
     const data: AdicionarDividaDialogData = {
       divida,
       ano: this.anoRef,
       mes: this.mesRef,
+      contexto: this.contextoDividas,
     };
     const ref = this.dialog.open(AdicionarDividaDialogComponent, {
       width: 'min(520px, 96vw)',
@@ -364,14 +542,10 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private opcaoGraficoEvolucao(): Record<string, unknown> {
-    const parcelaMensal = totalParcelaMensalPendenteNoMes(this.dividas);
-    const dados = projetarEvolucaoRestante(
-      this.resumo.valorRestante,
-      parcelaMensal,
-    );
+    const dados = projetarParcelaMensalAno(this.dividasAno, this.anoRef);
     return {
       title: {
-        text: 'Evolução da dívida',
+        text: 'Parcelas previstas no ano',
         left: 'center',
         textStyle: { fontSize: 13 },
       },
@@ -400,7 +574,10 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private opcaoGraficoPagoRestante(): Record<string, unknown> {
     return {
       title: {
-        text: 'Total pago x restante',
+        text:
+          this.contextoDividas === 'financiamentos'
+            ? 'Total pago x saldo devedor'
+            : 'Total pago x saldo restante',
         left: 'center',
         textStyle: { fontSize: 13 },
       },
@@ -413,8 +590,8 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
           type: 'pie',
           radius: ['42%', '68%'],
           data: [
-            { name: 'Pago', value: this.resumo.totalPago },
-            { name: 'Restante', value: this.resumo.valorRestante },
+            { name: 'Pago', value: this.resumoAnoGrafico.totalPago },
+            { name: 'Restante', value: this.resumoAnoGrafico.valorRestante },
           ],
           color: ['#22c55e', '#f59e0b'],
           label: { fontSize: 11 },
@@ -435,7 +612,10 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
     }));
     return {
       title: {
-        text: 'Dívidas por categoria',
+        text:
+          this.contextoDividas === 'financiamentos'
+            ? 'Financiamentos por categoria'
+            : 'Empréstimos por categoria',
         left: 'center',
         textStyle: { fontSize: 13 },
       },
@@ -464,8 +644,7 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private opcaoGraficoPagamentos(): Record<string, unknown> {
-    const parcelaMensal = totalParcelaMensalPendenteNoMes(this.dividas);
-    const mensal = projetarPagamentosMensais(parcelaMensal);
+    const mensal = projetarParcelaMensalAno(this.dividasAno, this.anoRef);
     return {
       title: {
         text: 'Evolução mensal dos pagamentos',

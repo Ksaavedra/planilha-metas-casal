@@ -6,12 +6,11 @@ export interface TipoDividaOpcao {
 
 export const TIPOS_DIVIDA_OPCOES: TipoDividaOpcao[] = [
   { value: 'cartao_credito', label: 'Cartão de crédito', icon: 'credit_card' },
-  { value: 'emprestimo', label: 'Empréstimo', icon: 'account_balance' },
   { value: 'financiamento', label: 'Financiamento', icon: 'real_estate_agent' },
-  { value: 'veiculo', label: 'Veículo', icon: 'directions_car' },
-  { value: 'casa', label: 'Casa', icon: 'home' },
-  { value: 'faculdade', label: 'Faculdade', icon: 'school' },
+  { value: 'emprestimo', label: 'Empréstimo', icon: 'account_balance' },
+  { value: 'crediario', label: 'Crediário', icon: 'receipt_long' },
   { value: 'parcelamento', label: 'Parcelamento', icon: 'payments' },
+  { value: 'pix_parcelado', label: 'PIX parcelado', icon: 'pix' },
 ];
 
 export function labelTipoDivida(value: string): string {
