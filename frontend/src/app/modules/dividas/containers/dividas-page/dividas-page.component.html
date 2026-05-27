@@ -11,7 +11,7 @@
           <p class="dividas-hero__subtitle">{{ subtituloPagina }}</p>
         </div>
       </div>
-      <div class="dividas-hero__field" aria-label="Mês de referência">
+      <div class="dividas-hero__field" aria-label="Mês de referência" *ngIf="visaoDividas === 'lista'">
         <p class="dividas-hero__label">Mês de referência</p>
         <div class="dividas-hero__mes-nav">
           <button type="button" class="dividas-hero__nav-btn" (click)="mesAnterior()" title="Mês anterior"

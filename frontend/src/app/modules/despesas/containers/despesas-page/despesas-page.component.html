@@ -13,7 +13,8 @@
           <p class="despesas-hero__subtitle">{{ tituloSecundario }}</p>
         </div>
       </div>
-      <div class="despesas-hero__field" aria-label="Mês de referência">
+      <div class="despesas-hero__field" aria-label="Mês de referência"
+        *ngIf="visaoDespesas === 'lista' || visaoDespesas === 'usuario'">
         <p class="despesas-hero__label">Mês de referência</p>
         <div class="despesas-hero__mes-nav">
           <button type="button" class="despesas-hero__nav-btn" (click)="mesAnterior()" title="Mês anterior"
