@@ -1,0 +1,99 @@
+<div class="adicionar-divida-dialog">
+  <h2 mat-dialog-title class="dialog-titulo">
+    <span class="material-icons dialog-titulo-icone" aria-hidden="true">credit_card</span>
+    {{ tituloDialog }}
+  </h2>
+
+  <mat-dialog-content class="dialog-body">
+    <form
+      id="form-divida-dialog"
+      [formGroup]="form"
+      (ngSubmit)="salvar()"
+      class="dividas-form"
+      novalidate
+    >
+      <div class="form-grid">
+        <label class="field field-wide">
+          <span class="field-label">Objetivo</span>
+          <input
+            type="text"
+            formControlName="objetivo"
+            class="input-text"
+            placeholder="Ex.: Financiamento do apartamento"
+            autocomplete="off"
+          />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Tipo da dívida</span>
+          <select formControlName="tipoDivida" class="input-select">
+            <option value="" disabled>Selecione…</option>
+            <option *ngFor="let t of tipos" [value]="t.value">{{ t.label }}</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Valor total (R$)</span>
+          <input type="number" formControlName="valorTotal" class="input-text" min="0.01" step="0.01" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">{{ labelValorPago }}</span>
+          <input type="number" formControlName="valorPago" class="input-text" min="0" [max]="parcelaCalculada || null" step="0.01" />
+          <span class="field-hint" *ngIf="data.mes">Informe quanto pagou neste mês (ex.: {{ parcelaCalculada | currency:'BRL' }} para quitar a parcela).</span>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Quantidade de parcelas</span>
+          <input type="number" formControlName="quantidadeParcelas" class="input-text" min="1" step="1" />
+        </label>
+
+        <div class="field field-wide parcela-preview" *ngIf="parcelaCalculada > 0" role="status">
+          <span class="material-icons parcela-preview__icon" aria-hidden="true">calculate</span>
+          <span>
+            Parcela mensal calculada:
+            <strong>{{ parcelaCalculada | currency:'BRL' }}</strong>
+            <span class="parcela-preview__detalhe">({{ valorTotalForm | currency:'BRL' }} ÷ {{ quantidadeParcelasForm }} parcelas)</span>
+          </span>
+        </div>
+
+        <label class="field field-wide">
+          <span class="field-label">Cartão de origem (opcional)</span>
+          <select formControlName="cartaoId" class="input-select">
+            <option value="">Sem cartão</option>
+            <option *ngFor="let c of cartoes" [value]="c.id">
+              {{ c.nome }} · {{ c.banco }}
+            </option>
+          </select>
+          <span class="field-hint">Ex.: Roupa parcelada → Nubank. Empréstimo pessoal → sem cartão.</span>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Data de início</span>
+          <input type="date" formControlName="dataInicio" class="input-text" />
+        </label>
+
+        <label class="field field-wide">
+          <span class="field-label">Observações (opcional)</span>
+          <textarea formControlName="observacoes" class="input-text input-textarea" rows="2"></textarea>
+        </label>
+      </div>
+
+      <p class="erro-form" *ngIf="erro" role="alert">{{ erro }}</p>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-acoes">
+    <button type="button" mat-stroked-button (click)="fechar()">Cancelar</button>
+    <button
+      type="submit"
+      mat-flat-button
+      color="primary"
+      form="form-divida-dialog"
+      [disabled]="saving || form.invalid"
+    >
+      <span *ngIf="!saving">{{ isEdicao ? 'Atualizar' : 'Adicionar' }}</span>
+      <span *ngIf="saving">Salvando…</span>
+    </button>
+  </mat-dialog-actions>
+</div>

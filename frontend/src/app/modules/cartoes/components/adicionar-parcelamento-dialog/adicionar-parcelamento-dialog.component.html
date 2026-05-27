@@ -1,0 +1,98 @@
+<div class="adicionar-parcelamento-dialog">
+  <h2 mat-dialog-title class="dialog-titulo">
+    <span class="material-icons dialog-titulo-icone" aria-hidden="true">add_card</span>
+    {{ editando ? 'Editar compra' : 'Parcelar compra' }}
+  </h2>
+
+  <mat-dialog-content class="dialog-body">
+    <form
+      id="form-parcelamento-dialog"
+      [formGroup]="form"
+      (ngSubmit)="salvar()"
+      class="parcelamento-form"
+      novalidate
+    >
+      <p class="parcelamento-contexto">
+        Cartão: <strong>{{ data.cartao.nome }}</strong> · {{ data.cartao.banco }}
+      </p>
+
+      <div class="form-grid">
+        <label class="field field-wide">
+          <span class="field-label">Compra</span>
+          <input
+            type="text"
+            formControlName="objetivo"
+            class="input-text"
+            placeholder="Ex.: Celular, roupa, notebook"
+            autocomplete="off"
+          />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Valor total (R$)</span>
+          <input
+            type="number"
+            formControlName="valorTotal"
+            class="input-text"
+            min="0.01"
+            step="0.01"
+            placeholder="Ex.: 250,00"
+          />
+          <small class="field-help">Exemplo: valor total da compra.</small>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Quantidade de parcelas</span>
+          <input
+            type="number"
+            formControlName="quantidadeParcelas"
+            class="input-text"
+            min="2"
+            step="1"
+            placeholder="Ex.: 2 ou 3"
+          />
+          <small class="field-help">Exemplo: 250 em 2x = 125 por mês.</small>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Primeira parcela</span>
+          <input type="date" formControlName="dataInicio" class="input-text" />
+        </label>
+
+        <div class="field field-wide parcela-preview" *ngIf="parcelaCalculada > 0" role="status">
+          <span class="material-icons parcela-preview__icon" aria-hidden="true">calculate</span>
+          <span>
+            Parcela mensal:
+            <strong>{{ parcelaCalculada | currency:'BRL' }}</strong>
+          </span>
+        </div>
+
+        <label class="field field-wide">
+          <span class="field-label">Observações (opcional)</span>
+          <textarea
+            formControlName="observacoes"
+            class="input-text input-textarea"
+            rows="2"
+            placeholder="Ex.: compra parcelada no cartão C6, primeira parcela em junho"
+          ></textarea>
+        </label>
+      </div>
+
+      <p class="erro-form" *ngIf="erro" role="alert">{{ erro }}</p>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-acoes">
+    <button type="button" mat-stroked-button (click)="fechar()">Cancelar</button>
+    <button
+      type="submit"
+      mat-flat-button
+      color="primary"
+      form="form-parcelamento-dialog"
+      [disabled]="saving || form.invalid"
+    >
+      <span *ngIf="!saving">{{ editando ? 'Atualizar' : 'Adicionar' }}</span>
+      <span *ngIf="saving">Salvando...</span>
+    </button>
+  </mat-dialog-actions>
+</div>

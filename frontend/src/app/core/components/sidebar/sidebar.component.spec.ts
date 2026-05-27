@@ -45,11 +45,13 @@ describe('SidebarComponent', () => {
     );
 
     expect(linkTexts).toContain('📊 Dashboard');
-    expect(linkTexts).toContain('🎯 Objetivos');
-    expect(linkTexts).toContain('💰 Investimentos');
+    expect(linkTexts).toContain('💳 Faturas');
+    expect(linkTexts).toContain('💰 Empréstimos');
+    expect(linkTexts).toContain('🏠 Financiamentos');
+    expect(linkTexts).toContain('📈 Investimentos');
+    expect(linkTexts).toContain('🎯 Metas');
     expect(linkTexts).toContain('💸 Despesas');
     expect(linkTexts).toContain('💵 Receitas');
-    expect(linkTexts).toContain('📋 Dívidas');
   });
 
   it('should have correct router links', () => {
@@ -60,11 +62,13 @@ describe('SidebarComponent', () => {
       link.getAttribute('routerLink')
     );
     expect(hrefs).toContain('/dashboard');
+    expect(hrefs).toContain('/faturas');
+    expect(hrefs).toContain('/emprestimos');
+    expect(hrefs).toContain('/financiamentos');
     expect(hrefs).toContain('/metas');
     expect(hrefs).toContain('/investimentos');
     expect(hrefs).toContain('/despesas');
     expect(hrefs).toContain('/receitas');
-    expect(hrefs).toContain('/dividas');
   });
 
   it('should have close button', () => {
