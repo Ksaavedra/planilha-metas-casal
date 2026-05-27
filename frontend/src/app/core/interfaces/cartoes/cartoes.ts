@@ -17,6 +17,7 @@ export interface Cartao {
   diaFechamento?: number | null;
   diaVencimento?: number | null;
   diaMelhorCompra?: number | null;
+  pessoa?: string | null;
   observacoes?: string | null;
   observacaoAtraso?: string | null;
   previsaoPagamento?: string | null;
@@ -32,6 +33,7 @@ export interface CreateCartaoRequest {
   diaFechamento?: number;
   diaVencimento?: number;
   diaMelhorCompra?: number;
+  pessoa?: string | null;
   observacoes?: string;
   observacaoAtraso?: string | null;
   previsaoPagamento?: string | null;

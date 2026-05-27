@@ -30,6 +30,16 @@
         </label>
 
         <label class="field">
+          <span class="field-label">Quem paga a fatura</span>
+          <select formControlName="pessoa" class="input-select">
+            <option value="">Selecione uma pessoa</option>
+            <option *ngFor="let usuario of usuarios" [value]="usuario.nome">
+              {{ usuario.nome }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
           <span class="field-label">Limite (R$)</span>
           <input type="number" formControlName="limite" class="input-text" min="0.01" step="0.01"
             placeholder="Ex.: 5000" />

@@ -1,0 +1,157 @@
+<section class="cartoes-usuario" aria-label="Faturas por pessoa no mês">
+  <h2 class="cartoes-usuario__h2" *ngIf="!usuarioFiltro">Por pessoa</h2>
+  <h2 class="cartoes-usuario__h2 cartoes-usuario__h2--pessoa" *ngIf="usuarioFiltro">
+    👉 Faturas - {{ usuarioFiltro }}
+  </h2>
+
+  <p class="cartoes-usuario__passo" *ngIf="nomeMesReferencia">
+    <strong>Referência:</strong> {{ nomeMesReferencia }} — faturas agrupadas pela pessoa responsável pelo pagamento.
+    Selecione quem paga para ver o resumo e os cartões do mês.
+  </p>
+  <p class="cartoes-usuario__passo" *ngIf="!nomeMesReferencia">
+    Faturas por responsável. Use <strong>Quem paga</strong> para escolher a pessoa e ver os cartões.
+  </p>
+
+  <ng-container *ngIf="linhasPorUsuario.length; else semDadosMes">
+    <div class="cartoes-usuario__filtro-linha">
+      <label class="cartoes-usuario__filtro-inline-label" for="cartoesUsuarioSelect">Quem paga:</label>
+      <select id="cartoesUsuarioSelect" class="cartoes-usuario__filtro-select" [(ngModel)]="usuarioFiltro"
+        (ngModelChange)="onUsuarioChange()"
+        [attr.aria-label]="'Quem paga a fatura no mês ' + (nomeMesReferencia || 'atual')">
+        <option [ngValue]="''" *ngIf="!usuarioFiltro">Selecione uma pessoa</option>
+        <option *ngFor="let row of linhasPorUsuario" [ngValue]="row.usuario">{{ row.usuario }}</option>
+      </select>
+    </div>
+
+    <div class="cartoes-usuario__conteudo" *ngIf="usuarioFiltro">
+      <div class="cartoes-usuario__totais" aria-label="Totalizadores da pessoa">
+        <article>
+          <span>Limite total</span>
+          <strong>{{ totalLimiteUsuario | currency : 'BRL' }}</strong>
+        </article>
+        <article>
+          <span>Utilizado</span>
+          <strong>{{ totalUtilizadoUsuario | currency : 'BRL' }}</strong>
+        </article>
+        <article>
+          <span>Disponível</span>
+          <strong>{{ totalDisponivelUsuario | currency : 'BRL' }}</strong>
+        </article>
+        <article>
+          <span>Próximo vencimento</span>
+          <strong>{{ proximoVencimentoUsuario }}</strong>
+        </article>
+      </div>
+
+      <div class="tabelas-mes">
+        <section class="bloco-tabela" aria-labelledby="cu-h-faturas">
+          <h3 id="cu-h-faturas" class="bloco-titulo bloco-titulo--fixa">
+            <span class="material-icons">credit_card</span>
+            Faturas do cartão
+          </h3>
+          <p class="bloco-sub">Cartões sob responsabilidade desta pessoa no mês selecionado.</p>
+
+          <div class="table-wrap" *ngIf="cartoesUsuario.length; else vazioCartoesU">
+            <table class="cartoes-usuario-table">
+              <thead>
+                <tr>
+                  <th>Banco</th>
+                  <th class="col-centro">Limite</th>
+                  <th class="col-centro">Utilizado</th>
+                  <th class="col-centro">Disponível</th>
+                  <th class="col-centro">Fechamento</th>
+                  <th class="col-centro">Vencimento</th>
+                  <th class="col-centro">Status</th>
+                  <th class="col-centro">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <ng-container *ngFor="let c of cartoesUsuario">
+                  <tr class="cartoes-usuario-table__linha" [class.is-expanded]="cartaoExpandido(c)">
+                    <td>{{ c.banco }}</td>
+                    <td class="num">{{ c.limite | currency : 'BRL' }}</td>
+                    <td class="num">{{ valorUtilizadoFatura(c) | currency : 'BRL' }}</td>
+                    <td class="num num--positivo">{{ valorDisponivelFatura(c) | currency : 'BRL' }}</td>
+                    <td class="col-centro">{{ c.diaFechamento ? 'Dia ' + c.diaFechamento : '-' }}</td>
+                    <td class="col-centro">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '-' }}</td>
+                    <td class="col-centro">
+                    <span class="badge-status" [ngClass]="statusLinhaClasse(c)">
+                      {{ statusLinhaLabel(c) }}
+                      </span>
+                    </td>
+                    <td class="col-centro">
+                      <button type="button" class="btn-expandir" (click)="alternarCartao(c)"
+                        [attr.aria-expanded]="cartaoExpandido(c)"
+                        [title]="cartaoExpandido(c) ? 'Recolher compras' : 'Expandir compras'"
+                        [attr.aria-label]="cartaoExpandido(c) ? 'Recolher compras' : 'Expandir compras'">
+                        <span class="material-icons" aria-hidden="true">
+                          {{ cartaoExpandido(c) ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr class="cartoes-usuario-table__detalhes-row" *ngIf="cartaoExpandido(c)">
+                    <td colspan="8">
+                      <div class="compras-inline">
+                        <div class="compras-inline__header">
+                          <strong>Compras parceladas</strong>
+                          <span>{{ nomeMesReferencia }}</span>
+                        </div>
+
+                        <div class="compras-vazio" *ngIf="parcelamentosDoCartao(c).length === 0">
+                          <span class="material-icons" aria-hidden="true">info</span>
+                          Nenhuma compra parcelada neste mês.
+                        </div>
+
+                        <table class="compras-mini-table" *ngIf="parcelamentosDoCartao(c).length > 0">
+                          <thead>
+                            <tr>
+                              <th>Compra</th>
+                              <th class="col-centro">Parcela</th>
+                              <th class="col-centro">Total</th>
+                              <th class="col-centro">Restante</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let p of parcelamentosDoCartao(c)">
+                              <td>{{ p.objetivo }}</td>
+                              <td class="col-centro">
+                                <span class="parcelas-chip">{{ parcelasLabel(p) }}</span>
+                              </td>
+                              <td class="num">{{ p.valorTotal | currency : 'BRL' }}</td>
+                              <td class="num">{{ p.valorRestante | currency : 'BRL' }}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
+              </tbody>
+              <tfoot>
+                <tr class="cartoes-usuario-table__total">
+                  <td>Total</td>
+                  <td class="num">{{ totalLimiteUsuario | currency : 'BRL' }}</td>
+                  <td class="num">{{ totalUtilizadoUsuario | currency : 'BRL' }}</td>
+                  <td class="num">{{ totalDisponivelUsuario | currency : 'BRL' }}</td>
+                  <td colspan="4"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <ng-template #vazioCartoesU>
+            <p class="vazio">Nenhum cartão para esta pessoa neste mês.</p>
+          </ng-template>
+        </section>
+      </div>
+
+    </div>
+  </ng-container>
+
+  <ng-template #semDadosMes>
+    <p class="cartoes-usuario__vazio">
+      Nenhuma fatura neste mês para agrupar por usuário.
+    </p>
+  </ng-template>
+</section>

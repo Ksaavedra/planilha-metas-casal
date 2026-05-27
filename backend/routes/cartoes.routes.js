@@ -24,6 +24,7 @@ for (const sql of [
   'ALTER TABLE cartoes ADD COLUMN valorFaturaPaga REAL NOT NULL DEFAULT 0',
   'ALTER TABLE cartoes ADD COLUMN observacaoAtraso TEXT',
   'ALTER TABLE cartoes ADD COLUMN previsaoPagamento TEXT',
+  'ALTER TABLE cartoes ADD COLUMN pessoa TEXT',
 ]) {
   try {
     db.exec(sql);
@@ -72,6 +73,7 @@ function mapRow(row) {
     diaFechamento: row.diaFechamento ?? null,
     diaVencimento: row.diaVencimento ?? null,
     diaMelhorCompra: row.diaMelhorCompra ?? null,
+    pessoa: row.pessoa ?? null,
     observacoes: row.observacoes,
     observacaoAtraso: row.observacaoAtraso ?? null,
     previsaoPagamento: row.previsaoPagamento ?? null,
@@ -116,6 +118,7 @@ router.post('/', (req, res) => {
       diaFechamento,
       diaVencimento,
       diaMelhorCompra,
+      pessoa,
       observacoes,
       observacaoAtraso,
       previsaoPagamento,
@@ -128,8 +131,8 @@ router.post('/', (req, res) => {
     const result = db
       .prepare(
         `INSERT INTO cartoes
-         (nome, banco, limite, valorUtilizado, faturaPaga, valorFaturaPaga, diaFechamento, diaVencimento, diaMelhorCompra, observacoes, observacaoAtraso, previsaoPagamento)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (nome, banco, limite, valorUtilizado, faturaPaga, valorFaturaPaga, diaFechamento, diaVencimento, diaMelhorCompra, pessoa, observacoes, observacaoAtraso, previsaoPagamento)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         String(nome).trim(),
@@ -141,6 +144,7 @@ router.post('/', (req, res) => {
         normalizarDia(diaFechamento),
         normalizarDia(diaVencimento),
         normalizarDia(diaMelhorCompra),
+        pessoa ? String(pessoa).trim() : null,
         observacoes ? String(observacoes).trim() : null,
         observacaoAtraso ? String(observacaoAtraso).trim() : null,
         previsaoPagamento ? String(previsaoPagamento).trim() : null,
@@ -200,6 +204,7 @@ router.patch('/:id', (req, res) => {
         : atual.diaMelhorCompra;
     const observacoes =
       body.observacoes !== undefined ? body.observacoes : atual.observacoes;
+    const pessoa = body.pessoa !== undefined ? body.pessoa : atual.pessoa;
     const observacaoAtraso =
       body.observacaoAtraso !== undefined
         ? body.observacaoAtraso
@@ -214,7 +219,7 @@ router.patch('/:id', (req, res) => {
         nome = ?, banco = ?, limite = ?, valorUtilizado = ?,
         faturaPaga = ?, valorFaturaPaga = ?,
         diaFechamento = ?, diaVencimento = ?, diaMelhorCompra = ?,
-        observacoes = ?, observacaoAtraso = ?, previsaoPagamento = ?,
+        pessoa = ?, observacoes = ?, observacaoAtraso = ?, previsaoPagamento = ?,
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ?`,
     ).run(
@@ -227,6 +232,7 @@ router.patch('/:id', (req, res) => {
       diaFechamento,
       diaVencimento,
       diaMelhorCompra,
+      pessoa ? String(pessoa).trim() : null,
       observacoes ? String(observacoes).trim() : null,
       observacaoAtraso ? String(observacaoAtraso).trim() : null,
       previsaoPagamento ? String(previsaoPagamento).trim() : null,

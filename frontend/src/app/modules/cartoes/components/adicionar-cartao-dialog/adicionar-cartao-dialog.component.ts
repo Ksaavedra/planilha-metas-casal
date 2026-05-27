@@ -12,7 +12,9 @@ import {
   MatDialogRef,
 } from '@angular/material/dialog';
 import { Cartao, CreateCartaoRequest } from '@core/interfaces/cartoes/cartoes';
+import { Usuario } from '@core/interfaces/usuarios/usuarios';
 import { CartoesService } from '@core/services/cartoes/cartoes.service';
+import { UsuariosService } from '@core/services/usuarios/usuarios.service';
 import { INSTITUICOES_DIVIDA_OPCOES } from '@core/constants/dividas-instituicoes.constant';
 
 export interface AdicionarCartaoDialogData {
@@ -29,6 +31,7 @@ export interface AdicionarCartaoDialogData {
 export class AdicionarCartaoDialogComponent implements OnInit {
   readonly bancos = INSTITUICOES_DIVIDA_OPCOES;
 
+  usuarios: Usuario[] = [];
   form: FormGroup;
   saving = false;
   erro: string | null = null;
@@ -49,11 +52,13 @@ export class AdicionarCartaoDialogComponent implements OnInit {
     >,
     private fb: FormBuilder,
     private cartoesService: CartoesService,
+    private usuariosService: UsuariosService,
     private cdr: ChangeDetectorRef,
   ) {
     this.form = this.fb.group({
       nome: ['', Validators.required],
       banco: ['', Validators.required],
+      pessoa: [''],
       limite: [null, [Validators.required, Validators.min(0.01)]],
       diaFechamento: [null, [Validators.min(1), Validators.max(31)]],
       diaVencimento: [null, [Validators.min(1), Validators.max(31)]],
@@ -62,11 +67,13 @@ export class AdicionarCartaoDialogComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.carregarUsuarios();
     const c = this.data.cartao;
     if (c) {
       this.form.patchValue({
         nome: c.nome,
         banco: c.banco,
+        pessoa: c.pessoa ?? '',
         limite: c.limite,
         diaFechamento: c.diaFechamento ?? null,
         diaVencimento: c.diaVencimento ?? null,
@@ -105,6 +112,7 @@ export class AdicionarCartaoDialogComponent implements OnInit {
       diaFechamento: Number(v.diaFechamento) || undefined,
       diaVencimento: Number(v.diaVencimento) || undefined,
       diaMelhorCompra: Number(v.diaMelhorCompra) || undefined,
+      pessoa: v.pessoa ? String(v.pessoa).trim() : null,
     };
 
     this.saving = true;
@@ -120,6 +128,19 @@ export class AdicionarCartaoDialogComponent implements OnInit {
       error: (err: unknown) => {
         this.saving = false;
         this.erro = this.mensagemErroHttp(err);
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  private carregarUsuarios(): void {
+    this.usuariosService.getUsuarios().subscribe({
+      next: (usuarios) => {
+        this.usuarios = usuarios;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.usuarios = [];
         this.cdr.markForCheck();
       },
     });

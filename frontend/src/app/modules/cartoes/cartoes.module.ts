@@ -12,6 +12,7 @@ import { AdicionarCartaoDialogComponent } from './components/adicionar-cartao-di
 import { AdicionarParcelamentoDialogComponent } from './components/adicionar-parcelamento-dialog/adicionar-parcelamento-dialog.component';
 import { FaturaAtrasadaDialogComponent } from './components/fatura-atrasada-dialog/fatura-atrasada-dialog.component';
 import { FaturasExemplosComponent } from './components/faturas-exemplos/faturas-exemplos.component';
+import { CartoesUsuarioComponent } from './components/cartoes-usuario/cartoes-usuario.component';
 
 @NgModule({
   declarations: [
@@ -20,6 +21,7 @@ import { FaturasExemplosComponent } from './components/faturas-exemplos/faturas-
     AdicionarParcelamentoDialogComponent,
     FaturaAtrasadaDialogComponent,
     FaturasExemplosComponent,
+    CartoesUsuarioComponent,
   ],
   imports: [
     CommonModule,

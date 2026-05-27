@@ -11,7 +11,8 @@
           <p class="cartoes-hero__subtitle">Controle de faturas, limites, vencimentos e uso mensal</p>
         </div>
       </div>
-      <div class="cartoes-hero__field" aria-label="Mês de referência">
+      <div class="cartoes-hero__field" aria-label="Mês de referência"
+        *ngIf="visaoFaturas === 'lista' || visaoFaturas === 'usuario'">
         <p class="cartoes-hero__label">Mês de referência</p>
         <div class="cartoes-hero__mes-nav">
           <button type="button" class="cartoes-hero__nav-btn" (click)="mesAnterior()" title="Mês anterior"
@@ -35,13 +36,17 @@
           (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoFaturas === 'lista'">
           Minhas faturas
         </button>
+        <button type="button" class="cartoes-hero__chip" [class.is-active]="visaoFaturas === 'usuario'"
+          (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoFaturas === 'usuario'">
+          Por pessoa
+        </button>
         <button type="button" class="cartoes-hero__chip" [class.is-active]="visaoFaturas === 'exemplos'"
           (click)="selecionarVisao('exemplos')" role="tab" [attr.aria-selected]="visaoFaturas === 'exemplos'">
           Exemplos
         </button>
       </div>
       <div class="cartoes-hero__actions">
-        <button type="button" class="btn-add-cartao" (click)="abrirModalAdicionar()">
+        <button type="button" class="btn-add-cartao" (click)="abrirModalAdicionar()" *ngIf="visaoFaturas === 'lista'">
           <span class="material-icons" aria-hidden="true">add</span>
           Adicionar cartão
         </button>
@@ -49,16 +54,16 @@
     </div>
   </header>
 
-  <div *ngIf="visaoFaturas === 'lista' && carregando" class="cartoes-estado cartoes-estado--loading" role="status">
+  <div *ngIf="visaoFaturas !== 'exemplos' && carregando" class="cartoes-estado cartoes-estado--loading" role="status">
     <span class="material-icons">hourglass_top</span>
     Carregando faturas…
   </div>
 
-  <div *ngIf="visaoFaturas === 'lista' && erroCarregar && !carregando" class="cartoes-estado cartoes-estado--erro">
+  <div *ngIf="visaoFaturas !== 'exemplos' && erroCarregar && !carregando" class="cartoes-estado cartoes-estado--erro">
     {{ erroCarregar }}
   </div>
 
-  <div class="cartoes-vazio" *ngIf="visaoFaturas === 'lista' && exibirAvisoVazio" role="status">
+  <div class="cartoes-vazio" *ngIf="visaoFaturas !== 'exemplos' && exibirAvisoVazio" role="status">
     <span class="material-icons cartoes-vazio__icon">info</span>
     <div>
       <p>Nenhum cartão cadastrado para acompanhar faturas.</p>
@@ -282,8 +287,11 @@
         </nav>
       </div>
     </section>
-
   </ng-container>
+
+  <app-cartoes-usuario *ngIf="visaoFaturas === 'usuario' && !exibirAvisoVazio && !carregando" [cartoes]="cartoes"
+    [parcelamentos]="parcelamentos" [nomeMesReferencia]="nomeMesAtual" [mesReferencia]="mesAtual">
+  </app-cartoes-usuario>
 
   <app-faturas-exemplos *ngIf="visaoFaturas === 'exemplos'"></app-faturas-exemplos>
 </div>

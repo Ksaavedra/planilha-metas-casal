@@ -71,7 +71,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   cartaoExpandidoId: number | null = null;
   carregando = false;
   erroCarregar: string | null = null;
-  visaoFaturas: 'lista' | 'exemplos' = 'lista';
+  visaoFaturas: 'lista' | 'usuario' | 'exemplos' = 'lista';
   mesAtual: Date = new Date();
 
   readonly tamanhoPagina = 6;
@@ -238,7 +238,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.carregar();
   }
 
-  selecionarVisao(visao: 'lista' | 'exemplos'): void {
+  selecionarVisao(visao: 'lista' | 'usuario' | 'exemplos'): void {
     this.visaoFaturas = visao;
   }
 
