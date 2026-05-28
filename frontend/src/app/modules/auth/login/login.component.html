@@ -1,13 +1,14 @@
 <main class="auth-page">
   <section class="auth-card">
     <div class="auth-brand">
-      <span class="auth-brand__icon">💜</span>
-      <p>Planilha de Orçamento</p>
-      <h1>Entrar no sistema</h1>
-      <span>Organize receitas, despesas, metas e faturas com segurança.</span>
+      <span class="material-icons auth-brand__icon" aria-hidden="true">insights</span>
+      <div class="title-brand">
+        <p>Planejamento Financeiro</p>
+      </div>
+      <h1>{{ modoRecuperacao ? 'Recuperar senha' : 'Entrar' }}</h1>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="entrar()" class="auth-form">
+    <form [formGroup]="form" (ngSubmit)="modoRecuperacao ? recuperarSenha() : entrar()" class="auth-form">
       <label>
         <span>Email</span>
         <input type="email" formControlName="email" placeholder="voce@email.com" autocomplete="email" />
@@ -16,26 +17,48 @@
         </small>
       </label>
 
-      <label>
+      <label *ngIf="!modoRecuperacao">
         <span>Senha</span>
-        <input type="password" formControlName="senha" placeholder="Sua senha" autocomplete="current-password" />
+        <div class="password-field">
+          <input [type]="mostrarSenha ? 'text' : 'password'" formControlName="senha" placeholder="Sua senha"
+            autocomplete="current-password" />
+          <button type="button" class="password-toggle" (click)="mostrarSenha = !mostrarSenha"
+            [attr.aria-label]="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'">
+            <span class="material-icons" aria-hidden="true">
+              {{ mostrarSenha ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
         <small *ngIf="form.get('senha')?.touched && form.get('senha')?.invalid">
           A senha é obrigatória.
         </small>
       </label>
+
+      <button type="button" class="auth-forgot" *ngIf="!modoRecuperacao" (click)="iniciarRecuperacao()">
+        Esqueceu sua senha?
+      </button>
+
+      <div class="auth-alert auth-alert--success" *ngIf="sucesso">
+        {{ sucesso }}
+      </div>
 
       <div class="auth-alert" *ngIf="erro">
         {{ erro }}
       </div>
 
       <button type="submit" [disabled]="carregando">
-        {{ carregando ? 'Entrando...' : 'Entrar' }}
+        {{ modoRecuperacao ? 'Enviar' : (carregando ? 'Entrando...' : 'Entrar') }}
       </button>
     </form>
 
-    <p class="auth-footer">
+    <p class="auth-footer" *ngIf="!modoRecuperacao">
       Ainda não tem conta?
       <a routerLink="/register">Criar conta</a>
+    </p>
+
+    <p class="auth-footer" *ngIf="modoRecuperacao">
+      Lembrou sua senha?
+      <button type="button" (click)="voltarParaLogin()">Voltar para entrar</button>
     </p>
   </section>
 </main>

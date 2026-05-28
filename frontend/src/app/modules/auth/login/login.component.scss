@@ -29,11 +29,13 @@
     height: 54px;
     border-radius: 18px;
     background: linear-gradient(135deg, #6d28d9, #a855f7);
+    color: #ffffff;
+    font-size: 2rem;
     box-shadow: 0 14px 28px rgba(109, 40, 217, 0.24);
   }
 
   p {
-    margin: 1rem 0 0.25rem;
+    margin: 0 0 0.25rem;
     color: #7c3aed;
     font-weight: 700;
   }
@@ -81,12 +83,45 @@
     }
   }
 
+  .password-field {
+    position: relative;
+    display: grid;
+
+    input {
+      padding-right: 3rem;
+    }
+  }
+
+  .password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.8rem;
+    transform: translateY(-50%);
+    border: 0;
+    padding: 0.25rem;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+
   small {
     color: #dc2626;
     font-weight: 600;
   }
 
-  button {
+  .auth-forgot {
+    justify-self: end;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: #6d28d9;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  button[type="submit"] {
     min-height: 50px;
     border: 0;
     border-radius: 16px;
@@ -110,6 +145,12 @@
   color: #991b1b;
   border: 1px solid #fecaca;
   font-weight: 700;
+
+  &--success {
+    background: #f0fdf4;
+    color: #166534;
+    border-color: #bbf7d0;
+  }
 }
 
 .auth-footer {
@@ -117,8 +158,18 @@
   text-align: center;
   color: #64748b;
 
-  a {
+  a,
+  button {
+    border: 0;
+    padding: 0;
+    background: transparent;
     color: #6d28d9;
+    font: inherit;
     font-weight: 800;
+    cursor: pointer;
   }
+}
+
+.title-brand {
+  margin-top: 0.5rem;
 }
