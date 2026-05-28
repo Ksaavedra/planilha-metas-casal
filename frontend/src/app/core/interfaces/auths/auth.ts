@@ -1,7 +1,8 @@
 export interface Usuario {
-  id: string;
+  id: number;
   nome: string;
   email: string;
+  dataCriacao?: string;
 }
 
 export interface LoginRequest {
@@ -14,6 +15,8 @@ export interface RegisterRequest {
   email: string;
   senha: string;
 }
+
+export interface PerfilResponse extends Usuario {}
 
 export interface AuthResponse {
   message: string;

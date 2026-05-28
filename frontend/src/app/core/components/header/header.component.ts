@@ -1,4 +1,8 @@
 import { Component, Output, EventEmitter, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { Usuario } from '@core/interfaces/auths/auth';
+import { AuthService } from '@core/services/auth/auth.service';
 import { SidebarService } from '../../services/sidebar/sidebar.service';
 
 @Component({
@@ -10,8 +14,15 @@ import { SidebarService } from '../../services/sidebar/sidebar.service';
 export class HeaderComponent implements OnInit {
   @Output() showOverlay: EventEmitter<boolean> = new EventEmitter();
   sidebarStatus!: boolean;
+  currentUser$: Observable<Usuario | null>;
 
-  constructor(private sidebar: SidebarService) {}
+  constructor(
+    private sidebar: SidebarService,
+    private authService: AuthService,
+    private router: Router,
+  ) {
+    this.currentUser$ = this.authService.currentUser$;
+  }
 
   ngOnInit(): void {
     this.sidebar.getStatus().subscribe((value) => {
@@ -22,5 +33,10 @@ export class HeaderComponent implements OnInit {
 
   onSidebarClick() {
     this.sidebar.changeStatus();
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigateByUrl('/login');
   }
 }

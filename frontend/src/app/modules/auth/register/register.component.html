@@ -1,0 +1,63 @@
+<main class="auth-page">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <span class="auth-brand__icon">✨</span>
+      <p>Planilha de Orçamento</p>
+      <h1>Criar conta</h1>
+      <span>Cadastre-se para acessar seu sistema financeiro.</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="criarConta()" class="auth-form">
+      <label>
+        <span>Nome</span>
+        <input type="text" formControlName="nome" placeholder="Seu nome" autocomplete="name" />
+        <small *ngIf="form.get('nome')?.touched && form.get('nome')?.invalid">
+          O nome é obrigatório.
+        </small>
+      </label>
+
+      <label>
+        <span>Email</span>
+        <input type="email" formControlName="email" placeholder="voce@email.com" autocomplete="email" />
+        <small *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
+          Informe um email válido.
+        </small>
+      </label>
+
+      <label>
+        <span>Senha</span>
+        <input type="password" formControlName="senha" placeholder="Mínimo de 6 caracteres"
+          autocomplete="new-password" />
+        <small *ngIf="form.get('senha')?.touched && form.get('senha')?.invalid">
+          A senha precisa ter pelo menos 6 caracteres.
+        </small>
+      </label>
+
+      <label>
+        <span>Confirmar senha</span>
+        <input type="password" formControlName="confirmarSenha" placeholder="Digite a senha novamente"
+          autocomplete="new-password" />
+        <small *ngIf="senhasDiferentes">
+          As senhas precisam ser iguais.
+        </small>
+      </label>
+
+      <div class="auth-alert auth-alert--success" *ngIf="sucesso">
+        {{ sucesso }}
+      </div>
+
+      <div class="auth-alert" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <button type="submit" [disabled]="carregando">
+        {{ carregando ? 'Criando...' : 'Criar conta' }}
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Já tem conta?
+      <a routerLink="/login">Entrar</a>
+    </p>
+  </section>
+</main>

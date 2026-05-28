@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("../scripts/db");
+const { autenticarToken } = require("../middlewares/auth.middleware");
 
 const router = express.Router();
 
@@ -12,26 +13,116 @@ db.exec(`
   )
 `);
 
-// 2. Copiar nomes que já existem em receitas
 db.exec(`
-  INSERT OR IGNORE INTO usuarios (nome)
-  SELECT DISTINCT pessoa FROM receitas
-  WHERE pessoa IS NOT NULL AND trim(pessoa) <> ''
+  CREATE TABLE IF NOT EXISTS pessoas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    usuario_id INTEGER NOT NULL,
+    nome TEXT NOT NULL,
+    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+  )
 `);
 
-// 3. Copiar nomes que já existem em despesas
 db.exec(`
-  INSERT OR IGNORE INTO usuarios (nome)
-  SELECT DISTINCT pessoa FROM despesas
-  WHERE pessoa IS NOT NULL AND trim(pessoa) <> ''
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_pessoas_usuario_nome
+  ON pessoas(usuario_id, lower(nome))
 `);
+
+function getPrimeiroUsuarioAuthId() {
+  const usuario = db
+    .prepare(
+      `
+      SELECT id
+      FROM usuarios
+      WHERE email IS NOT NULL
+        AND trim(email) <> ''
+        AND senha_hash IS NOT NULL
+        AND trim(senha_hash) <> ''
+      ORDER BY id
+      LIMIT 1
+    `,
+    )
+    .get();
+
+  return usuario?.id ?? null;
+}
+
+function adicionarPessoaSeNaoExiste(usuarioId, nome) {
+  const nomeVal = String(nome || "").trim();
+  if (!nomeVal) return;
+
+  const existente = db
+    .prepare(
+      "SELECT id FROM pessoas WHERE usuario_id = ? AND lower(nome) = lower(?)",
+    )
+    .get(usuarioId, nomeVal);
+
+  if (!existente) {
+    db.prepare("INSERT INTO pessoas (usuario_id, nome) VALUES (?, ?)").run(
+      usuarioId,
+      nomeVal,
+    );
+  }
+}
+
+function migrarPessoasLegadas(usuarioId) {
+  const possuiPessoas = db
+    .prepare("SELECT 1 FROM pessoas WHERE usuario_id = ? LIMIT 1")
+    .get(usuarioId);
+
+  if (possuiPessoas) return;
+
+  if (usuarioId === getPrimeiroUsuarioAuthId()) {
+    const nomesLegados = db
+      .prepare(
+        `
+        SELECT nome FROM usuarios
+        WHERE (email IS NULL OR trim(email) = '')
+          AND nome IS NOT NULL
+          AND trim(nome) <> ''
+      `,
+      )
+      .all();
+
+    nomesLegados.forEach((row) => adicionarPessoaSeNaoExiste(usuarioId, row.nome));
+  }
+
+  for (const tableName of ["receitas", "despesas", "cartoes", "investimentos"]) {
+    const table = db
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(tableName);
+    if (!table) continue;
+
+    const cols = db.prepare(`PRAGMA table_info(${tableName})`).all();
+    const hasPessoa = cols.some((col) => col.name === "pessoa");
+    const hasUsuarioId = cols.some((col) => col.name === "usuario_id");
+    if (!hasPessoa || !hasUsuarioId) continue;
+
+    const rows = db
+      .prepare(
+        `SELECT DISTINCT pessoa FROM ${tableName}
+         WHERE usuario_id = ?
+           AND pessoa IS NOT NULL
+           AND trim(pessoa) <> ''`,
+      )
+      .all(usuarioId);
+
+    rows.forEach((row) => adicionarPessoaSeNaoExiste(usuarioId, row.pessoa));
+  }
+}
+
+router.use(autenticarToken);
+
+router.use((req, _res, next) => {
+  migrarPessoasLegadas(req.usuario.id);
+  next();
+});
 
 // GET → lista usuários (autocomplete)
 router.get("/", (req, res) => {
   try {
     const rows = db
-      .prepare("SELECT id, nome FROM usuarios ORDER BY nome")
-      .all();
+      .prepare("SELECT id, nome FROM pessoas WHERE usuario_id = ? ORDER BY nome")
+      .all(req.usuario.id);
 
     res.json(rows);
   } catch (error) {
@@ -52,20 +143,22 @@ router.post("/", (req, res) => {
     const nomeVal = String(nome).trim();
 
     const existente = db
-      .prepare("SELECT id, nome FROM usuarios WHERE lower(nome) = lower(?)")
-      .get(nomeVal);
+      .prepare(
+        "SELECT id, nome FROM pessoas WHERE usuario_id = ? AND lower(nome) = lower(?)",
+      )
+      .get(req.usuario.id, nomeVal);
 
     if (existente) {
       return res.status(200).json(existente);
     }
 
     const result = db
-      .prepare("INSERT INTO usuarios (nome) VALUES (?)")
-      .run(nomeVal);
+      .prepare("INSERT INTO pessoas (usuario_id, nome) VALUES (?, ?)")
+      .run(req.usuario.id, nomeVal);
 
     const created = db
-      .prepare("SELECT id, nome FROM usuarios WHERE id = ?")
-      .get(result.lastInsertRowid);
+      .prepare("SELECT id, nome FROM pessoas WHERE id = ? AND usuario_id = ?")
+      .get(result.lastInsertRowid, req.usuario.id);
 
     res.status(201).json(created);
   } catch (error) {

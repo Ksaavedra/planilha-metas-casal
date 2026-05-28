@@ -1,5 +1,7 @@
 const express = require('express');
 const db = require('../scripts/db');
+const { autenticarToken } = require('../middlewares/auth.middleware');
+const { ensureDadosFinanceirosPorUsuario } = require('../utils/user-data-scope');
 
 const router = express.Router();
 
@@ -41,6 +43,9 @@ for (const sql of [
     if (!String(e.message).includes('duplicate column')) throw e;
   }
 }
+
+ensureDadosFinanceirosPorUsuario();
+router.use(autenticarToken);
 
 function parseNum(value, fallback = 0) {
   if (value == null || value === '') return fallback;
@@ -124,14 +129,16 @@ function selectDividasBase() {
   return `
     SELECT d.*, c.nome AS cartaoNome, c.banco AS cartaoBanco
     FROM dividas d
-    LEFT JOIN cartoes c ON c.id = d.cartaoId
+    LEFT JOIN cartoes c ON c.id = d.cartaoId AND c.usuario_id = d.usuario_id
   `;
 }
 
-function getCartao(id) {
+function getCartao(id, usuarioId) {
   const cartaoId = parseIntSafe(id, null);
   if (cartaoId == null) return null;
-  return db.prepare(`SELECT * FROM cartoes WHERE id = ?`).get(cartaoId);
+  return db
+    .prepare(`SELECT * FROM cartoes WHERE id = ? AND usuario_id = ?`)
+    .get(cartaoId, usuarioId);
 }
 
 function cartaoIdInformado(value) {
@@ -155,10 +162,10 @@ router.get('/', (req, res) => {
     const rows = db
       .prepare(
         `${selectDividasBase()}
-         WHERE d.ano = ?
+         WHERE d.usuario_id = ? AND d.ano = ?
          ORDER BY d.objetivo ASC, d.id ASC`,
       )
-      .all(ano);
+      .all(req.usuario.id, ano);
     res.json(rows.map(mapRow));
   } catch (error) {
     console.error('Erro ao buscar dívidas:', error);
@@ -170,8 +177,8 @@ router.get('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const row = db
-      .prepare(`${selectDividasBase()} WHERE d.id = ?`)
-      .get(id);
+      .prepare(`${selectDividasBase()} WHERE d.id = ? AND d.usuario_id = ?`)
+      .get(id, req.usuario.id);
     if (!row) {
       return res.status(404).json({ error: 'Dívida não encontrada' });
     }
@@ -225,7 +232,7 @@ router.post('/', (req, res) => {
       quantidadeParcelas,
     );
     const status = mergeStatus(statusDivida, derivados);
-    const cartao = getCartao(cartaoId);
+    const cartao = getCartao(cartaoId, req.usuario.id);
     if (cartaoIdInformado(cartaoId) && !cartao) {
       return res.status(400).json({ error: 'Cartão informado não encontrado.' });
     }
@@ -241,8 +248,8 @@ router.post('/', (req, res) => {
         `INSERT INTO dividas
          (objetivo, tipoDivida, valorTotal, valorPago, valorRestante, parcelaMensal,
           quantidadeParcelas, parcelasRestantes, percentualQuitado, statusDivida,
-          instituicao, limiteCartao, diaVencimento, diaMelhorCompra, cartaoId, ano, dataInicio, observacoes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          instituicao, limiteCartao, diaVencimento, diaMelhorCompra, cartaoId, usuario_id, ano, dataInicio, observacoes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         String(objetivo).trim(),
@@ -260,14 +267,15 @@ router.post('/', (req, res) => {
         parseIntSafe(diaVencimento) || null,
         parseIntSafe(diaMelhorCompra) || null,
         cartaoIdFinal,
+        req.usuario.id,
         a,
         dataInicio || null,
         observacoes ? String(observacoes).trim() : null,
       );
 
     const row = db
-      .prepare(`${selectDividasBase()} WHERE d.id = ?`)
-      .get(result.lastInsertRowid);
+      .prepare(`${selectDividasBase()} WHERE d.id = ? AND d.usuario_id = ?`)
+      .get(result.lastInsertRowid, req.usuario.id);
     res.status(201).json(mapRow(row));
   } catch (error) {
     console.error('Erro ao criar dívida:', error);
@@ -278,7 +286,9 @@ router.post('/', (req, res) => {
 router.patch('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const atual = db.prepare(`SELECT * FROM dividas WHERE id = ?`).get(id);
+    const atual = db
+      .prepare(`SELECT * FROM dividas WHERE id = ? AND usuario_id = ?`)
+      .get(id, req.usuario.id);
     if (!atual) {
       return res.status(404).json({ error: 'Dívida não encontrada' });
     }
@@ -317,7 +327,8 @@ router.patch('/:id', (req, res) => {
     );
     const instituicao =
       body.instituicao !== undefined ? body.instituicao : atual.instituicao;
-    const cartao = body.cartaoId !== undefined ? getCartao(body.cartaoId) : null;
+    const cartao =
+      body.cartaoId !== undefined ? getCartao(body.cartaoId, req.usuario.id) : null;
     if (cartaoIdInformado(body.cartaoId) && !cartao) {
       return res.status(400).json({ error: 'Cartão informado não encontrado.' });
     }
@@ -358,7 +369,7 @@ router.patch('/:id', (req, res) => {
         instituicao = ?, limiteCartao = ?, diaVencimento = ?, diaMelhorCompra = ?,
         cartaoId = ?, ano = ?, dataInicio = ?, observacoes = ?,
         updatedAt = CURRENT_TIMESTAMP
-       WHERE id = ?`,
+       WHERE id = ? AND usuario_id = ?`,
     ).run(
       objetivo,
       tipoDivida,
@@ -379,9 +390,12 @@ router.patch('/:id', (req, res) => {
       dataInicio,
       observacoes,
       id,
+      req.usuario.id,
     );
 
-    const row = db.prepare(`${selectDividasBase()} WHERE d.id = ?`).get(id);
+    const row = db
+      .prepare(`${selectDividasBase()} WHERE d.id = ? AND d.usuario_id = ?`)
+      .get(id, req.usuario.id);
     res.json(mapRow(row));
   } catch (error) {
     console.error('Erro ao atualizar dívida:', error);
@@ -392,7 +406,9 @@ router.patch('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const result = db.prepare(`DELETE FROM dividas WHERE id = ?`).run(id);
+    const result = db
+      .prepare(`DELETE FROM dividas WHERE id = ? AND usuario_id = ?`)
+      .run(id, req.usuario.id);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Dívida não encontrada' });
     }
