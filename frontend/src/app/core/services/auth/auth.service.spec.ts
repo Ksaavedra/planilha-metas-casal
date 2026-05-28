@@ -200,5 +200,24 @@ describe('AuthService', () => {
         },
       });
     });
+
+    it('mantém autenticação quando perfil retorna erro diferente de 401', (done) => {
+      localStorageMock['auth_token'] = 't';
+      localStorageMock['current_user'] = JSON.stringify(mockUsuario);
+      (apiService.get as jest.Mock).mockReturnValue(
+        throwError(() => ({ status: 500 })),
+      );
+      const s = new AuthService(apiService as unknown as ApiService);
+
+      s.getProfile().subscribe({
+        next: () => fail('deveria falhar'),
+        error: (err) => {
+          expect(err.status).toBe(500);
+          expect(s.getCurrentUser()).toEqual(mockUsuario);
+          expect(localStorageMock['auth_token']).toBe('t');
+          done();
+        },
+      });
+    });
   });
 });
