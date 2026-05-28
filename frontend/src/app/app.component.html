@@ -1,64 +1,24 @@
-<div class="app-container">
-  <!-- Header Component -->
-  <app-header (sidebarToggle)="toggleSidebar()"></app-header>
-
-  <!-- Sidebar -->
-  <aside class="app-sidebar" [class.sidebar-open]="sidebarOpen" [class.sidebar-closed]="!sidebarOpen">
-    <nav class="sidebar-nav">
-      <ul class="nav-list">
-        <li class="nav-item">
-          <a routerLink="/relatorio" routerLinkActive="active" class="nav-link">
-            <span class="material-icons">dashboard</span>
-            <span>Relatório</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/rota-do-dinheiro" routerLinkActive="active" class="nav-link">
-            <span class="material-icons">trending_up</span>
-            <span>Rota do Dinheiro</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/receitas" routerLinkActive="active" class="nav-link">
-            <span class="material-icons">add_circle</span>
-            <span>Receitas</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/despesas" routerLinkActive="active" class="nav-link">
-            <span class="material-icons">remove_circle</span>
-            <span>Despesas</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/dividas" routerLinkActive="active" class="nav-link">
-            <span class="material-icons">credit_card</span>
-            <span>Dívidas</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/investimentos" routerLinkActive="active" class="nav-link">
-            <span class="material-icons">account_balance</span>
-            <span>Investimentos</span>
-          </a>
-        </li>
-        <li class="nav-item">
-          <a routerLink="/metas" routerLinkActive="active" class="nav-link">
-            <span class="material-icons">flag</span>
-            <span>Metas</span>
-          </a>
-        </li>
-      </ul>
-    </nav>
-  </aside>
-
-  <!-- Main Content -->
-  <main class="app-main" [class.sidebar-closed]="!sidebarOpen">
-    <div class="main-content">
-      <router-outlet></router-outlet>
-    </div>
+<div class="app-root-layout">
+  <main class="app-root-layout__main">
+    <router-outlet></router-outlet>
   </main>
-
-  <!-- Overlay para fechar sidebar em mobile -->
-  <div class="sidebar-overlay" [class.overlay-visible]="sidebarOpen" (click)="closeSidebar()"></div>
+  <footer class="app-footer">
+    Planejamento de Orçamento • © 2026
+  </footer>
 </div>
+
+<!-- Modal de Sucesso - Renderizado no nível mais alto da aplicação -->
+<app-success-modal [isOpen]="sucessoState.isOpen" [title]="sucessoState.title" [message]="sucessoState.message"
+  confirmText="Fechar" [autoCloseMs]="0" (close)="onCloseSucesso()">
+</app-success-modal>
+
+<!-- Modal de Confirmação de Exclusão - Renderizado no nível mais alto da aplicação -->
+<app-confirm-modal [isOpen]="confirmarDeleteState.isOpen" title="Confirmar Exclusão"
+  [message]="confirmarDeleteState.message" confirmText="Sim, Excluir" cancelText="Cancelar"
+  (confirm)="onConfirmDelete()" (cancel)="onCancelDelete()">
+</app-confirm-modal>
+
+<!-- Modal de Sucesso de Exclusão - Renderizado no nível mais alto da aplicação -->
+<app-success-modal [isOpen]="sucessoDeleteState.isOpen" title="Meta removida!"
+  message="A meta foi excluída com sucesso." confirmText="OK" [autoCloseMs]="0" (close)="onCloseSucessoDelete()">
+</app-success-modal>

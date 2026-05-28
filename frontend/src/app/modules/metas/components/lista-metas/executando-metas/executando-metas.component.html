@@ -1,0 +1,59 @@
+<div class="executando-section">
+  <div class="executando-hero__accent" aria-hidden="true"></div>
+  <header class="section-header">
+    <div class="section-header__brand">
+      <div class="section-header__text">
+        <h2>Executando as metas do casal</h2>
+        <p class="section-header__subtitle">Acompanhe as contribuições mês a mês</p>
+      </div>
+    </div>
+  </header>
+  <div class="table-container">
+    <table class="execucao-table">
+      <thead>
+        <tr>
+          <th>Objetivo</th>
+          <th *ngFor="let mes of meses">{{ mes }}</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let meta of metas; trackBy: trackByMetaId; let i = index;" [class.alternate]="i % 2 === 1">
+          <td class="col-nome">{{ meta.nome }}</td>
+          <td *ngFor="let mes of meta.meses; trackBy: trackByMesId; let mi = index" class="status-cell"
+            [class.mes-desabilitado]="mesEstaDesabilitado(meta, mi)" [attr.data-meta-id]="meta.id"
+            [attr.data-mes-id]="mes.id">
+            <div class="status-dropdown-container" [class.is-disabled]="mesEstaDesabilitado(meta, mi)">
+              <span class="valor-display" [class.valor-programado]="mes.status === 'Programado'"
+                [class.valor-pago]="mes.status === 'Pago'" [class.valor-vazio]="mes.status === 'Vazio'"
+                [class.valor-finalizado]="mes.status === 'Finalizado'"
+                [class.valor-desabilitado]="mesEstaDesabilitado(meta, mi)"
+                [attr.title]="mesEstaDesabilitado(meta, mi) ? 'Meta concluída — mês indisponível' : 'Clique para editar o valor'"
+                (click)="!mesEstaDesabilitado(meta, mi) && abrirModalEdicao(meta, mes.id, mi, $event)">
+                {{ formatBR(mes.valor) }}
+              </span>
+              <div class="status-indicator-wrapper">
+                <div class="status-indicator" [class.status-programado]="mes.status === 'Programado'"
+                  [class.status-pago]="mes.status === 'Pago'" [class.status-vazio]="mes.status === 'Vazio'"
+                  [class.status-finalizado]="mes.status === 'Finalizado'"
+                  [class.status-desabilitado]="mesEstaDesabilitado(meta, mi)"
+                  [attr.title]="mesEstaDesabilitado(meta, mi) ? 'Meta concluída — mês indisponível' : 'Clique na seta para alterar o status'"
+                  (click)="!mesEstaDesabilitado(meta, mi) && toggleDropdown(meta, mes.id, mi, $event)">
+                  <span class="material-icons">expand_more</span>
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="col-valor">{{ getTotalContribuicoesMetaExtended(meta) | currency:'BRL' }}</td>
+        </tr>
+        <tr class="total-row">
+          <td>Total</td>
+          <td *ngFor="let total of totalContribuicoesPorMes">
+            {{ total | currency:'BRL' }}
+          </td>
+          <td>{{ totalContribuicoesView | currency:'BRL' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

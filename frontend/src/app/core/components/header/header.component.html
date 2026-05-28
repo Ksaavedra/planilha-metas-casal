@@ -1,0 +1,14 @@
+<header class="app-header">
+  <div class="header-content">
+    <button class="nav-toggle" type="button" aria-label="Menu" (click)="onSidebarClick()">
+      ☰
+    </button>
+    <div class="logo">
+      <h1>Planejamento Financeiro</h1>
+    </div>
+    <div class="header-user" *ngIf="currentUser$ | async as user">
+      <span>{{ user.nome }}</span>
+      <button type="button" (click)="logout()">Sair</button>
+    </div>
+  </div>
+</header>

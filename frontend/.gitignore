@@ -40,3 +40,12 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Database
+*.db
+metas.db
+
+# API Express em ../backend/server.js.
+
+# Scripts de migração (opcional - pode versionar ou não)
+# scripts/

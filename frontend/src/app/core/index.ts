@@ -1,6 +1,4 @@
-// ============================================================================
-// CORE - INTERFACES E TIPOS
-// ============================================================================
-
-// Interfaces de Meses e Metas
-export * from './interfaces/mes-meta';
+export * from './components';
+export * from './constants';
+export * from './interfaces';
+export * from './services';

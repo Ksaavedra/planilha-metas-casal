@@ -1,0 +1,35 @@
+<div class="sidebar-component-container" [class.closed]="!sidebarStatus">
+  <header class="sidebar-header">
+    <div class="sidebar-header__button">
+      <button (click)="onSidebarClick()">
+        ✕
+      </button>
+    </div>
+  </header>
+  <main class="sidebar-container">
+    <a routerLink="/dashboard" (click)="onSidebarClick()">
+      📊 Dashboard
+    </a>
+    <a routerLink="/faturas" (click)="onSidebarClick()">
+      💳 Faturas
+    </a>
+    <a routerLink="/emprestimos" (click)="onSidebarClick()">
+      💰 Empréstimos
+    </a>
+    <a routerLink="/financiamentos" (click)="onSidebarClick()">
+      🏠 Financiamentos
+    </a>
+    <a routerLink="/investimentos" (click)="onSidebarClick()">
+      📈 Investimentos
+    </a>
+    <a routerLink="/metas" (click)="onSidebarClick()">
+      🎯 Metas
+    </a>
+    <a routerLink="/despesas" (click)="onSidebarClick()">
+      💸 Despesas
+    </a>
+    <a routerLink="/receitas" (click)="onSidebarClick()">
+      💵 Receitas
+    </a>
+  </main>
+</div>

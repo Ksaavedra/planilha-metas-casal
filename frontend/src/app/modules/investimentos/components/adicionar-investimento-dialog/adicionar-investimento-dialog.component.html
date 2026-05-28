@@ -1,0 +1,146 @@
+<div class="adicionar-investimento-dialog">
+  <h2 mat-dialog-title class="dialog-titulo">
+    <span class="material-icons dialog-titulo-icone" aria-hidden="true">savings</span>
+    {{ tituloDialog }}
+  </h2>
+
+  <mat-dialog-content class="dialog-body">
+    <form
+      id="form-investimento-dialog"
+      [formGroup]="form"
+      (ngSubmit)="salvar()"
+      class="investimentos-form"
+      novalidate
+    >
+      <div class="form-grid">
+        <div class="field field-pessoa">
+          <div class="modal-input-group">
+            <span class="field-label">Responsável</span>
+            <mat-form-field
+              class="investimento-pessoa-field"
+              appearance="outline"
+              subscriptSizing="fixed"
+              floatLabel="never"
+            >
+              <input
+                #pessoaInput
+                id="investimento-pessoa"
+                type="text"
+                matInput
+                formControlName="pessoa"
+                placeholder="Digite ou escolha da lista"
+                autocomplete="off"
+                [matAutocomplete]="autoPessoa"
+                (focus)="onPessoaFieldFocus()"
+                (blur)="onPessoaBlur()"
+              />
+              <mat-autocomplete
+                autoActiveFirstOption
+                panelClass="investimento-pessoa-autocomplete-panel"
+                #autoPessoa="matAutocomplete"
+              >
+                @for (option of (filteredPessoas$ | async) ?? []; track option) {
+                  <mat-option [value]="option">{{ option }}</mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <label class="field field-wide">
+          <span class="field-label">Objetivo</span>
+          <input
+            type="text"
+            formControlName="descricao"
+            class="input-text"
+            placeholder="Ex.: Reserva de emergência"
+            autocomplete="off"
+          />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Tipo de investimento</span>
+          <select formControlName="tipoInvestimento" class="input-select">
+            <option value="" disabled>Selecione…</option>
+            <option *ngFor="let t of tipos" [value]="t.value">{{ t.label }}</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Status</span>
+          <select formControlName="statusInvestimento" class="input-select">
+            <option *ngFor="let s of statusOpcoes" [value]="s.value">{{ s.label }}</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Valor investido (R$)</span>
+          <input
+            type="number"
+            formControlName="valorInvestido"
+            class="input-text"
+            min="0.01"
+            step="0.01"
+          />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Patrimônio atual (R$)</span>
+          <input
+            type="number"
+            formControlName="valorAtual"
+            class="input-text"
+            min="0"
+            step="0.01"
+          />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Aporte mensal (R$)</span>
+          <input
+            type="number"
+            formControlName="aporteMensal"
+            class="input-text"
+            min="0"
+            step="0.01"
+          />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Instituição (opcional)</span>
+          <input type="text" formControlName="instituicao" class="input-text" autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">Data de início (opcional)</span>
+          <input type="date" formControlName="dataInicio" class="input-text" />
+        </label>
+
+        <label class="field field-wide">
+          <span class="field-label">Observações (opcional)</span>
+          <textarea
+            formControlName="observacoes"
+            class="input-text input-textarea"
+            rows="2"
+          ></textarea>
+        </label>
+      </div>
+
+      <p class="erro-form" *ngIf="erro" role="alert">{{ erro }}</p>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-acoes">
+    <button type="button" mat-stroked-button (click)="fechar()">Cancelar</button>
+    <button
+      type="submit"
+      mat-flat-button
+      color="primary"
+      form="form-investimento-dialog"
+      [disabled]="saving || form.invalid"
+    >
+      <span *ngIf="!saving">{{ isEdicao ? 'Atualizar' : 'Adicionar' }}</span>
+      <span *ngIf="saving">Salvando…</span>
+    </button>
+  </mat-dialog-actions>
+</div>

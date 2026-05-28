@@ -1,0 +1,26 @@
+<section class="dividas-exemplos" aria-label="Exemplos financeiros">
+  <h2 class="dividas-exemplos__h2">{{ titulo }}</h2>
+  <p class="dividas-exemplos__intro">
+    {{ introducao }}
+  </p>
+
+  <div class="dividas-exemplos__grid">
+    <article class="dividas-exemplos__card" *ngFor="let exemplo of exemplos">
+      <span class="dividas-exemplos__badge">{{ exemplo.origem }}</span>
+      <h3 class="dividas-exemplos__h3">{{ exemplo.titulo }}</h3>
+      <p class="dividas-exemplos__meta">{{ exemplo.subtitulo }}</p>
+
+      <div class="dividas-exemplos__linhas">
+        <p><span>Valor total</span><strong>{{ exemplo.valor }}</strong></p>
+        <p><span>Parcelamento</span><strong>{{ exemplo.parcelas }}</strong></p>
+      </div>
+
+      <p class="dividas-exemplos__descricao">{{ exemplo.descricao }}</p>
+    </article>
+  </div>
+
+  <div class="dividas-exemplos__dica">
+    <h3 class="dividas-exemplos__h3">Como pensar</h3>
+    <p>{{ dica }}</p>
+  </div>
+</section>

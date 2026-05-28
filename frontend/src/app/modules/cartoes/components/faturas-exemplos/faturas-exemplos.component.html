@@ -1,0 +1,53 @@
+<section class="faturas-exemplos" aria-label="Exemplos de faturas">
+  <h2 class="faturas-exemplos__h2">Exemplos de faturas</h2>
+  <p class="faturas-exemplos__intro">
+    Use esta tela para entender o uso dos cartões no mês: quanto do limite já foi
+    usado, quanto ainda está disponível, qual fatura está perto do vencimento e
+    quais compras parceladas impactam o saldo.
+  </p>
+
+  <div class="faturas-exemplos__grid">
+    <article class="faturas-exemplos__card" *ngFor="let exemplo of exemplos">
+      <div class="faturas-exemplos__card-topo">
+        <span class="faturas-exemplos__badge">{{ exemplo.banco }}</span>
+        <span class="faturas-exemplos__status">{{ exemplo.status }}</span>
+      </div>
+
+      <div class="faturas-exemplos__linhas">
+        <p><span>Limite total</span><strong>{{ exemplo.limite }}</strong></p>
+        <p><span>Fatura utilizada</span><strong>{{ exemplo.utilizado }}</strong></p>
+        <p><span>Limite disponível</span><strong>{{ exemplo.disponivel }}</strong></p>
+        <p><span>Vencimento</span><strong>{{ exemplo.vencimento }}</strong></p>
+        <p><span>Melhor compra</span><strong>{{ exemplo.melhorCompra }}</strong></p>
+      </div>
+
+      <div class="faturas-exemplos__parcelada">
+        <span class="material-icons" aria-hidden="true">receipt_long</span>
+        <strong>Compra parcelada:</strong> {{ exemplo.compraParcelada }}
+      </div>
+
+      <p class="faturas-exemplos__descricao">{{ exemplo.descricao }}</p>
+      <p class="faturas-exemplos__explicacao">{{ exemplo.explicacao }}</p>
+    </article>
+  </div>
+
+  <div class="faturas-exemplos__conceitos">
+    <article class="faturas-exemplos__conceito" *ngFor="let conceito of conceitos">
+      <h3>{{ conceito.titulo }}</h3>
+      <p>{{ conceito.descricao }}</p>
+    </article>
+  </div>
+
+  <div class="faturas-exemplos__dica">
+    <h3>Como usar na prática</h3>
+    <p>
+      Cadastre cada cartão uma vez, acompanhe o valor utilizado no mês e registre
+      compras parceladas dentro da fatura. Quando a fatura vencer, use o status
+      para pagar agora ou informar uma previsão de pagamento.
+    </p>
+    <p>
+      Faturas controlam cartão, limite e vencimento. Empréstimos e financiamentos
+      continuam nas telas próprias para não misturar responsabilidades.
+    </p>
+  </div>
+</section>

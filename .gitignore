@@ -9,15 +9,19 @@ dist/
 out-tsc/
 .angular/
 
-# Local JSON server (não precisa no repo)
+# JSON server legado (API em backend/server.js)
 db.json
-server.js
 start-json-server.bat
 start-server.bat
 create-folders.ps1
 package-server.json
 README-API.md
 README-JSON-SERVER.md
+
+# Database
+*.db
+backend/prisma/dev.db
+metas.db
 
 # IDE
 .vscode/
@@ -27,3 +31,19 @@ README-JSON-SERVER.md
 *.tmp
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Coverage
+coverage/
+
+# Cache
+.cache/
+.angular/cache/
+
+# Environment files
+.env
+.env.local
+.env.*.local

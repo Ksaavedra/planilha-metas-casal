@@ -1,0 +1,38 @@
+<div class="parabens-dialog">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="success-icon">
+        <span class="material-icons check-icon">check_circle</span>
+      </div>
+      <h2 class="title">🎉 PARABÉNS! 🎉</h2>
+    </div>
+
+    <div class="modal-body">
+      <div class="celebration-text">
+        <h3>Meta Concluída com Sucesso!</h3>
+        <p class="meta-info">
+          <strong>{{ data.metaNome }}</strong>
+        </p>
+        <p class="valor-info">
+          Valor da meta:
+          <strong>{{ data.valorMeta | currency : 'BRL' }}</strong>
+        </p>
+        <p class="valor-info">
+          Atual:
+          <strong>{{ data.valorRealizado | currency : 'BRL' }}</strong>
+        </p>
+        <div class="achievement-message">
+          <p>🎯 Você conseguiu! Sua meta foi 100% realizada!</p>
+          <p>Continue assim e realize todos os seus sonhos! 💪</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-close" (click)="fechar()">
+        <span class="material-icons">celebration</span>
+        Fechar
+      </button>
+    </div>
+  </div>
+</div>

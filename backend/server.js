@@ -1,32 +1,50 @@
-// backend/server.js
-const jsonServer = require('json-server');
-const server = jsonServer.create();
-const router = jsonServer.router('db.json');
-const middlewares = jsonServer.defaults();
+const express = require('express');
+const cors = require('cors');
+const db = require('./scripts/db');
 
-server.use(middlewares);
-server.use(jsonServer.bodyParser);
+const authRoutes = require('./routes/auth.routes');
+const usuariosRoutes = require('./routes/usuarios.routes');
+const receitasRoutes = require('./routes/receitas.routes');
+const despesasRoutes = require('./routes/despesas.routes');
+const metasRoutes = require('./routes/metas.routes');
+const investimentosRoutes = require('./routes/investimentos.routes');
+const dividasRoutes = require('./routes/dividas.routes');
+const cartoesRoutes = require('./routes/cartoes.routes');
 
-// POST /metas: não aceitamos 'id' no corpo (deixa auto-incrementar)
-server.post('/metas', (req, res, next) => {
-   if ('id' in req.body) delete req.body.id;
-   next();
+const app = express();
+const PORT = 3000;
+
+app.use(cors());
+app.use(express.json());
+
+app.get('/api/health', (req, res) => {
+   res.json({ ok: true });
 });
 
-// Somente ids numéricos na URL /metas/:id
-server.use((req, res, next) => {
-   const alvo =
-      /^(GET|PUT|PATCH|DELETE)$/.test(req.method) &&
-      /^\/metas\/[^/]+$/.test(req.path);
-   if (alvo) {
-      const id = Number(req.path.split('/').pop());
-      if (!Number.isFinite(id))
-         return res.status(400).json({ error: 'id deve ser numérico' });
-   }
-   next();
+app.use('/api/auth', authRoutes);
+app.use('/api/usuarios', usuariosRoutes);
+app.use('/api/receitas', receitasRoutes);
+app.use('/api/despesas', despesasRoutes);
+app.use('/api/metas', metasRoutes);
+app.use('/api/investimentos', investimentosRoutes);
+app.use('/api/dividas', dividasRoutes);
+app.use('/api/cartoes', cartoesRoutes);
+
+process.on('SIGINT', () => {
+   console.log('\n🛑 Fechando conexão com o banco...');
+   db.close();
+   process.exit(0);
 });
 
-server.use(router);
-server.listen(3000, () =>
-   console.log('JSON Server rodando em http://localhost:3000')
-);
+app.listen(PORT, () => {
+   console.log(`Servidor rodando na porta ${PORT}`);
+   console.log(`API health: http://localhost:${PORT}/api/health`);
+   console.log(`API auth: http://localhost:${PORT}/api/auth`);
+   console.log(`API usuarios: http://localhost:${PORT}/api/usuarios`);
+   console.log(`API receitas: http://localhost:${PORT}/api/receitas`);
+   console.log(`API despesas: http://localhost:${PORT}/api/despesas`);
+   console.log(`API metas: http://localhost:${PORT}/api/metas`);
+   console.log(`API investimentos: http://localhost:${PORT}/api/investimentos`);
+   console.log(`API dividas: http://localhost:${PORT}/api/dividas`);
+   console.log(`API cartoes: http://localhost:${PORT}/api/cartoes`);
+});

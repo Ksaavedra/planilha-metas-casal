@@ -1,0 +1,190 @@
+.faturas-exemplos {
+  animation: faturas-exemplos-fade 0.25s ease;
+}
+
+@keyframes faturas-exemplos-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.faturas-exemplos__h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.faturas-exemplos__intro {
+  margin: 0 0 1.35rem;
+  max-width: 760px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+.faturas-exemplos__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.faturas-exemplos__card,
+.faturas-exemplos__dica {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.faturas-exemplos__card {
+  padding: 1rem 1.05rem;
+}
+
+.faturas-exemplos__card-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.faturas-exemplos__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #f5f3ff;
+  color: #5b21b6;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.faturas-exemplos__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: #ecfeff;
+  color: #0e7490;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.faturas-exemplos__linhas {
+  display: grid;
+  gap: 0.45rem;
+
+  p {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin: 0;
+    color: #64748b;
+    font-size: 0.86rem;
+  }
+
+  strong {
+    color: #0f172a;
+    font-weight: 800;
+    text-align: right;
+  }
+}
+
+.faturas-exemplos__parcelada {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.9rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #ede9fe;
+  border-radius: 10px;
+  background: #faf5ff;
+  color: #4c1d95;
+  font-size: 0.82rem;
+  line-height: 1.35;
+
+  .material-icons {
+    color: #7c3aed;
+    font-size: 1rem;
+  }
+
+  strong {
+    font-weight: 800;
+  }
+}
+
+.faturas-exemplos__descricao {
+  margin: 0.9rem 0 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid #f1f5f9;
+  color: #475569;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.faturas-exemplos__explicacao {
+  margin: 0.6rem 0 0;
+  color: #64748b;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.faturas-exemplos__conceitos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
+.faturas-exemplos__conceito {
+  padding: 0.9rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+
+  h3 {
+    margin: 0 0 0.35rem;
+    color: #5b21b6;
+    font-size: 0.92rem;
+    font-weight: 800;
+  }
+
+  p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+}
+
+.faturas-exemplos__dica {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  background: linear-gradient(135deg, #f5f3ff 0%, #faf5ff 100%);
+  border-color: #e9d5ff;
+  color: #475569;
+  font-size: 0.92rem;
+  line-height: 1.55;
+
+  h3 {
+    margin: 0 0 0.45rem;
+    color: #5b21b6;
+    font-size: 0.98rem;
+    font-weight: 800;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: 0.55rem;
+  }
+}
