@@ -1,0 +1,41 @@
+<main class="auth-page">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <span class="auth-brand__icon">💜</span>
+      <p>Planilha de Orçamento</p>
+      <h1>Entrar no sistema</h1>
+      <span>Organize receitas, despesas, metas e faturas com segurança.</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="entrar()" class="auth-form">
+      <label>
+        <span>Email</span>
+        <input type="email" formControlName="email" placeholder="voce@email.com" autocomplete="email" />
+        <small *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
+          Informe um email válido.
+        </small>
+      </label>
+
+      <label>
+        <span>Senha</span>
+        <input type="password" formControlName="senha" placeholder="Sua senha" autocomplete="current-password" />
+        <small *ngIf="form.get('senha')?.touched && form.get('senha')?.invalid">
+          A senha é obrigatória.
+        </small>
+      </label>
+
+      <div class="auth-alert" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <button type="submit" [disabled]="carregando">
+        {{ carregando ? 'Entrando...' : 'Entrar' }}
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Ainda não tem conta?
+      <a routerLink="/register">Criar conta</a>
+    </p>
+  </section>
+</main>

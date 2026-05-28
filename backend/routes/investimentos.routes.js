@@ -1,5 +1,7 @@
 const express = require('express');
 const db = require('../scripts/db');
+const { autenticarToken } = require('../middlewares/auth.middleware');
+const { ensureDadosFinanceirosPorUsuario } = require('../utils/user-data-scope');
 
 const router = express.Router();
 
@@ -32,6 +34,9 @@ try {
 } catch {
   // coluna já existe
 }
+
+ensureDadosFinanceirosPorUsuario();
+router.use(autenticarToken);
 
 function calcularRentabilidade(valorInvestido, valorAtual) {
   const inv = Number(valorInvestido) || 0;
@@ -74,8 +79,8 @@ router.get('/', (req, res) => {
     }
 
     const tipo = req.query.tipo ? String(req.query.tipo).trim() : '';
-    let sql = `SELECT * FROM investimentos WHERE ano = ?`;
-    const params = [ano];
+    let sql = `SELECT * FROM investimentos WHERE usuario_id = ? AND ano = ?`;
+    const params = [req.usuario.id, ano];
 
     if (tipo) {
       sql += ` AND tipoInvestimento = ?`;
@@ -96,7 +101,9 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const row = db.prepare(`SELECT * FROM investimentos WHERE id = ?`).get(id);
+    const row = db
+      .prepare(`SELECT * FROM investimentos WHERE id = ? AND usuario_id = ?`)
+      .get(id, req.usuario.id);
     if (!row) {
       return res.status(404).json({ error: 'Investimento não encontrado' });
     }
@@ -150,8 +157,8 @@ router.post('/', (req, res) => {
         `INSERT INTO investimentos
          (descricao, tipoInvestimento, valorInvestido, valorAtual, aporteMensal,
           rentabilidade, rentabilidadePercentual, statusInvestimento, instituicao,
-          pessoa, ano, dataInicio, observacoes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          pessoa, usuario_id, ano, dataInicio, observacoes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         String(descricao).trim(),
@@ -164,14 +171,15 @@ router.post('/', (req, res) => {
         status,
         instituicao ? String(instituicao).trim() : null,
         pessoa ? String(pessoa).trim() : null,
+        req.usuario.id,
         a,
         dataInicio || null,
         observacoes ? String(observacoes).trim() : null,
       );
 
     const row = db
-      .prepare(`SELECT * FROM investimentos WHERE id = ?`)
-      .get(result.lastInsertRowid);
+      .prepare(`SELECT * FROM investimentos WHERE id = ? AND usuario_id = ?`)
+      .get(result.lastInsertRowid, req.usuario.id);
     res.status(201).json(mapRow(row));
   } catch (error) {
     console.error('Erro ao criar investimento:', error);
@@ -184,8 +192,8 @@ router.patch('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const atual_row = db
-      .prepare(`SELECT * FROM investimentos WHERE id = ?`)
-      .get(id);
+      .prepare(`SELECT * FROM investimentos WHERE id = ? AND usuario_id = ?`)
+      .get(id, req.usuario.id);
     if (!atual_row) {
       return res.status(404).json({ error: 'Investimento não encontrado' });
     }
@@ -233,7 +241,7 @@ router.patch('/:id', (req, res) => {
         aporteMensal = ?, rentabilidade = ?, rentabilidadePercentual = ?,
         statusInvestimento = ?, instituicao = ?, pessoa = ?, ano = ?, dataInicio = ?,
         observacoes = ?, updatedAt = CURRENT_TIMESTAMP
-       WHERE id = ?`,
+       WHERE id = ? AND usuario_id = ?`,
     ).run(
       descricao,
       tipoInvestimento,
@@ -249,9 +257,12 @@ router.patch('/:id', (req, res) => {
       dataInicio,
       observacoes,
       id,
+      req.usuario.id,
     );
 
-    const row = db.prepare(`SELECT * FROM investimentos WHERE id = ?`).get(id);
+    const row = db
+      .prepare(`SELECT * FROM investimentos WHERE id = ? AND usuario_id = ?`)
+      .get(id, req.usuario.id);
     res.json(mapRow(row));
   } catch (error) {
     console.error('Erro ao atualizar investimento:', error);
@@ -264,8 +275,8 @@ router.delete('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     const result = db
-      .prepare(`DELETE FROM investimentos WHERE id = ?`)
-      .run(id);
+      .prepare(`DELETE FROM investimentos WHERE id = ? AND usuario_id = ?`)
+      .run(id, req.usuario.id);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Investimento não encontrado' });
     }

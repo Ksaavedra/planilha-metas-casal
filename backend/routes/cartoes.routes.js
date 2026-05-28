@@ -1,5 +1,7 @@
 const express = require('express');
 const db = require('../scripts/db');
+const { autenticarToken } = require('../middlewares/auth.middleware');
+const { ensureDadosFinanceirosPorUsuario } = require('../utils/user-data-scope');
 
 const router = express.Router();
 
@@ -32,6 +34,9 @@ for (const sql of [
     if (!String(e.message).includes('duplicate column')) throw e;
   }
 }
+
+ensureDadosFinanceirosPorUsuario();
+router.use(autenticarToken);
 
 function parseNum(value, fallback = 0) {
   if (value == null || value === '') return fallback;
@@ -80,11 +85,13 @@ function mapRow(row) {
   };
 }
 
-router.get('/', (_req, res) => {
+router.get('/', (req, res) => {
   try {
     const rows = db
-      .prepare(`SELECT * FROM cartoes ORDER BY banco ASC, nome ASC, id ASC`)
-      .all();
+      .prepare(
+        `SELECT * FROM cartoes WHERE usuario_id = ? ORDER BY banco ASC, nome ASC, id ASC`,
+      )
+      .all(req.usuario.id);
     res.json(rows.map(mapRow));
   } catch (error) {
     console.error('Erro ao buscar cartões:', error);
@@ -95,7 +102,9 @@ router.get('/', (_req, res) => {
 router.get('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const row = db.prepare(`SELECT * FROM cartoes WHERE id = ?`).get(id);
+    const row = db
+      .prepare(`SELECT * FROM cartoes WHERE id = ? AND usuario_id = ?`)
+      .get(id, req.usuario.id);
     if (!row) {
       return res.status(404).json({ error: 'Cartão não encontrado' });
     }
@@ -131,10 +140,11 @@ router.post('/', (req, res) => {
     const result = db
       .prepare(
         `INSERT INTO cartoes
-         (nome, banco, limite, valorUtilizado, faturaPaga, valorFaturaPaga, diaFechamento, diaVencimento, diaMelhorCompra, pessoa, observacoes, observacaoAtraso, previsaoPagamento)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (usuario_id, nome, banco, limite, valorUtilizado, faturaPaga, valorFaturaPaga, diaFechamento, diaVencimento, diaMelhorCompra, pessoa, observacoes, observacaoAtraso, previsaoPagamento)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
+        req.usuario.id,
         String(nome).trim(),
         String(banco).trim(),
         Math.max(0, parseNum(limite)),
@@ -151,8 +161,8 @@ router.post('/', (req, res) => {
       );
 
     const row = db
-      .prepare(`SELECT * FROM cartoes WHERE id = ?`)
-      .get(result.lastInsertRowid);
+      .prepare(`SELECT * FROM cartoes WHERE id = ? AND usuario_id = ?`)
+      .get(result.lastInsertRowid, req.usuario.id);
     res.status(201).json(mapRow(row));
   } catch (error) {
     console.error('Erro ao criar cartão:', error);
@@ -163,7 +173,9 @@ router.post('/', (req, res) => {
 router.patch('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const atual = db.prepare(`SELECT * FROM cartoes WHERE id = ?`).get(id);
+    const atual = db
+      .prepare(`SELECT * FROM cartoes WHERE id = ? AND usuario_id = ?`)
+      .get(id, req.usuario.id);
     if (!atual) {
       return res.status(404).json({ error: 'Cartão não encontrado' });
     }
@@ -221,7 +233,7 @@ router.patch('/:id', (req, res) => {
         diaFechamento = ?, diaVencimento = ?, diaMelhorCompra = ?,
         pessoa = ?, observacoes = ?, observacaoAtraso = ?, previsaoPagamento = ?,
         updatedAt = CURRENT_TIMESTAMP
-       WHERE id = ?`,
+       WHERE id = ? AND usuario_id = ?`,
     ).run(
       nome,
       banco,
@@ -237,9 +249,12 @@ router.patch('/:id', (req, res) => {
       observacaoAtraso ? String(observacaoAtraso).trim() : null,
       previsaoPagamento ? String(previsaoPagamento).trim() : null,
       id,
+      req.usuario.id,
     );
 
-    const row = db.prepare(`SELECT * FROM cartoes WHERE id = ?`).get(id);
+    const row = db
+      .prepare(`SELECT * FROM cartoes WHERE id = ? AND usuario_id = ?`)
+      .get(id, req.usuario.id);
     res.json(mapRow(row));
   } catch (error) {
     console.error('Erro ao atualizar cartão:', error);
@@ -250,7 +265,9 @@ router.patch('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const result = db.prepare(`DELETE FROM cartoes WHERE id = ?`).run(id);
+    const result = db
+      .prepare(`DELETE FROM cartoes WHERE id = ? AND usuario_id = ?`)
+      .run(id, req.usuario.id);
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Cartão não encontrado' });
     }

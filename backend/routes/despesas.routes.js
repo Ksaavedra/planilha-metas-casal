@@ -1,5 +1,7 @@
 const express = require("express");
 const db = require("../scripts/db");
+const { autenticarToken } = require("../middlewares/auth.middleware");
+const { ensureDadosFinanceirosPorUsuario } = require("../utils/user-data-scope");
 
 const router = express.Router();
 
@@ -34,6 +36,9 @@ db.exec(
   }
 }
 
+ensureDadosFinanceirosPorUsuario();
+router.use(autenticarToken);
+
 // GET /api/despesas
 router.get("/", (req, res) => {
   try {
@@ -46,9 +51,9 @@ router.get("/", (req, res) => {
     }
     const rows = db
       .prepare(
-        "SELECT id, pessoa, natureza, categoria, descricao, valor, data, ano, mes FROM despesas WHERE ano = ? AND mes = ? ORDER BY natureza ASC, pessoa, categoria, id",
+        "SELECT id, pessoa, natureza, categoria, descricao, valor, data, ano, mes FROM despesas WHERE usuario_id = ? AND ano = ? AND mes = ? ORDER BY natureza ASC, pessoa, categoria, id",
       )
-      .all(ano, mes);
+      .all(req.usuario.id, ano, mes);
     res.json(rows);
   } catch (error) {
     console.error("Erro ao buscar despesas:", error);
@@ -62,9 +67,9 @@ router.get("/:id", (req, res) => {
     const id = parseInt(req.params.id, 10);
     const row = db
       .prepare(
-        "SELECT id, pessoa, natureza, categoria, descricao, valor, data, ano, mes FROM despesas WHERE id = ?",
+        "SELECT id, pessoa, natureza, categoria, descricao, valor, data, ano, mes FROM despesas WHERE id = ? AND usuario_id = ?",
       )
-      .get(id);
+      .get(id, req.usuario.id);
     if (!row) {
       return res.status(404).json({ error: "Despesa não encontrada" });
     }
@@ -110,9 +115,10 @@ router.post("/", (req, res) => {
       data != null && String(data).trim() !== "" ? String(data).trim() : null;
     const result = db
       .prepare(
-        "INSERT INTO despesas (pessoa, natureza, categoria, descricao, valor, data, ano, mes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO despesas (usuario_id, pessoa, natureza, categoria, descricao, valor, data, ano, mes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       )
       .run(
+        req.usuario.id,
         pessoaVal,
         natureza,
         String(categoria).trim(),
@@ -124,9 +130,9 @@ router.post("/", (req, res) => {
       );
     const created = db
       .prepare(
-        "SELECT id, pessoa, natureza, categoria, descricao, valor, data, ano, mes FROM despesas WHERE id = ?",
+        "SELECT id, pessoa, natureza, categoria, descricao, valor, data, ano, mes FROM despesas WHERE id = ? AND usuario_id = ?",
       )
-      .get(result.lastInsertRowid);
+      .get(result.lastInsertRowid, req.usuario.id);
     res.status(201).json(created);
   } catch (error) {
     console.error("Erro ao criar despesa:", error);
@@ -138,7 +144,9 @@ router.post("/", (req, res) => {
 router.patch("/:id", (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const existing = db.prepare("SELECT * FROM despesas WHERE id = ?").get(id);
+    const existing = db
+      .prepare("SELECT * FROM despesas WHERE id = ? AND usuario_id = ?")
+      .get(id, req.usuario.id);
     if (!existing) {
       return res.status(404).json({ error: "Despesa não encontrada" });
     }
@@ -198,16 +206,15 @@ router.patch("/:id", (req, res) => {
     }
     if (set.length) {
       set.push("updatedAt = CURRENT_TIMESTAMP");
-      db.prepare(`UPDATE despesas SET ${set.join(", ")} WHERE id = ?`).run(
-        ...values,
-        id,
-      );
+      db.prepare(
+        `UPDATE despesas SET ${set.join(", ")} WHERE id = ? AND usuario_id = ?`,
+      ).run(...values, id, req.usuario.id);
     }
     const updated = db
       .prepare(
-        "SELECT id, pessoa, natureza, categoria, descricao, valor, data, ano, mes FROM despesas WHERE id = ?",
+        "SELECT id, pessoa, natureza, categoria, descricao, valor, data, ano, mes FROM despesas WHERE id = ? AND usuario_id = ?",
       )
-      .get(id);
+      .get(id, req.usuario.id);
     res.json(updated);
   } catch (error) {
     console.error("Erro ao atualizar despesa:", error);
@@ -219,11 +226,16 @@ router.patch("/:id", (req, res) => {
 router.delete("/:id", (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
-    const existing = db.prepare("SELECT * FROM despesas WHERE id = ?").get(id);
+    const existing = db
+      .prepare("SELECT * FROM despesas WHERE id = ? AND usuario_id = ?")
+      .get(id, req.usuario.id);
     if (!existing) {
       return res.status(404).json({ error: "Despesa não encontrada" });
     }
-    db.prepare("DELETE FROM despesas WHERE id = ?").run(id);
+    db.prepare("DELETE FROM despesas WHERE id = ? AND usuario_id = ?").run(
+      id,
+      req.usuario.id,
+    );
     res.status(204).send();
   } catch (error) {
     console.error("Erro ao deletar despesa:", error);

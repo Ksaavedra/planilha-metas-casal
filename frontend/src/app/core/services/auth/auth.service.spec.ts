@@ -5,7 +5,7 @@ import { ApiService } from '../api/api.service';
 import type { LoginRequest, RegisterRequest, AuthResponse, Usuario } from 'auths/auth';
 
 const mockUsuario: Usuario = {
-  id: '1',
+  id: 1,
   nome: 'Usuário Teste',
   email: 'teste@exemplo.com',
 };
@@ -18,7 +18,7 @@ const mockAuthResponse: AuthResponse = {
 
 describe('AuthService', () => {
   let service: AuthService;
-  let apiService: jest.Mocked<Pick<ApiService, 'post'>>;
+  let apiService: jest.Mocked<Pick<ApiService, 'post' | 'get'>>;
   let localStorageMock: Record<string, string>;
 
   beforeEach(() => {
@@ -33,6 +33,7 @@ describe('AuthService', () => {
 
     apiService = {
       post: jest.fn().mockReturnValue(of(mockAuthResponse)),
+      get: jest.fn().mockReturnValue(of(mockUsuario)),
     };
 
     TestBed.configureTestingModule({
@@ -170,23 +171,33 @@ describe('AuthService', () => {
   });
 
   describe('getProfile', () => {
-    it('quando há usuário logado retorna of(usuario)', (done) => {
+    it('busca perfil na API e atualiza currentUser$', (done) => {
       service.login({ email: 'a@b.com', senha: '1' }).subscribe(() => {
         service.getProfile().subscribe((user) => {
           expect(user).toEqual(mockUsuario);
+          expect(apiService.get).toHaveBeenCalledWith('/auth/perfil');
+          expect(service.getCurrentUser()).toEqual(mockUsuario);
           done();
         });
       });
     });
 
-    it('quando não há usuário retorna mock de perfil', (done) => {
-      service.getProfile().subscribe((user) => {
-        expect(user).toEqual({
-          id: '1',
-          nome: 'Usuário Teste',
-          email: 'teste@exemplo.com',
-        });
-        done();
+    it('limpa autenticação quando perfil retorna 401', (done) => {
+      localStorageMock['auth_token'] = 't';
+      localStorageMock['current_user'] = JSON.stringify(mockUsuario);
+      (apiService.get as jest.Mock).mockReturnValue(
+        throwError(() => ({ status: 401 })),
+      );
+      const s = new AuthService(apiService as unknown as ApiService);
+
+      s.getProfile().subscribe({
+        next: () => fail('deveria falhar'),
+        error: (err) => {
+          expect(err.status).toBe(401);
+          expect(s.getCurrentUser()).toBeNull();
+          expect(localStorageMock['auth_token']).toBeUndefined();
+          done();
+        },
       });
     });
   });

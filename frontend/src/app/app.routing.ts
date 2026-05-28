@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { LoggedComponent } from './core/components/logged/logged.component';
+import { AuthGuard } from '@core/guards/auth.guard';
 
 const routes: Routes = [
   {
@@ -10,7 +11,14 @@ const routes: Routes = [
   },
   {
     path: '',
+    loadChildren: () =>
+      import('./modules/auth/auth.module').then((module) => module.AuthModule),
+  },
+  {
+    path: '',
     component: LoggedComponent,
+    canActivate: [AuthGuard],
+    canActivateChild: [AuthGuard],
     children: [
       {
         path: 'dashboard',

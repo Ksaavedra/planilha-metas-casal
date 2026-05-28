@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, of } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { ApiService } from '../api/api.service';
 import {
@@ -7,7 +7,8 @@ import {
   LoginRequest,
   RegisterRequest,
   AuthResponse,
-} from 'auths/auth';
+  PerfilResponse,
+} from '@core/interfaces/auths/auth';
 
 @Injectable({
   providedIn: 'root',
@@ -16,21 +17,20 @@ export class AuthService {
   private currentUserSubject = new BehaviorSubject<Usuario | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 
-  private tokenKey = 'auth_token';
-  private userKey = 'current_user';
+  private readonly tokenKey = 'auth_token';
+  private readonly userKey = 'current_user';
 
   constructor(private apiService: ApiService) {
     this.loadStoredAuth();
   }
 
-  // Carregar dados de autenticação armazenados
   private loadStoredAuth(): void {
     const token = localStorage.getItem(this.tokenKey);
     const userStr = localStorage.getItem(this.userKey);
 
     if (token && userStr) {
       try {
-        const user = JSON.parse(userStr);
+        const user = JSON.parse(userStr) as Usuario;
         this.currentUserSubject.next(user);
       } catch (error) {
         this.clearAuth();
@@ -38,7 +38,6 @@ export class AuthService {
     }
   }
 
-  // Login
   login(credentials: LoginRequest): Observable<AuthResponse> {
     return this.apiService.post<AuthResponse>('/auth/login', credentials).pipe(
       tap((response) => {
@@ -51,7 +50,6 @@ export class AuthService {
     );
   }
 
-  // Registro
   register(userData: RegisterRequest): Observable<AuthResponse> {
     return this.apiService.post<AuthResponse>('/auth/registrar', userData).pipe(
       tap((response) => {
@@ -64,53 +62,47 @@ export class AuthService {
     );
   }
 
-  // Logout
   logout(): void {
     this.clearAuth();
   }
 
-  // Verificar se está autenticado
   isAuthenticated(): boolean {
     const token = localStorage.getItem(this.tokenKey);
     return !!token;
   }
 
-  // Obter token
   getToken(): string | null {
     return localStorage.getItem(this.tokenKey);
   }
 
-  // Obter usuário atual
   getCurrentUser(): Usuario | null {
     return this.currentUserSubject.value;
   }
 
-  // Definir autenticação
+  getProfile(): Observable<PerfilResponse> {
+    return this.apiService.get<PerfilResponse>('/auth/perfil').pipe(
+      tap((usuario) => {
+        localStorage.setItem(this.userKey, JSON.stringify(usuario));
+        this.currentUserSubject.next(usuario);
+      }),
+      catchError((error) => {
+        if (error?.status === 401) {
+          this.clearAuth();
+        }
+        throw error;
+      }),
+    );
+  }
+
   private setAuth(token: string, user: Usuario): void {
     localStorage.setItem(this.tokenKey, token);
     localStorage.setItem(this.userKey, JSON.stringify(user));
     this.currentUserSubject.next(user);
   }
 
-  // Limpar autenticação
   private clearAuth(): void {
     localStorage.removeItem(this.tokenKey);
     localStorage.removeItem(this.userKey);
     this.currentUserSubject.next(null);
-  }
-
-  // Verificar perfil (mock para teste)
-  getProfile(): Observable<Usuario> {
-    const currentUser = this.getCurrentUser();
-    if (currentUser) {
-      return of(currentUser);
-    }
-
-    // Se não há usuário, retorna um mock
-    return of({
-      id: '1',
-      nome: 'Usuário Teste',
-      email: 'teste@exemplo.com',
-    });
   }
 }
