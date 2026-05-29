@@ -40,18 +40,18 @@ describe('SidebarComponent', () => {
 
   it('should have correct navigation items', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    const linkTexts = Array.from(compiled.querySelectorAll('a')).map((link) =>
-      link.textContent?.trim()
-    );
+    const menuText = Array.from(compiled.querySelectorAll('a'))
+      .map((link) => link.textContent?.trim())
+      .join(' ');
 
-    expect(linkTexts).toContain('📊 Dashboard');
-    expect(linkTexts).toContain('💳 Faturas');
-    expect(linkTexts).toContain('💰 Empréstimos');
-    expect(linkTexts).toContain('🏠 Financiamentos');
-    expect(linkTexts).toContain('📈 Investimentos');
-    expect(linkTexts).toContain('🎯 Metas');
-    expect(linkTexts).toContain('💸 Despesas');
-    expect(linkTexts).toContain('💵 Receitas');
+    expect(menuText).toContain('Dashboard');
+    expect(menuText).toContain('Faturas');
+    expect(menuText).toContain('Empréstimos');
+    expect(menuText).toContain('Financiamentos');
+    expect(menuText).toContain('Investimentos');
+    expect(menuText).toContain('Metas');
+    expect(menuText).toContain('Despesas');
+    expect(menuText).toContain('Receitas');
   });
 
   it('should have correct router links', () => {
@@ -83,5 +83,21 @@ describe('SidebarComponent', () => {
     expect(sidebarService.changeStatus).toHaveBeenCalledTimes(1);
     component.onSidebarClick();
     expect(sidebarService.changeStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('não deve fechar a sidebar ao navegar no desktop', () => {
+    component.isMobile = false;
+
+    component.onNavigationClick();
+
+    expect(sidebarService.changeStatus).not.toHaveBeenCalled();
+  });
+
+  it('deve fechar a sidebar ao navegar no mobile', () => {
+    component.isMobile = true;
+
+    component.onNavigationClick();
+
+    expect(sidebarService.changeStatus).toHaveBeenCalledTimes(1);
   });
 });

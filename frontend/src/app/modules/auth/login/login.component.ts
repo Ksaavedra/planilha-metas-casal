@@ -13,6 +13,9 @@ import { AuthService } from '@core/services/auth/auth.service';
 export class LoginComponent {
   carregando = false;
   erro: string | null = null;
+  sucesso: string | null = null;
+  mostrarSenha = false;
+  modoRecuperacao = false;
 
   form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -28,6 +31,7 @@ export class LoginComponent {
 
   entrar(): void {
     this.erro = null;
+    this.sucesso = null;
 
     if (this.form.invalid || this.carregando) {
       this.form.markAllAsTouched();
@@ -55,6 +59,36 @@ export class LoginComponent {
           this.erro = this.mensagemErro(err);
         },
       });
+  }
+
+  iniciarRecuperacao(): void {
+    this.erro = null;
+    this.sucesso = null;
+    this.modoRecuperacao = true;
+    this.form.get('senha')?.reset();
+    this.form.get('senha')?.markAsUntouched();
+  }
+
+  voltarParaLogin(): void {
+    this.erro = null;
+    this.sucesso = null;
+    this.modoRecuperacao = false;
+  }
+
+  recuperarSenha(): void {
+    this.erro = null;
+    this.sucesso = null;
+
+    const emailControl = this.form.get('email');
+    emailControl?.markAsTouched();
+
+    if (emailControl?.invalid) {
+      this.erro = 'Informe um email válido para recuperar sua senha.';
+      return;
+    }
+
+    this.sucesso =
+      'Email validado com sucesso. A recuperação automática ainda precisa ser configurada no backend.';
   }
 
   private mensagemErro(err: unknown): string {

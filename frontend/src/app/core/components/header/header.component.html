@@ -1,14 +1,25 @@
 <header class="app-header">
   <div class="header-content">
     <button class="nav-toggle" type="button" aria-label="Menu" (click)="onSidebarClick()">
-      ☰
+      <span class="material-icons" aria-hidden="true">menu</span>
     </button>
     <div class="logo">
-      <h1>Planejamento Financeiro</h1>
+      <span class="logo-mark" aria-hidden="true">
+        <img src="/assets/images/logo.png" alt="" />
+      </span>
+      <div class="logo-copy">
+        <h1>ORBIS</h1>
+        <small>Planejamento Financeiro</small>
+      </div>
     </div>
     <div class="header-user" *ngIf="currentUser$ | async as user">
-      <span>{{ user.nome }}</span>
-      <button type="button" (click)="logout()">Sair</button>
+      <div class="user-pill" [title]="user.nome">
+        <span class="user-avatar" aria-hidden="true">{{ user.nome.charAt(0).toUpperCase() }}</span>
+        <span class="user-name">{{ user.nome }}</span>
+      </div>
+      <button class="logout-button" type="button" (click)="logout()" aria-label="Sair do sistema">
+        Sair
+      </button>
     </div>
   </div>
 </header>

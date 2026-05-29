@@ -8,11 +8,13 @@ import { CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA } from '@angular/core';
 describe('LoggedComponent', () => {
   let component: LoggedComponent;
   let fixture: ComponentFixture<LoggedComponent>;
+  let sidebarService: { getStatus: jest.Mock; isMobile: jest.Mock; changeStatus: jest.Mock };
 
   beforeEach(async () => {
-    const sidebarService = {
+    sidebarService = {
       getStatus: jest.fn().mockReturnValue(of(false)),
       isMobile: jest.fn().mockReturnValue(of(false)),
+      changeStatus: jest.fn(),
     };
     await TestBed.configureTestingModule({
       declarations: [LoggedComponent],
@@ -54,5 +56,23 @@ describe('LoggedComponent', () => {
     expect(component.showOverlay).toBe(true);
     component.onShowOverlay(false);
     expect(component.showOverlay).toBe(false);
+  });
+
+  it('deve fechar sidebar pelo backdrop apenas no mobile', () => {
+    component.isMobile = true;
+    component.sidebarStatus = true;
+
+    component.fecharSidebarMobile();
+
+    expect(sidebarService.changeStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('não deve fechar sidebar pelo backdrop no desktop', () => {
+    component.isMobile = false;
+    component.sidebarStatus = true;
+
+    component.fecharSidebarMobile();
+
+    expect(sidebarService.changeStatus).not.toHaveBeenCalled();
   });
 });

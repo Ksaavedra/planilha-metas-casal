@@ -1,35 +1,49 @@
 <div class="sidebar-component-container" [class.closed]="!sidebarStatus">
   <header class="sidebar-header">
-    <div class="sidebar-header__button">
-      <button (click)="onSidebarClick()">
-        ✕
-      </button>
+    <div class="sidebar-brand">
+      <span class="sidebar-brand__mark" aria-hidden="true">
+        <img src="/assets/images/logo.png" alt="" />
+      </span>
+      <div>
+        <strong>Menu financeiro</strong>
+        <small>Escolha uma área</small>
+      </div>
     </div>
+    <button class="sidebar-close" type="button" aria-label="Fechar menu" (click)="onSidebarClick()">✕</button>
   </header>
   <main class="sidebar-container">
-    <a routerLink="/dashboard" (click)="onSidebarClick()">
-      📊 Dashboard
+    <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+      (click)="onNavigationClick()">
+      <span class="material-icons" aria-hidden="true">insights</span>
+      Dashboard
     </a>
-    <a routerLink="/faturas" (click)="onSidebarClick()">
-      💳 Faturas
+    <a routerLink="/faturas" routerLinkActive="active" (click)="onNavigationClick()">
+      <span class="material-icons" aria-hidden="true">credit_card</span>
+      Faturas
     </a>
-    <a routerLink="/emprestimos" (click)="onSidebarClick()">
-      💰 Empréstimos
+    <a routerLink="/emprestimos" routerLinkActive="active" (click)="onNavigationClick()">
+      <span class="material-icons" aria-hidden="true">attach_money</span>
+      Empréstimos
     </a>
-    <a routerLink="/financiamentos" (click)="onSidebarClick()">
-      🏠 Financiamentos
+    <a routerLink="/financiamentos" routerLinkActive="active" (click)="onNavigationClick()">
+      <span class="material-icons" aria-hidden="true">home</span>
+      Financiamentos
     </a>
-    <a routerLink="/investimentos" (click)="onSidebarClick()">
-      📈 Investimentos
+    <a routerLink="/investimentos" routerLinkActive="active" (click)="onNavigationClick()">
+      <span class="material-icons" aria-hidden="true">trending_up</span>
+      Investimentos
     </a>
-    <a routerLink="/metas" (click)="onSidebarClick()">
-      🎯 Metas
+    <a routerLink="/metas" routerLinkActive="active" (click)="onNavigationClick()">
+      <span class="material-icons" aria-hidden="true">track_changes</span>
+      Metas
     </a>
-    <a routerLink="/despesas" (click)="onSidebarClick()">
-      💸 Despesas
+    <a routerLink="/despesas" routerLinkActive="active" (click)="onNavigationClick()">
+      <span class="material-icons" aria-hidden="true">receipt_long</span>
+      Despesas
     </a>
-    <a routerLink="/receitas" (click)="onSidebarClick()">
-      💵 Receitas
+    <a routerLink="/receitas" routerLinkActive="active" (click)="onNavigationClick()">
+      <span class="material-icons" aria-hidden="true">attach_money</span>
+      Receitas
     </a>
   </main>
 </div>
