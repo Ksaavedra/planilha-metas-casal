@@ -27,4 +27,10 @@ export class LoggedComponent implements OnInit {
   onShowOverlay(show: boolean) {
     this.showOverlay = show;
   }
+
+  fecharSidebarMobile(): void {
+    if (this.isMobile && this.sidebarStatus) {
+      this.sidebar.changeStatus();
+    }
+  }
 }

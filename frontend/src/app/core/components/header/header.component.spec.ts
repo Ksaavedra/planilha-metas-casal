@@ -72,7 +72,8 @@ describe('HeaderComponent', () => {
   it('should render header title', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     const titleElement = compiled.querySelector('h1');
-    expect(titleElement?.textContent).toContain('Planejamento Financeiro');
+    expect(titleElement?.textContent).toContain('ORBIS');
+    expect(compiled.textContent).toContain('Planejamento Financeiro');
   });
 
   it('should have menu button', () => {
