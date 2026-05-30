@@ -7,18 +7,22 @@ import {
 } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import * as echarts from 'echarts';
 import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
 import { DespesasService } from '../../../../core/services/despesas/despesas.service';
+import { CartoesService } from '../../../../core/services/cartoes/cartoes.service';
 import { Despesa } from '@app/core/interfaces/despesas/despesas';
-import * as echarts from 'echarts';
-import { Receita } from '@app/core';
+import { Receita } from '@app/core/interfaces/receitas/receitas';
+import { Cartao } from '@core/interfaces/cartoes/cartoes';
 
 type EChartsOption = Record<string, unknown>;
+// type VisaoRelatorio = 'resumo' | 'categorias' | 'guia' | 'graficos';
 
 /** Anos exibidos no gráfico comparativo; o ano atual recebe receitas pela API. */
 const ANOS_COMPARACAO: readonly number[] = [
   2020, 2021, 2022, 2023, 2024, 2025, 2026,
 ];
+const ANO_REFERENCIA_MIN = ANOS_COMPARACAO[0];
 
 @Component({
   selector: 'app-relatorio-page',
@@ -48,8 +52,13 @@ export class RelatorioPageComponent implements AfterViewInit {
   ];
 
   readonly anosComparacao = ANOS_COMPARACAO;
-  /** Ano exibido na tela e tabelas: ano civil de hoje (em 2026 = 2026). */
-  anoSelecionado = new Date().getFullYear();
+  readonly anoAtual = new Date().getFullYear();
+  anoSelecionado = this.anoAtual;
+  anosSaldoSelecionados: number[] = [this.anoAtual];
+  anosSaldoComparacao: number[] = [this.anoAtual];
+  readonly limiteAnosAdicionaisGraficoSaldo = 5;
+  readonly limiteAnosGraficoSaldo = this.limiteAnosAdicionaisGraficoSaldo + 1;
+  private comparandoGraficoSaldo = false;
 
   /** Aba: resumo geral ou receitas por categoria. */
   visaoRelatorio: 'resumo' | 'categorias' = 'resumo';
@@ -87,11 +96,13 @@ export class RelatorioPageComponent implements AfterViewInit {
   // Propriedades de dados
   dadosReceitas: number[] = [];
   dadosDespesas: number[] = [];
+  dadosCartaoCredito: number[] = [];
   dadosDividas: number[] = [];
   dadosInvestimentos: number[] = [];
   dadosTotal: number[] = [];
   totalReceitas = 0;
   totalDespesas = 0;
+  totalCartaoCredito = 0;
   totalDividas = 0;
   totalInvestimentos = 0;
 
@@ -100,6 +111,7 @@ export class RelatorioPageComponent implements AfterViewInit {
     [ano: number]: {
       receitas: number[];
       despesas: number[];
+      cartaoCredito: number[];
       dividas: number[];
       investimentos: number[];
     };
@@ -109,6 +121,7 @@ export class RelatorioPageComponent implements AfterViewInit {
         3500, 3500, 3500, 3500, 3500, 3500, 3500, 3500, 3500, 3500, 3500, 3500,
       ],
       despesas: [800, 850, 900, 750, 800, 900, 850, 800, 750, 900, 850, 800],
+      cartaoCredito: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       dividas: [
         1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200, 1200,
       ],
@@ -121,6 +134,7 @@ export class RelatorioPageComponent implements AfterViewInit {
         4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000,
       ],
       despesas: [900, 950, 1000, 850, 900, 1000, 950, 900, 850, 1000, 950, 900],
+      cartaoCredito: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       dividas: [
         1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500, 1500,
       ],
@@ -135,6 +149,7 @@ export class RelatorioPageComponent implements AfterViewInit {
       despesas: [
         1000, 1050, 1100, 950, 1000, 1100, 1050, 1000, 950, 1100, 1050, 1000,
       ],
+      cartaoCredito: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       dividas: [
         1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800, 1800,
       ],
@@ -149,6 +164,7 @@ export class RelatorioPageComponent implements AfterViewInit {
       despesas: [
         1100, 1150, 1200, 1050, 1100, 1200, 1150, 1100, 1050, 1200, 1150, 1100,
       ],
+      cartaoCredito: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       dividas: [
         2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000,
       ],
@@ -162,6 +178,7 @@ export class RelatorioPageComponent implements AfterViewInit {
         5000,
       ],
       despesas: [211.12, 72.51, 19.9, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cartaoCredito: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       dividas: [4263.65, 0, 0, 0, 0, 6006.96, 0, 0, 0, 0, 0, 2477.57],
       investimentos: [24168.68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
@@ -172,6 +189,7 @@ export class RelatorioPageComponent implements AfterViewInit {
       despesas: [
         1300, 1350, 1400, 1250, 1300, 1400, 1350, 1300, 1250, 1400, 1350, 1300,
       ],
+      cartaoCredito: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       dividas: [
         2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500, 2500,
       ],
@@ -183,6 +201,7 @@ export class RelatorioPageComponent implements AfterViewInit {
     2026: {
       receitas: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       despesas: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cartaoCredito: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       dividas: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       investimentos: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
@@ -200,17 +219,25 @@ export class RelatorioPageComponent implements AfterViewInit {
     const saldoChart = e.init(this.chartSaldo.nativeElement);
     saldoChart.setOption(this.chartOption);
 
-    const receitasChart = e.init(this.chartReceitasDespesas.nativeElement);
-    receitasChart.setOption(this.chartOptionReceitasDespesas);
+    const receitasEl = this.chartReceitasDespesas?.nativeElement;
+    if (receitasEl) {
+      const receitasChart = e.init(receitasEl);
+      receitasChart.setOption(this.chartOptionReceitasDespesas);
+    }
 
-    const dividasChart = e.init(this.chartDividasInvestimentos.nativeElement);
-    dividasChart.setOption(this.chartOptionDividasInvestimentos);
+    const dividasEl = this.chartDividasInvestimentos?.nativeElement;
+    if (dividasEl) {
+      const dividasChart = e.init(dividasEl);
+      dividasChart.setOption(this.chartOptionDividasInvestimentos);
+    }
   }
 
   private sincronizarGraficoSaldoECharts(): void {
     this.chartOption = {
       ...this.chartOption,
+      legend: this.getLegendaGraficoSaldo(),
       dataset: { source: this.getDatasetSource() },
+      series: this.getSeriesGraficoSaldo(),
     };
     const el = this.chartSaldo?.nativeElement;
     if (!el) return;
@@ -219,7 +246,7 @@ export class RelatorioPageComponent implements AfterViewInit {
 
     const chart = e.getInstanceByDom(el) || e.init(el);
 
-    chart.setOption(this.chartOption, { notMerge: false });
+    chart.setOption(this.chartOption, { notMerge: true });
   }
 
   private sincronizarGraficosBarraELinha(): void {
@@ -254,8 +281,7 @@ export class RelatorioPageComponent implements AfterViewInit {
       },
     },
     legend: {
-      data: ANOS_COMPARACAO.map(String),
-      bottom: 10,
+      ...this.getLegendaGraficoSaldo(),
     },
     tooltip: {
       trigger: 'item',
@@ -306,43 +332,7 @@ export class RelatorioPageComponent implements AfterViewInit {
     dataset: {
       source: this.getDatasetSource(),
     },
-    series: [
-      {
-        type: 'bar',
-        name: '2020',
-        itemStyle: { color: '#5470c6' },
-      },
-      {
-        type: 'bar',
-        name: '2021',
-        itemStyle: { color: '#91cc75' },
-      },
-      {
-        type: 'bar',
-        name: '2022',
-        itemStyle: { color: '#fac858' },
-      },
-      {
-        type: 'bar',
-        name: '2023',
-        itemStyle: { color: '#ee6666' },
-      },
-      {
-        type: 'bar',
-        name: '2024',
-        itemStyle: { color: '#73c0de' },
-      },
-      {
-        type: 'bar',
-        name: '2025',
-        itemStyle: { color: '#3ba272' },
-      },
-      {
-        type: 'bar',
-        name: '2026',
-        itemStyle: { color: '#9a60b4' },
-      },
-    ],
+    series: this.getSeriesGraficoSaldo(),
   };
 
   mergeOptions: EChartsOption = {};
@@ -487,6 +477,7 @@ export class RelatorioPageComponent implements AfterViewInit {
     return (
       this.totalReceitas -
       this.totalDespesas -
+      this.totalCartaoCredito -
       this.totalDividas -
       this.totalInvestimentos
     );
@@ -497,6 +488,7 @@ export class RelatorioPageComponent implements AfterViewInit {
     if (dadosAno) {
       this.dadosReceitas = dadosAno.receitas;
       this.dadosDespesas = dadosAno.despesas;
+      this.dadosCartaoCredito = dadosAno.cartaoCredito;
       this.dadosDividas = dadosAno.dividas;
       this.dadosInvestimentos = dadosAno.investimentos;
 
@@ -505,6 +497,10 @@ export class RelatorioPageComponent implements AfterViewInit {
         0,
       );
       this.totalDespesas = this.dadosDespesas.reduce(
+        (sum, valor) => sum + valor,
+        0,
+      );
+      this.totalCartaoCredito = this.dadosCartaoCredito.reduce(
         (sum, valor) => sum + valor,
         0,
       );
@@ -521,6 +517,7 @@ export class RelatorioPageComponent implements AfterViewInit {
         (receita, index) =>
           receita -
           this.dadosDespesas[index] -
+          this.dadosCartaoCredito[index] -
           this.dadosDividas[index] -
           this.dadosInvestimentos[index],
       );
@@ -528,12 +525,161 @@ export class RelatorioPageComponent implements AfterViewInit {
   }
 
   onAnoChange() {
+    const ano = Number(this.anoSelecionado);
+
+    if (!Number.isFinite(ano) || ano < ANO_REFERENCIA_MIN) {
+      return;
+    }
+
+    this.anoSelecionado = Math.round(ano);
+    this.garantirDadosAno(this.anoSelecionado);
+
+    if (
+      !this.comparandoGraficoSaldo ||
+      !this.anosSaldoComparacao.includes(this.anoSelecionado)
+    ) {
+      this.anosSaldoSelecionados = [this.anoSelecionado];
+    } else {
+      this.anosSaldoSelecionados = [...this.anosSaldoComparacao];
+    }
+
     this.carregarReceitasAno(this.anoSelecionado);
     this.carregarDespesasAno(this.anoSelecionado);
+    this.carregarCartoesAno(this.anoSelecionado);
+
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
     this.sincronizarGraficosBarraELinha();
+  }
+
+  get podeAnoAnterior(): boolean {
+    return Number(this.anoSelecionado) > ANO_REFERENCIA_MIN;
+  }
+
+  get podeProximoAno(): boolean {
+    return true;
+  }
+
+  get estaEmAnoFuturo(): boolean {
+    return Number(this.anoSelecionado) > this.anoAtual;
+  }
+
+  get estaForaDoAnoAtual(): boolean {
+    return Number(this.anoSelecionado) !== this.anoAtual;
+  }
+
+  get exibirAvisoRelatorioVazio(): boolean {
+    return (
+      this.estaForaDoAnoAtual &&
+      [
+        ...this.dadosReceitas,
+        ...this.dadosDespesas,
+        ...this.dadosCartaoCredito,
+        ...this.dadosDividas,
+        ...this.dadosInvestimentos,
+      ].every((valor) => Number(valor) === 0)
+    );
+  }
+
+  get podeAdicionarAnoGraficoSaldo(): boolean {
+    const ano = Number(this.anoSelecionado);
+
+    if (!Number.isFinite(ano)) {
+      return false;
+    }
+
+    if (ano === this.anoAtual) {
+      return false;
+    }
+
+    if (this.anosSaldoComparacao.includes(ano)) {
+      return false;
+    }
+
+    return (
+      this.totalAnosAdicionaisGraficoSaldo <
+      this.limiteAnosAdicionaisGraficoSaldo
+    );
+  }
+
+  get podeLimparFiltrosGraficoSaldo(): boolean {
+    return this.totalAnosAdicionaisGraficoSaldo > 0;
+  }
+
+  get totalAnosAdicionaisGraficoSaldo(): number {
+    return this.anosSaldoComparacao.filter((ano) => ano !== this.anoAtual)
+      .length;
+  }
+
+  anoAnterior(): void {
+    if (!this.podeAnoAnterior) return;
+    this.anoSelecionado = Number(this.anoSelecionado) - 1;
+    this.onAnoChange();
+  }
+
+  proximoAno(): void {
+    if (!this.podeProximoAno) return;
+    this.anoSelecionado = Number(this.anoSelecionado) + 1;
+    this.onAnoChange();
+  }
+
+  voltarParaAnoAtual(): void {
+    if (Number(this.anoSelecionado) === this.anoAtual) {
+      return;
+    }
+    this.anoSelecionado = this.anoAtual;
+    this.onAnoChange();
+  }
+
+  adicionarAnoAoGraficoSaldo(): void {
+    const ano = Number(this.anoSelecionado);
+
+    if (
+      !Number.isFinite(ano) ||
+      ano === this.anoAtual ||
+      this.anosSaldoComparacao.includes(ano) ||
+      this.totalAnosAdicionaisGraficoSaldo >=
+        this.limiteAnosAdicionaisGraficoSaldo
+    ) {
+      return;
+    }
+
+    this.comparandoGraficoSaldo = true;
+    this.anosSaldoComparacao.push(ano);
+    this.anosSaldoComparacao.sort((a, b) => a - b);
+    this.anosSaldoSelecionados = [...this.anosSaldoComparacao];
+    this.sincronizarGraficoSaldoECharts();
+  }
+
+  removerAnoDoGraficoSaldo(ano: number): void {
+    if (ano === this.anoAtual) {
+      return;
+    }
+
+    const atualizada = this.anosSaldoComparacao.filter((a) => a !== ano);
+    if (atualizada.length === 0) {
+      return;
+    }
+
+    this.anosSaldoComparacao = atualizada;
+    this.comparandoGraficoSaldo = this.totalAnosAdicionaisGraficoSaldo > 0;
+    this.anosSaldoSelecionados = this.comparandoGraficoSaldo
+      ? [...this.anosSaldoComparacao]
+      : [this.anoSelecionado];
+    this.sincronizarGraficoSaldoECharts();
+  }
+
+  limparFiltrosGraficoSaldo(): void {
+    this.comparandoGraficoSaldo = false;
+    this.anoSelecionado = this.anoAtual;
+    this.anosSaldoComparacao = [this.anoAtual];
+    this.anosSaldoSelecionados = [this.anoAtual];
+    this.onAnoChange();
+  }
+
+  rotuloAnoGraficoSaldo(ano: number): string {
+    return ano === this.anoAtual ? `${ano} (atual)` : String(ano);
   }
 
   selecionarVisao(visao: 'resumo' | 'categorias'): void {
@@ -670,10 +816,6 @@ export class RelatorioPageComponent implements AfterViewInit {
     };
   }
 
-  testeAno() {
-    alert(`Ano selecionado: ${this.anoSelecionado}`);
-  }
-
   randomDataset() {
     this.mergeOptions = {
       dataset: {
@@ -699,25 +841,72 @@ export class RelatorioPageComponent implements AfterViewInit {
   private getRandomValues() {
     const res: number[] = [];
     for (let i = 0; i < ANOS_COMPARACAO.length; i++) {
-      res.push(Math.random() * 20000 - 10000); // Valores entre -10.000 e +10.000
+      res.push(Math.random() * 20000 - 10000);
     }
     return res;
   }
 
+  private getSeriesGraficoSaldo() {
+    return this.getAnosGraficoSaldo().map((ano) => ({
+      type: 'bar',
+      name: this.rotuloAnoGraficoSaldo(ano),
+      itemStyle: { color: this.getCorGraficoSaldo(ano) },
+    }));
+  }
+
+  private getCorGraficoSaldo(ano: number): string {
+    if (ano === this.anoAtual) {
+      return '#7C3AED';
+    }
+
+    if (ano < this.anoAtual) {
+      const coresPassado = ['#FACC15', '#F97316', '#DC2626'];
+      const distancia = this.anoAtual - ano;
+      return coresPassado[Math.min(distancia - 1, coresPassado.length - 1)];
+    }
+
+    const coresFuturo = ['#2563EB', '#38BDF8', '#06B6D4', '#2DD4BF'];
+    const distancia = ano - this.anoAtual;
+    return coresFuturo[Math.min(distancia - 1, coresFuturo.length - 1)];
+  }
+
+  private getAnosGraficoSaldo(): number[] {
+    return this.anosSaldoSelecionados.length
+      ? [...this.anosSaldoSelecionados]
+      : [this.anoAtual];
+  }
+
+  private getLegendaGraficoSaldo(): {
+    data: string[];
+    selectedMode: boolean;
+    bottom: number;
+  } {
+    const data = this.getAnosGraficoSaldo().map((ano) =>
+      this.rotuloAnoGraficoSaldo(ano),
+    );
+    return {
+      data,
+      selectedMode: false,
+      bottom: 10,
+    };
+  }
+
   private getDatasetSource() {
+    const anos = this.getAnosGraficoSaldo();
     const source: (string | number)[][] = [
-      ['Mês', ...ANOS_COMPARACAO.map((a) => String(a))],
+      ['Mês', ...anos.map((ano) => this.rotuloAnoGraficoSaldo(ano))],
     ];
 
     this.meses.forEach((mes, index) => {
       const row: (string | number)[] = [mes];
 
-      ANOS_COMPARACAO.forEach((ano) => {
+      anos.forEach((ano) => {
         const dadosAno = this.dadosPorAno[ano];
         if (dadosAno) {
           const saldo =
             dadosAno.receitas[index] -
             dadosAno.despesas[index] -
+            dadosAno.cartaoCredito[index] -
             dadosAno.dividas[index] -
             dadosAno.investimentos[index];
           row.push(saldo);
@@ -732,7 +921,6 @@ export class RelatorioPageComponent implements AfterViewInit {
     return source;
   }
 
-  // Configurações dos gráficos para cada card
   chartOptionReceitas: EChartsOption = {};
   chartOptionDespesas: EChartsOption = {};
   chartOptionDividas: EChartsOption = {};
@@ -742,20 +930,19 @@ export class RelatorioPageComponent implements AfterViewInit {
   constructor(
     private receitasService: ReceitasService,
     private despesasService: DespesasService,
+    private cartoesService: CartoesService,
     private cdr: ChangeDetectorRef,
   ) {
     this.carregarReceitasAno(this.anoSelecionado);
     this.carregarDespesasAno(this.anoSelecionado);
+    this.carregarCartoesAno(this.anoSelecionado);
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
   }
 
-  /**
-   * Soma as receitas do banco mês a mês, preenche o resumo e a aba Categorias.
-   */
   private carregarReceitasAno(ano: number): void {
-    if (!this.dadosPorAno[ano]) return;
+    if (!this.garantirDadosAno(ano)) return;
     const porMes$ = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((mes) =>
       this.receitasService.getReceitas({ ano, mes }).pipe(
         catchError(() => of([] as Receita[])),
@@ -774,9 +961,8 @@ export class RelatorioPageComponent implements AfterViewInit {
     });
   }
 
-  /** Soma despesas do banco mês a mês (mesma origem da página Despesas). */
   private carregarDespesasAno(ano: number): void {
-    if (!this.dadosPorAno[ano]) return;
+    if (!this.garantirDadosAno(ano)) return;
     const porMes$ = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((mes) =>
       this.despesasService.getDespesas({ ano, mes }).pipe(
         catchError(() => of([] as Despesa[])),
@@ -792,6 +978,60 @@ export class RelatorioPageComponent implements AfterViewInit {
         this.aoAtualizarResumoAposDadosDaApi();
       },
     });
+  }
+
+  private carregarCartoesAno(ano: number): void {
+    if (!this.garantirDadosAno(ano)) return;
+    const cartoesPorMes$ = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((mes) =>
+      this.cartoesService.getCartoes({ ano, mes }).pipe(
+        catchError(() => of([] as Cartao[])),
+        map((lista) => lista || []),
+      ),
+    );
+
+    forkJoin(cartoesPorMes$).subscribe({
+      next: (cartoesPorMes) => {
+        this.dadosPorAno[ano].cartaoCredito = this.meses.map((_, index) => {
+          const total = this.totalAPagarMesCartoes(cartoesPorMes[index]);
+          return Math.round(total * 100) / 100;
+        });
+        this.aoAtualizarResumoAposDadosDaApi();
+      },
+    });
+  }
+
+  private totalAPagarMesCartoes(cartoes: Cartao[]): number {
+    return cartoes.reduce(
+      (s, cartao) => s + (Number(cartao.totalAPagarMes) || 0),
+      0,
+    );
+  }
+
+  private garantirDadosAno(ano: number): boolean {
+    if (!Number.isFinite(ano) || ano < ANO_REFERENCIA_MIN) {
+      return false;
+    }
+    if (!this.dadosPorAno[ano]) {
+      this.dadosPorAno[ano] = this.criarDadosAnoVazio();
+    }
+    return true;
+  }
+
+  private criarDadosAnoVazio(): {
+    receitas: number[];
+    despesas: number[];
+    cartaoCredito: number[];
+    dividas: number[];
+    investimentos: number[];
+  } {
+    const serieVazia = () => new Array(this.meses.length).fill(0) as number[];
+    return {
+      receitas: serieVazia(),
+      despesas: serieVazia(),
+      cartaoCredito: serieVazia(),
+      dividas: serieVazia(),
+      investimentos: serieVazia(),
+    };
   }
 
   private agregarReceitasPorCategorias(listasPorMes: Receita[][]): void {
