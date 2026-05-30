@@ -125,17 +125,29 @@ describe('CartoesPageComponent', () => {
   });
 
   it('deve calcular resumo, mês e paginação', () => {
-    component.cartoes = Array.from({ length: 8 }, (_, i) =>
-      cartao({ id: i + 1, limite: 1000, valorUtilizado: 100 }),
-    );
-    component.parcelamentos = [parcelaMes({ cartaoId: 1, valorRestante: 250 })];
+    component.cartoes = [
+      ...Array.from({ length: 8 }, (_, i) =>
+        cartao({ id: i + 1, limite: 1000, valorUtilizado: 100 }),
+      ),
+      cartao({ id: 99, limite: 3500, valorUtilizado: 0, totalAPagarMes: 0 }),
+    ];
+    component.parcelamentos = [
+      parcelaMes({
+        cartaoId: 1,
+        valorTotal: 750,
+        quantidadeParcelas: 3,
+        valorRestante: 250,
+      }),
+    ];
     component.paginaTabela = 2;
 
     expect(component.resumo.limiteTotal).toBe(8000);
     expect(component.resumo.utilizado).toBe(950);
+    expect(component.resumo.totalAPagarMes).toBe(950);
     expect(component.exibirAvisoVazio).toBe(false);
     expect(component.totalPaginasTabela).toBe(2);
     expect(component.exibirPaginacaoTabela).toBe(true);
+    expect(component.cartoesComFaturaMes.length).toBe(8);
     expect(component.cartoesPaginados.length).toBe(2);
     expect(component.exibindoDeTabela).toBe(7);
     expect(component.exibindoAteTabela).toBe(8);
@@ -156,6 +168,7 @@ describe('CartoesPageComponent', () => {
     expect(component.resumo).toEqual({
       limiteTotal: 0,
       utilizado: 0,
+      totalAPagarMes: 0,
       disponivel: 0,
       percentualUtilizado: 0,
       proximoVencimentoLabel: '-',
@@ -179,9 +192,16 @@ describe('CartoesPageComponent', () => {
     component.mesAnterior();
     expect(component.mesAtual.getMonth()).toBe(3);
     expect(cartoesService.getCartoes).toHaveBeenCalled();
+    expect(component.estaForaDoMesAtual).toBe(true);
 
     component.proximoMes();
     expect(component.mesAtual.getMonth()).toBe(4);
+    expect(component.estaForaDoMesAtual).toBe(false);
+
+    component.mesAnterior();
+    component.voltarParaMesAtual();
+    expect(component.mesAtual.getMonth()).toBe(4);
+    expect(component.nomeMesHoje).toBe('Maio 2026');
   });
 
   it('deve validar se pode parcelar conforme fechamento', () => {
@@ -243,17 +263,24 @@ describe('CartoesPageComponent', () => {
   });
 
   it('deve alternar expansão e calcular valores da fatura', () => {
-    const c = cartao({ id: 1, limite: 1000, valorUtilizado: 300 });
+    const c = cartao({ id: 1, limite: 3500, valorUtilizado: 300 });
     component.parcelamentos = [
-      parcelaMes({ cartaoId: 1, valorRestante: 125 }),
+      parcelaMes({
+        cartaoId: 1,
+        valorTotal: 3000,
+        quantidadeParcelas: 10,
+        valorRestante: 3000,
+      }),
       parcelaMes({ cartaoId: 2, valorRestante: 999 }),
     ];
 
     component.alternarCartao(c);
     expect(component.cartaoExpandido(c)).toBe(true);
     expect(component.parcelamentosDoCartao(c).length).toBe(1);
-    expect(component.valorUtilizadoFatura(c)).toBe(125);
-    expect(component.valorDisponivelFatura(c)).toBe(875);
+    expect(component.valorUtilizadoFatura(c)).toBe(300);
+    expect(component.valorPagarFatura(c)).toBe(300);
+    expect(component.valorUtilizadoLimite(c)).toBe(3000);
+    expect(component.valorDisponivelFatura(c)).toBe(500);
 
     component.alternarCartao(c);
     expect(component.cartaoExpandido(c)).toBe(false);
@@ -397,7 +424,7 @@ describe('CartoesPageComponent', () => {
       expect.objectContaining({
         valorUtilizado: 0,
         faturaPaga: false,
-        valorFaturaPaga: 350,
+        valorFaturaPaga: 150,
         observacaoAtraso: null,
         previsaoPagamento: null,
       }),

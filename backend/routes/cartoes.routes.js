@@ -62,16 +62,85 @@ function parseBool(value, fallback = false) {
   return String(value).toLowerCase() === 'true' || String(value) === '1';
 }
 
-function mapRow(row) {
+const TIPOS_LANCAMENTO_CARTAO = [
+  'parcelamento',
+  'cartao_credito',
+  'crediario',
+  'pix_parcelado',
+];
+
+function mesDataInicio(dataInicio) {
+  if (!dataInicio || String(dataInicio).length < 7) return null;
+  const mes = parseInt(String(dataInicio).slice(5, 7), 10);
+  return mes >= 1 && mes <= 12 ? mes : null;
+}
+
+function anoDataInicio(dataInicio) {
+  if (!dataInicio || String(dataInicio).length < 4) return null;
+  const ano = parseInt(String(dataInicio).slice(0, 4), 10);
+  return Number.isFinite(ano) ? ano : null;
+}
+
+function parcelaMensalDivida(divida) {
+  const total = Math.max(0, parseNum(divida.valorTotal));
+  const qtd = Math.max(0, parseIntSafe(divida.quantidadeParcelas, 0));
+  if (total > 0 && qtd > 0) return Math.round((total / qtd) * 100) / 100;
+  return Math.max(0, parseNum(divida.parcelaMensal));
+}
+
+function dividaNoMes(divida, ano, mes) {
+  const anoInicio = anoDataInicio(divida.dataInicio) ?? divida.ano;
+  const inicio = mesDataInicio(divida.dataInicio) ?? 1;
+  const mesReferencia = ano * 12 + (mes - 1);
+  const mesInicial = anoInicio * 12 + (inicio - 1);
+  const indiceParcela = mesReferencia - mesInicial;
+  if (indiceParcela < 0) return false;
+
+  const qtd = Math.max(0, parseIntSafe(divida.quantidadeParcelas, 0));
+  if (qtd > 0 && indiceParcela >= qtd) return false;
+  return true;
+}
+
+function totalAPagarPorCartaoNoMes(usuarioId, ano, mes) {
+  if (!Number.isFinite(ano) || !Number.isFinite(mes) || mes < 1 || mes > 12) {
+    return new Map();
+  }
+
+  const lancamentos = db
+    .prepare(
+      `SELECT cartaoId, ano, dataInicio, valorTotal, parcelaMensal, quantidadeParcelas
+       FROM dividas
+       WHERE usuario_id = ?
+         AND cartaoId IS NOT NULL
+         AND tipoDivida IN (${TIPOS_LANCAMENTO_CARTAO.map(() => '?').join(',')})`,
+    )
+    .all(usuarioId, ...TIPOS_LANCAMENTO_CARTAO);
+
+  const totais = new Map();
+  for (const item of lancamentos) {
+    if (!dividaNoMes(item, ano, mes)) continue;
+    const atual = totais.get(item.cartaoId) ?? 0;
+    totais.set(item.cartaoId, atual + parcelaMensalDivida(item));
+  }
+
+  return totais;
+}
+
+function mapRow(row, totalAPagarMesOverride = null) {
   if (!row) return null;
   const limite = Math.max(0, row.limite ?? 0);
   const valorUtilizado = Math.max(0, row.valorUtilizado ?? 0);
+  const totalAPagarMes =
+    totalAPagarMesOverride == null
+      ? valorUtilizado
+      : Math.max(0, totalAPagarMesOverride);
   return {
     id: row.id,
     nome: row.nome,
     banco: row.banco,
     limite,
     valorUtilizado,
+    totalAPagarMes: Math.round(totalAPagarMes * 100) / 100,
     valorDisponivel: Math.max(0, Math.round((limite - valorUtilizado) * 100) / 100),
     faturaPaga: Boolean(row.faturaPaga),
     valorFaturaPaga: Math.max(0, row.valorFaturaPaga ?? 0),
@@ -87,12 +156,15 @@ function mapRow(row) {
 
 router.get('/', (req, res) => {
   try {
+    const ano = parseInt(req.query.ano, 10);
+    const mes = parseInt(req.query.mes, 10);
+    const totaisMes = totalAPagarPorCartaoNoMes(req.usuario.id, ano, mes);
     const rows = db
       .prepare(
         `SELECT * FROM cartoes WHERE usuario_id = ? ORDER BY banco ASC, nome ASC, id ASC`,
       )
       .all(req.usuario.id);
-    res.json(rows.map(mapRow));
+    res.json(rows.map((row) => mapRow(row, totaisMes.get(row.id))));
   } catch (error) {
     console.error('Erro ao buscar cartões:', error);
     res.status(500).json({ error: 'Erro ao buscar cartões' });

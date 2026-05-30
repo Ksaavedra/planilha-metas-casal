@@ -62,6 +62,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly statusClasse = statusCartaoClasse;
   readonly percentualUtilizado = percentualUtilizadoCartao;
   readonly parcelasLabel = parcelasRestantesLabel;
+  readonly valorParcela = parcelaMensalDivida;
   readonly statusParcelaLabel = statusParcelaMesLabel;
   readonly statusParcelaClasse = statusParcelaMesClasse;
 
@@ -101,12 +102,17 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   get resumo() {
-    const limiteTotal = this.cartoes.reduce(
+    const cartoesResumo = this.cartoesComFaturaMes;
+    const limiteTotal = cartoesResumo.reduce(
       (s, c) => s + Math.max(0, c.limite || 0),
       0,
     );
-    const utilizado = this.cartoes.reduce(
-      (s, c) => s + this.valorUtilizadoFatura(c),
+    const utilizado = cartoesResumo.reduce(
+      (s, c) => s + this.valorUtilizadoLimite(c),
+      0,
+    );
+    const totalAPagarMes = cartoesResumo.reduce(
+      (s, c) => s + this.valorPagarFatura(c),
       0,
     );
     const disponivel = Math.max(0, limiteTotal - utilizado);
@@ -116,9 +122,10 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return {
       limiteTotal: Math.round(limiteTotal * 100) / 100,
       utilizado: Math.round(utilizado * 100) / 100,
+      totalAPagarMes: Math.round(totalAPagarMes * 100) / 100,
       disponivel: Math.round(disponivel * 100) / 100,
       percentualUtilizado,
-      proximoVencimentoLabel: calcularResumoCartoes(this.cartoes)
+      proximoVencimentoLabel: calcularResumoCartoes(cartoesResumo)
         .proximoVencimentoLabel,
     };
   }
@@ -127,22 +134,26 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return !this.carregando && this.cartoes.length === 0;
   }
 
+  get cartoesComFaturaMes(): Cartao[] {
+    return this.cartoes.filter((c) => this.valorPagarFatura(c) > 0);
+  }
+
   get cartoesPaginados(): Cartao[] {
     const start = (this.paginaTabela - 1) * this.tamanhoPagina;
-    return this.cartoes.slice(start, start + this.tamanhoPagina);
+    return this.cartoesComFaturaMes.slice(start, start + this.tamanhoPagina);
   }
 
   get totalPaginasTabela(): number {
-    const n = this.cartoes.length;
+    const n = this.cartoesComFaturaMes.length;
     return n === 0 ? 0 : Math.ceil(n / this.tamanhoPagina);
   }
 
   get exibirPaginacaoTabela(): boolean {
-    return this.cartoes.length > this.tamanhoPagina;
+    return this.cartoesComFaturaMes.length > this.tamanhoPagina;
   }
 
   get exibindoDeTabela(): number {
-    if (!this.cartoes.length) return 0;
+    if (!this.cartoesComFaturaMes.length) return 0;
     return (this.paginaTabela - 1) * this.tamanhoPagina + 1;
   }
 
@@ -157,6 +168,19 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     const mes = this.mesAtual.getMonth();
     const ano = this.mesAtual.getFullYear();
     return `${this.meses[mes]} ${ano}`;
+  }
+
+  get nomeMesHoje(): string {
+    const hoje = new Date();
+    return `${this.meses[hoje.getMonth()]} ${hoje.getFullYear()}`;
+  }
+
+  get estaForaDoMesAtual(): boolean {
+    const hoje = new Date();
+    return (
+      this.mesAtual.getFullYear() !== hoje.getFullYear() ||
+      this.mesAtual.getMonth() !== hoje.getMonth()
+    );
   }
 
   get anoRef(): number {
@@ -184,7 +208,10 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.carregando = true;
     this.erroCarregar = null;
     forkJoin({
-      cartoes: this.cartoesService.getCartoes(),
+      cartoes: this.cartoesService.getCartoes({
+        ano: this.anoRef,
+        mes: this.mesRef,
+      }),
       dividas: this.dividasService.getDividas(this.anoRef),
     }).subscribe({
       next: ({ cartoes, dividas }) => {
@@ -235,6 +262,12 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     const data = new Date(this.mesAtual);
     data.setMonth(data.getMonth() + 1);
     this.mesAtual = data;
+    this.carregar();
+  }
+
+  voltarParaMesAtual(): void {
+    if (!this.estaForaDoMesAtual) return;
+    this.mesAtual = new Date();
     this.carregar();
   }
 
@@ -375,13 +408,35 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   valorUtilizadoFatura(c: Cartao): number {
+    if (c.totalAPagarMes != null) {
+      const totalAPagarMes = Number(c.totalAPagarMes);
+      return Math.max(0, Math.round(totalAPagarMes * 100) / 100);
+    }
+
     const parcelamentos = this.parcelamentosDoCartao(c);
     if (parcelamentos.length > 0) {
-      const restante = parcelamentos.reduce(
+      const totalParcelasMes = parcelamentos.reduce(
+        (s, p) => s + parcelaMensalDivida(p),
+        0,
+      );
+      return Math.round(totalParcelasMes * 100) / 100;
+    }
+
+    return Math.max(0, c.valorUtilizado || 0);
+  }
+
+  valorPagarFatura(c: Cartao): number {
+    return this.valorUtilizadoFatura(c);
+  }
+
+  valorUtilizadoLimite(c: Cartao): number {
+    const parcelamentos = this.parcelamentosDoCartao(c);
+    if (parcelamentos.length > 0) {
+      const totalRestante = parcelamentos.reduce(
         (s, p) => s + Math.max(0, p.valorRestante || 0),
         0,
       );
-      return Math.round(restante * 100) / 100;
+      return Math.round(totalRestante * 100) / 100;
     }
 
     return Math.max(0, c.valorUtilizado || 0);
@@ -390,7 +445,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   valorDisponivelFatura(c: Cartao): number {
     const disponivel = Math.max(
       0,
-      Math.max(0, c.limite || 0) - this.valorUtilizadoFatura(c),
+      Math.max(0, c.limite || 0) - this.valorUtilizadoLimite(c),
     );
     return Math.round(disponivel * 100) / 100;
   }
@@ -912,7 +967,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.cartoes.forEach((c) => {
       porBanco.set(
         c.banco,
-        (porBanco.get(c.banco) ?? 0) + this.valorUtilizadoFatura(c),
+        (porBanco.get(c.banco) ?? 0) + this.valorUtilizadoLimite(c),
       );
     });
     return {
@@ -943,7 +998,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private opcaoGraficoComparacao(): Record<string, unknown> {
     const dados = this.cartoes.map((c) => ({
       name: c.nome,
-      utilizado: this.valorUtilizadoFatura(c),
+      utilizado: this.valorUtilizadoLimite(c),
       disponivel: this.valorDisponivelFatura(c),
     }));
     return {

@@ -28,6 +28,11 @@
             <span class="material-icons">chevron_right</span>
           </button>
         </div>
+        <button *ngIf="estaForaDoMesAtual" type="button" class="cartoes-hero__voltar-hoje"
+          (click)="voltarParaMesAtual()" [attr.title]="'Ir para ' + nomeMesHoje"
+          [attr.aria-label]="'Ver faturas de ' + nomeMesHoje">
+          Ver faturas de {{ nomeMesHoje }}
+        </button>
       </div>
     </div>
     <div class="cartoes-hero__toolbar" aria-label="Visão de faturas">
@@ -74,6 +79,13 @@
   <ng-container *ngIf="visaoFaturas === 'lista' && !exibirAvisoVazio && !carregando">
     <section class="cartoes-resumo" aria-label="Resumo das faturas">
       <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">savings</span></span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Limite disponível</span>
+          <span class="resumo-card__valor">{{ resumo.disponivel | currency:'BRL' }}</span>
+        </div>
+      </article>
+      <article class="resumo-card">
         <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">credit_score</span></span>
         <div class="resumo-card__body">
           <span class="resumo-card__label">Limite total</span>
@@ -84,15 +96,15 @@
         <span class="resumo-card__icon resumo-card__icon--light" aria-hidden="true"><span
             class="material-icons">shopping_cart</span></span>
         <div class="resumo-card__body">
-          <span class="resumo-card__label">Limite utilizado</span>
-          <span class="resumo-card__valor">{{ resumo.utilizado | currency:'BRL' }}</span>
+          <span class="resumo-card__label">Total a pagar no mês</span>
+          <span class="resumo-card__valor">{{ resumo.totalAPagarMes | currency:'BRL' }}</span>
         </div>
       </article>
       <article class="resumo-card">
-        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">savings</span></span>
+        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">receipt_long</span></span>
         <div class="resumo-card__body">
-          <span class="resumo-card__label">Limite disponível</span>
-          <span class="resumo-card__valor">{{ resumo.disponivel | currency:'BRL' }}</span>
+          <span class="resumo-card__label">Limite utilizado</span>
+          <span class="resumo-card__valor">{{ resumo.utilizado | currency:'BRL' }}</span>
         </div>
       </article>
     </section>
@@ -117,6 +129,7 @@
         <span class="material-icons">table_chart</span>
         Controle das faturas
       </h2>
+      <ng-container *ngIf="cartoesComFaturaMes.length > 0; else semFaturasMes">
       <div class="table-wrap">
         <table class="cartoes-table">
           <thead>
@@ -125,6 +138,7 @@
               <th class="col-centro">Limite</th>
               <th class="col-centro">Utilizado</th>
               <th class="col-centro">Disponível</th>
+              <th class="col-centro">Pagar</th>
               <th class="col-centro">Fechamento</th>
               <th class="col-centro">Vencimento</th>
               <th class="col-centro">Status</th>
@@ -136,8 +150,9 @@
               <tr class="cartoes-table__linha" [class.is-expanded]="cartaoExpandido(c)">
                 <td>{{ c.banco }}</td>
                 <td class="num">{{ c.limite | currency:'BRL' }}</td>
-                <td class="num">{{ valorUtilizadoFatura(c) | currency:'BRL' }}</td>
+                <td class="num">{{ valorUtilizadoLimite(c) | currency:'BRL' }}</td>
                 <td class="num num--positivo">{{ valorDisponivelFatura(c) | currency:'BRL' }}</td>
+                <td class="num">{{ valorPagarFatura(c) | currency:'BRL' }}</td>
                 <td class="col-centro">{{ c.diaFechamento ? 'Dia ' + c.diaFechamento : '-' }}</td>
                 <td class="col-centro">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '-' }}</td>
                 <td class="col-centro">
@@ -191,7 +206,7 @@
                 </td>
               </tr>
               <tr class="cartoes-table__detalhes-row" *ngIf="cartaoExpandido(c)">
-                <td colspan="8">
+                <td colspan="9">
                   <div class="parcelamentos-inline">
                     <div class="parcelamentos-inline__header">
                       <div>
@@ -223,6 +238,7 @@
                         <tr>
                           <th>Compra</th>
                           <th class="col-centro">Parcela</th>
+                          <th class="col-centro">Valor da Parcela</th>
                           <th class="col-centro">Total</th>
                           <th class="col-centro">Restante</th>
                           <th class="col-centro">Ações</th>
@@ -234,6 +250,7 @@
                           <td class="col-centro">
                             <span class="parcelas-chip">{{ parcelasLabel(p) }}</span>
                           </td>
+                          <td class="num">{{ valorParcela(p) | currency:'BRL' }}</td>
                           <td class="num">{{ p.valorTotal | currency:'BRL' }}</td>
                           <td class="num">{{ p.valorRestante | currency:'BRL' }}</td>
                           <td class="col-centro">
@@ -257,12 +274,13 @@
               </tr>
             </ng-container>
           </tbody>
-          <tfoot *ngIf="cartoes.length > 0">
+          <tfoot>
             <tr class="cartoes-table__total">
-              <td class="col-cartao">Total</td>
+              <td class="col-cartao">Totais</td>
               <td class="num">{{ resumo.limiteTotal | currency:'BRL' }}</td>
               <td class="num">{{ resumo.utilizado | currency:'BRL' }}</td>
               <td class="num">{{ resumo.disponivel | currency:'BRL' }}</td>
+              <td class="num">{{ resumo.totalAPagarMes | currency:'BRL' }}</td>
               <td colspan="4"></td>
             </tr>
           </tfoot>
@@ -271,7 +289,7 @@
 
       <div class="cartoes-paginacao" *ngIf="exibirPaginacaoTabela">
         <span class="cartoes-paginacao__info">Mostrando {{ exibindoDeTabela }}–{{ exibindoAteTabela }} de
-          {{ cartoes.length }}</span>
+          {{ cartoesComFaturaMes.length }}</span>
         <nav class="cartoes-paginacao__nav" aria-label="Paginação">
           <button type="button" class="cartoes-paginacao__btn" (click)="paginaAnteriorTabela()"
             [disabled]="paginaTabela <= 1">
@@ -286,6 +304,16 @@
           </button>
         </nav>
       </div>
+      </ng-container>
+
+      <ng-template #semFaturasMes>
+        <div class="cartoes-vazio" role="status">
+          <span class="material-icons cartoes-vazio__icon">info</span>
+          <div>
+            <p>Nenhuma fatura com valor a pagar em {{ nomeMesAtual }}.</p>
+          </div>
+        </div>
+      </ng-template>
     </section>
   </ng-container>
 

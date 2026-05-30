@@ -104,6 +104,7 @@ describe('cartoes.util', () => {
 
     expect(resumo.limiteTotal).toBe(1500);
     expect(resumo.utilizado).toBe(400);
+    expect(resumo.totalAPagarMes).toBe(400);
     expect(resumo.disponivel).toBe(1100);
     expect(resumo.percentualUtilizado).toBeCloseTo(26.666, 2);
     expect(typeof resumo.proximoVencimentoLabel).toBe('string');

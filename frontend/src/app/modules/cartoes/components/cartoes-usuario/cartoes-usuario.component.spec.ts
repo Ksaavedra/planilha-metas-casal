@@ -118,7 +118,14 @@ describe('CartoesUsuarioComponent', () => {
       cartao({ id: 2, banco: 'C6', pessoa: 'Kelly', limite: 500, valorUtilizado: 200 }),
       cartao({ id: 3, pessoa: '', limite: 300, valorUtilizado: 50 }),
     ];
-    component.parcelamentos = [parcela({ cartaoId: 2, valorRestante: 125 })];
+    component.parcelamentos = [
+      parcela({
+        cartaoId: 2,
+        valorTotal: 250,
+        quantidadeParcelas: 2,
+        valorRestante: 125,
+      }),
+    ];
 
     const linhas = component.linhasPorUsuario;
     const kelly = linhas.find((l) => l.usuario === 'Kelly');
@@ -173,8 +180,18 @@ describe('CartoesUsuarioComponent', () => {
   it('deve calcular valores da fatura por parcelamentos ou pelo cartão', () => {
     const c = cartao({ id: 1, limite: 1000, valorUtilizado: 250 });
     component.parcelamentos = [
-      parcela({ cartaoId: 1, valorRestante: 150 }),
-      parcela({ cartaoId: 1, valorRestante: -10 }),
+      parcela({
+        cartaoId: 1,
+        valorTotal: 300,
+        quantidadeParcelas: 2,
+        valorRestante: 150,
+      }),
+      parcela({
+        cartaoId: 1,
+        valorTotal: -10,
+        parcelaMensal: 0,
+        valorRestante: -10,
+      }),
       parcela({ cartaoId: 2, valorRestante: 999 }),
     ];
 

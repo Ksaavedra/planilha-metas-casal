@@ -14,8 +14,8 @@ export class CartoesService {
 
   constructor(private http: HttpClient) {}
 
-  getCartoes(): Observable<Cartao[]> {
-    return this.http.get<Cartao[]>(this.API_URL);
+  getCartoes(params?: { ano: number; mes: number }): Observable<Cartao[]> {
+    return this.http.get<Cartao[]>(this.API_URL, { params });
   }
 
   getCartao(id: number): Observable<Cartao> {
