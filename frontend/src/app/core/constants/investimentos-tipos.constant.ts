@@ -4,7 +4,6 @@ export interface TipoInvestimentoOpcao {
   icon: string;
 }
 
-/** Tipos exibidos na tela de investimentos do casal. */
 export const TIPOS_INVESTIMENTO_OPCOES: TipoInvestimentoOpcao[] = [
   { value: 'tesouro_direto', label: 'Tesouro Direto', icon: 'account_balance' },
   { value: 'cdb', label: 'CDB', icon: 'savings' },
@@ -25,7 +24,6 @@ export function labelTipoInvestimento(value: string): string {
 
 export function iconTipoInvestimento(value: string): string {
   return (
-    TIPOS_INVESTIMENTO_OPCOES.find((t) => t.value === value)?.icon ??
-    'savings'
+    TIPOS_INVESTIMENTO_OPCOES.find((t) => t.value === value)?.icon ?? 'savings'
   );
 }
