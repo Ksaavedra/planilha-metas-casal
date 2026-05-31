@@ -6,9 +6,16 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RelatorioFinanceiroRoutingModule } from './relatorio-financeiro.routing';
 import { RelatorioPageComponent } from './containers/relatorio-page/relatorio-page.component';
 import { RelatorioCategoriasComponent } from './containers/relatorio-categorias/relatorio-categorias.component';
+import { RelatorioGuiaComponent } from './containers/relatorio-guia/relatorio-guia.component';
+import { RelatorioGraficosComponent } from './containers/relatorio-graficos/relatorio-graficos.component';
 
 @NgModule({
-  declarations: [RelatorioPageComponent, RelatorioCategoriasComponent],
+  declarations: [
+    RelatorioPageComponent,
+    RelatorioCategoriasComponent,
+    RelatorioGuiaComponent,
+    RelatorioGraficosComponent,
+  ],
   imports: [
     CommonModule,
     RouterModule,

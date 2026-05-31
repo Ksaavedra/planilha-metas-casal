@@ -13,7 +13,8 @@
           <p class="relatorio-hero__subtitle">Receitas, despesas, dívidas e investimentos mês a mês</p>
         </div>
       </div>
-      <div class="relatorio-hero__field" aria-label="Ano de referência">
+      <div class="relatorio-hero__field" aria-label="Ano de referência"
+        *ngIf="visaoRelatorio === 'resumo' || visaoRelatorio === 'graficos' || visaoRelatorio === 'categorias'">
         <p class="relatorio-hero__label">Ano de referência</p>
         <div class="relatorio-hero__ano-nav">
           <button type="button" class="relatorio-hero__nav-btn" (click)="anoAnterior()" [disabled]="!podeAnoAnterior"
@@ -44,6 +45,14 @@
       <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'categorias'"
         (click)="selecionarVisao('categorias')" role="tab" [attr.aria-selected]="visaoRelatorio === 'categorias'">
         Categorias
+      </button>
+      <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'guia'"
+        (click)="selecionarVisao('guia')" role="tab" [attr.aria-selected]="visaoRelatorio === 'guia'">
+        Guia
+      </button>
+      <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'graficos'"
+        (click)="selecionarVisao('graficos')" role="tab" [attr.aria-selected]="visaoRelatorio === 'graficos'">
+        Gráficos
       </button>
     </div>
   </header>
@@ -149,8 +158,7 @@
 
           <div class="relatorio-saldo-filtros__chips" aria-label="Anos selecionados no gráfico">
             <button type="button" class="relatorio-saldo-filtros__chip" *ngFor="let ano of anosSaldoSelecionados"
-              (click)="removerAnoDoGraficoSaldo(ano)"
-              [disabled]="ano === anoAtual || anosSaldoSelecionados.length <= 1"
+              (click)="removerAnoDoGraficoSaldo(ano)" [disabled]="ano === anoAtual || anosSaldoSelecionados.length <= 1"
               [attr.title]="ano === anoAtual ? 'Ano atual fixo' : 'Remover ' + ano"
               [attr.aria-label]="ano === anoAtual ? 'Ano atual fixo' : 'Remover ' + ano">
               {{ rotuloAnoGraficoSaldo(ano) }}
@@ -167,12 +175,24 @@
           <div #chartReceitasDespesas class="demo-chart"></div>
         </div>
 
-        <div class="chart-section">
+        <!-- <div class="chart-section">
           <div #chartDividasInvestimentos class="demo-chart"></div>
-        </div>
+        </div> -->
       </div>
     </ng-container>
   </ng-container>
+
+  <app-relatorio-guia *ngIf="visaoRelatorio === 'guia'"></app-relatorio-guia>
+
+  <app-relatorio-graficos *ngIf="visaoRelatorio === 'graficos'" [anoSelecionado]="anoSelecionado" [anoAtual]="anoAtual"
+    [anosSaldoSelecionados]="anosSaldoSelecionados" [podeAnoAnterior]="podeAnoAnterior"
+    [podeProximoAno]="podeProximoAno" [podeAdicionarAnoGraficoSaldo]="podeAdicionarAnoGraficoSaldo"
+    [podeLimparFiltrosGraficoSaldo]="podeLimparFiltrosGraficoSaldo"
+    [totalAnosAdicionaisGraficoSaldo]="totalAnosAdicionaisGraficoSaldo"
+    [limiteAnosAdicionaisGraficoSaldo]="limiteAnosAdicionaisGraficoSaldo" (anoAnterior)="anoAnterior()"
+    (proximoAno)="proximoAno()" (adicionarAnoAoGraficoSaldo)="adicionarAnoAoGraficoSaldo()"
+    (limparFiltrosGraficoSaldo)="limparFiltrosGraficoSaldo()"
+    (removerAnoDoGraficoSaldo)="removerAnoDoGraficoSaldo($event)"></app-relatorio-graficos>
 
   <app-relatorio-categorias *ngIf="visaoRelatorio === 'categorias'" [anoSelecionado]="anoSelecionado" [meses]="meses"
     [naturezaReceitaLinhas]="naturezaReceitaLinhas" [receitasPorTipoLinhas]="receitasPorTipoLinhas"

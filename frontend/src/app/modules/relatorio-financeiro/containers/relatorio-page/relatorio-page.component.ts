@@ -14,11 +14,10 @@ import { CartoesService } from '../../../../core/services/cartoes/cartoes.servic
 import { Despesa } from '@app/core/interfaces/despesas/despesas';
 import { Receita } from '@app/core/interfaces/receitas/receitas';
 import { Cartao } from '@core/interfaces/cartoes/cartoes';
+import { RelatorioGraficosComponent } from '../relatorio-graficos/relatorio-graficos.component';
 
 type EChartsOption = Record<string, unknown>;
-// type VisaoRelatorio = 'resumo' | 'categorias' | 'guia' | 'graficos';
 
-/** Anos exibidos no gráfico comparativo; o ano atual recebe receitas pela API. */
 const ANOS_COMPARACAO: readonly number[] = [
   2020, 2021, 2022, 2023, 2024, 2025, 2026,
 ];
@@ -31,10 +30,13 @@ const ANO_REFERENCIA_MIN = ANOS_COMPARACAO[0];
   standalone: false,
 })
 export class RelatorioPageComponent implements AfterViewInit {
-  @ViewChild('chartSaldo') chartSaldo!: ElementRef;
-  @ViewChild('chartReceitasDespesas') chartReceitasDespesas!: ElementRef;
+  @ViewChild('chartSaldo') chartSaldo?: ElementRef<HTMLElement>;
+  @ViewChild('chartReceitasDespesas')
+  chartReceitasDespesas?: ElementRef<HTMLElement>;
   @ViewChild('chartDividasInvestimentos')
-  chartDividasInvestimentos!: ElementRef;
+  chartDividasInvestimentos?: ElementRef<HTMLElement>;
+  @ViewChild(RelatorioGraficosComponent)
+  graficosComponent?: RelatorioGraficosComponent;
 
   meses = [
     'Janeiro',
@@ -60,10 +62,8 @@ export class RelatorioPageComponent implements AfterViewInit {
   readonly limiteAnosGraficoSaldo = this.limiteAnosAdicionaisGraficoSaldo + 1;
   private comparandoGraficoSaldo = false;
 
-  /** Aba: resumo geral ou receitas por categoria. */
-  visaoRelatorio: 'resumo' | 'categorias' = 'resumo';
+  visaoRelatorio: 'resumo' | 'categorias' | 'guia' | 'graficos' = 'resumo';
 
-  /** Fixa e variável, valores por mês (12 posições). */
   naturezaReceitaLinhas: {
     id: 'fixa' | 'variavel';
     label: string;
@@ -71,14 +71,12 @@ export class RelatorioPageComponent implements AfterViewInit {
     total: number;
   }[] = [];
 
-  /** Uma linha por tipo de receita (Salário, Freela, etc.). */
   receitasPorTipoLinhas: {
     tipo: string;
     valores: number[];
     total: number;
   }[] = [];
 
-  /** Fixa e variável, despesas por mês (12 posições). */
   naturezaDespesaLinhas: {
     id: 'fixa' | 'variavel';
     label: string;
@@ -86,14 +84,12 @@ export class RelatorioPageComponent implements AfterViewInit {
     total: number;
   }[] = [];
 
-  /** Uma linha por categoria de despesa (Moradia, Alimentação, etc.). */
   despesasPorCategoriaLinhas: {
     categoria: string;
     valores: number[];
     total: number;
   }[] = [];
 
-  // Propriedades de dados
   dadosReceitas: number[] = [];
   dadosDespesas: number[] = [];
   dadosCartaoCredito: number[] = [];
@@ -106,7 +102,6 @@ export class RelatorioPageComponent implements AfterViewInit {
   totalDividas = 0;
   totalInvestimentos = 0;
 
-  // Dados organizados por ano
   dadosPorAno: {
     [ano: number]: {
       receitas: number[];
@@ -208,24 +203,46 @@ export class RelatorioPageComponent implements AfterViewInit {
   };
 
   ngAfterViewInit(): void {
-    this.initCharts();
-    this.sincronizarGraficoSaldoECharts();
-    this.sincronizarGraficosBarraELinha();
+    if (this.visaoRelatorio === 'graficos') {
+      setTimeout(() => this.reinicializarGraficosAposVoltarResumo(), 0);
+    }
+  }
+
+  private getGraphicContainers() {
+    const isGraficos = this.visaoRelatorio === 'graficos';
+    return {
+      chartSaldo: isGraficos
+        ? this.graficosComponent?.chartSaldo
+        : this.chartSaldo,
+      chartReceitasDespesas: isGraficos
+        ? this.graficosComponent?.chartReceitasDespesas
+        : this.chartReceitasDespesas,
+      chartDividasInvestimentos: isGraficos
+        ? this.graficosComponent?.chartDividasInvestimentos
+        : this.chartDividasInvestimentos,
+    };
   }
 
   private initCharts() {
+    const { chartSaldo, chartReceitasDespesas, chartDividasInvestimentos } =
+      this.getGraphicContainers();
+
     const e = echarts as any;
 
-    const saldoChart = e.init(this.chartSaldo.nativeElement);
+    if (!chartSaldo?.nativeElement) {
+      return;
+    }
+
+    const saldoChart = e.init(chartSaldo.nativeElement);
     saldoChart.setOption(this.chartOption);
 
-    const receitasEl = this.chartReceitasDespesas?.nativeElement;
+    const receitasEl = chartReceitasDespesas?.nativeElement;
     if (receitasEl) {
       const receitasChart = e.init(receitasEl);
       receitasChart.setOption(this.chartOptionReceitasDespesas);
     }
 
-    const dividasEl = this.chartDividasInvestimentos?.nativeElement;
+    const dividasEl = chartDividasInvestimentos?.nativeElement;
     if (dividasEl) {
       const dividasChart = e.init(dividasEl);
       dividasChart.setOption(this.chartOptionDividasInvestimentos);
@@ -239,7 +256,8 @@ export class RelatorioPageComponent implements AfterViewInit {
       dataset: { source: this.getDatasetSource() },
       series: this.getSeriesGraficoSaldo(),
     };
-    const el = this.chartSaldo?.nativeElement;
+    const { chartSaldo } = this.getGraphicContainers();
+    const el = chartSaldo?.nativeElement;
     if (!el) return;
 
     const e = echarts as any;
@@ -250,8 +268,10 @@ export class RelatorioPageComponent implements AfterViewInit {
   }
 
   private sincronizarGraficosBarraELinha(): void {
-    const el2 = this.chartReceitasDespesas?.nativeElement;
-    const el3 = this.chartDividasInvestimentos?.nativeElement;
+    const { chartReceitasDespesas, chartDividasInvestimentos } =
+      this.getGraphicContainers();
+    const el2 = chartReceitasDespesas?.nativeElement;
+    const el3 = chartDividasInvestimentos?.nativeElement;
 
     if (!el2 && !el3) return;
 
@@ -269,7 +289,6 @@ export class RelatorioPageComponent implements AfterViewInit {
     }
   }
 
-  // Configuração do gráfico ECharts com dataset
   chartOption: EChartsOption = {
     title: {
       text: 'Relatório de Saldo',
@@ -368,7 +387,6 @@ export class RelatorioPageComponent implements AfterViewInit {
     })}`;
   }
 
-  // Configuração do terceiro gráfico - Dívidas x Investimentos (Projetado)
   chartOptionDividasInvestimentos: EChartsOption = {
     title: {
       text: 'Dívidas x Investimentos',
@@ -551,6 +569,12 @@ export class RelatorioPageComponent implements AfterViewInit {
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
     this.sincronizarGraficosBarraELinha();
+
+    setTimeout(() => {
+      this.sincronizarGraficoSaldoECharts();
+      this.sincronizarGraficosBarraELinha();
+      this.resizeTodosGraficosResumo();
+    }, 300);
   }
 
   get podeAnoAnterior(): boolean {
@@ -682,56 +706,72 @@ export class RelatorioPageComponent implements AfterViewInit {
     return ano === this.anoAtual ? `${ano} (atual)` : String(ano);
   }
 
-  selecionarVisao(visao: 'resumo' | 'categorias'): void {
-    const anterior = this.visaoRelatorio;
+  selecionarVisao(visao: 'resumo' | 'categorias' | 'guia' | 'graficos'): void {
     this.visaoRelatorio = visao;
-    if (visao === 'resumo' && anterior === 'categorias') {
+
+    if (visao === 'resumo') {
       this.cdr.detectChanges();
-      setTimeout(() => this.reinicializarGraficosAposVoltarResumo(), 0);
+
+      setTimeout(() => {
+        this.reinicializarGraficosAposVoltarResumo();
+      }, 300);
     }
   }
 
+  // private reinicializarGraficosAposVoltar(): void {
+  //   if (this.visaoRelatorio === 'resumo') {
+  //     this.reinicializarGraficosAposVoltarResumo();
+  //   }
+  // }
+
   private reinicializarGraficosAposVoltarResumo(): void {
-    this.disposeEchartsNosTresConteiners();
-    if (
-      !this.chartSaldo?.nativeElement ||
-      !this.chartReceitasDespesas?.nativeElement ||
-      !this.chartDividasInvestimentos?.nativeElement
-    ) {
+    // this.disposeEchartsNosTresConteiners();
+    const { chartSaldo } = this.getGraphicContainers();
+    if (!chartSaldo?.nativeElement) {
       return;
     }
+
     this.initCharts();
     this.sincronizarGraficoSaldoECharts();
     this.sincronizarGraficosBarraELinha();
-    this.resizeTodosGraficosResumo();
+    this.atualizarGraficoReceitasDespesas();
+    // this.resizeTodosGraficosResumo();
+
+    setTimeout(() => {
+      this.resizeTodosGraficosResumo();
+    }, 100);
   }
 
-  private disposeEchartsNosTresConteiners(): void {
-    const e = echarts as {
-      getInstanceByDom?: (d: HTMLElement) => { dispose: () => void } | null;
-    };
-    if (!e.getInstanceByDom) return;
-    for (const ref of [
-      this.chartSaldo,
-      this.chartReceitasDespesas,
-      this.chartDividasInvestimentos,
-    ]) {
-      const el = ref?.nativeElement;
-      if (!el) continue;
-      const inst = e.getInstanceByDom(el);
-      inst?.dispose();
-    }
-  }
+  // private disposeEchartsNosTresConteiners(): void {
+  //   const e = echarts as {
+  //     getInstanceByDom?: (d: HTMLElement) => { dispose: () => void } | null;
+  //   };
+  //   if (!e.getInstanceByDom) return;
+  //   const { chartSaldo, chartReceitasDespesas, chartDividasInvestimentos } =
+  //     this.getGraphicContainers();
+  //   for (const ref of [
+  //     chartSaldo,
+  //     chartReceitasDespesas,
+  //     chartDividasInvestimentos,
+  //   ]) {
+  //     const el = ref?.nativeElement;
+  //     if (!el) continue;
+  //     const inst = e.getInstanceByDom(el);
+  //     inst?.dispose();
+  //   }
+  // }
 
   private resizeTodosGraficosResumo(): void {
     const e = echarts as {
       getInstanceByDom?: (d: HTMLElement) => { resize: () => void } | null;
     };
     if (!e.getInstanceByDom) return;
+    const { chartSaldo, chartReceitasDespesas, chartDividasInvestimentos } =
+      this.getGraphicContainers();
     for (const ref of [
-      this.chartSaldo,
-      this.chartReceitasDespesas,
-      this.chartDividasInvestimentos,
+      chartSaldo,
+      chartReceitasDespesas,
+      chartDividasInvestimentos,
     ]) {
       const el = ref?.nativeElement;
       if (!el) continue;

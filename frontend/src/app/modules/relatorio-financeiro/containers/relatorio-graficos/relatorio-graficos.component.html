@@ -1,0 +1,61 @@
+<div class="charts-container">
+  <div class="chart-section">
+    <div class="relatorio-saldo-filtros" aria-label="Filtros de anos do gráfico de saldo">
+      <div class="relatorio-saldo-filtros__ano" aria-label="Ano de referência para adicionar ao gráfico">
+        <p class="relatorio-saldo-filtros__label">Ano de referência</p>
+        <div class="relatorio-saldo-filtros__nav">
+          <button type="button" class="relatorio-saldo-filtros__nav-btn" (click)="anoAnterior.emit()"
+            [disabled]="!podeAnoAnterior" title="Ano anterior" aria-label="Ano anterior">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <div class="relatorio-saldo-filtros__ano-atual">
+            <span class="material-icons" aria-hidden="true">calendar_today</span>
+            <span>{{ anoSelecionado }}</span>
+          </div>
+          <button type="button" class="relatorio-saldo-filtros__nav-btn" (click)="proximoAno.emit()"
+            [disabled]="!podeProximoAno" title="Próximo ano" aria-label="Próximo ano">
+            <span class="material-icons">chevron_right</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="relatorio-saldo-filtros__acoes">
+        <button *ngIf="podeAdicionarAnoGraficoSaldo" type="button" class="relatorio-saldo-filtros__btn"
+          (click)="adicionarAnoAoGraficoSaldo.emit()">
+          Adicionar ano
+        </button>
+        <button *ngIf="podeLimparFiltrosGraficoSaldo" type="button"
+          class="relatorio-saldo-filtros__btn relatorio-saldo-filtros__btn--sec"
+          (click)="limparFiltrosGraficoSaldo.emit()">
+          Limpar filtros
+        </button>
+        <span *ngIf="podeAdicionarAnoGraficoSaldo || podeLimparFiltrosGraficoSaldo"
+          class="relatorio-saldo-filtros__contador">
+          {{ totalAnosAdicionaisGraficoSaldo }}/{{ limiteAnosAdicionaisGraficoSaldo }} anos adicionais
+        </span>
+      </div>
+    </div>
+
+    <div class="relatorio-saldo-filtros__chips" aria-label="Anos selecionados no gráfico">
+      <button type="button" class="relatorio-saldo-filtros__chip" *ngFor="let ano of anosSaldoSelecionados"
+        (click)="removerAno(ano)" [disabled]="ano === anoAtual || anosSaldoSelecionados.length <= 1"
+        [attr.title]="ano === anoAtual ? 'Ano atual fixo' : 'Remover ' + ano"
+        [attr.aria-label]="ano === anoAtual ? 'Ano atual fixo' : 'Remover ' + ano">
+        {{ rotuloAnoGraficoSaldo(ano) }}
+        <ng-container *ngIf="ano !== anoAtual">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </ng-container>
+      </button>
+    </div>
+
+    <div #chartSaldo class="demo-chart"></div>
+  </div>
+
+  <div class="chart-section">
+    <div #chartReceitasDespesas class="demo-chart"></div>
+  </div>
+
+  <div class="chart-section">
+    <div #chartDividasInvestimentos class="demo-chart"></div>
+  </div>
+</div>
