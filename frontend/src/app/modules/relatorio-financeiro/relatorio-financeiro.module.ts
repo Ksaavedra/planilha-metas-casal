@@ -8,6 +8,7 @@ import { RelatorioPageComponent } from './containers/relatorio-page/relatorio-pa
 import { RelatorioCategoriasComponent } from './containers/relatorio-categorias/relatorio-categorias.component';
 import { RelatorioGuiaComponent } from './containers/relatorio-guia/relatorio-guia.component';
 import { RelatorioGraficosComponent } from './containers/relatorio-graficos/relatorio-graficos.component';
+import { RelatorioResumoTableComponent } from './components/relatorio-resumo-table/relatorio-resumo-table.component';
 
 @NgModule({
   declarations: [
@@ -15,6 +16,7 @@ import { RelatorioGraficosComponent } from './containers/relatorio-graficos/rela
     RelatorioCategoriasComponent,
     RelatorioGuiaComponent,
     RelatorioGraficosComponent,
+    RelatorioResumoTableComponent,
   ],
   imports: [
     CommonModule,

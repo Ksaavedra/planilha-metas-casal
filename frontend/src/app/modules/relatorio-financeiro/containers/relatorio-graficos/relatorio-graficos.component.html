@@ -1,61 +1,45 @@
-<div class="charts-container">
-  <div class="chart-section">
-    <div class="relatorio-saldo-filtros" aria-label="Filtros de anos do gráfico de saldo">
-      <div class="relatorio-saldo-filtros__ano" aria-label="Ano de referência para adicionar ao gráfico">
-        <p class="relatorio-saldo-filtros__label">Ano de referência</p>
-        <div class="relatorio-saldo-filtros__nav">
-          <button type="button" class="relatorio-saldo-filtros__nav-btn" (click)="anoAnterior.emit()"
-            [disabled]="!podeAnoAnterior" title="Ano anterior" aria-label="Ano anterior">
-            <span class="material-icons">chevron_left</span>
-          </button>
-          <div class="relatorio-saldo-filtros__ano-atual">
-            <span class="material-icons" aria-hidden="true">calendar_today</span>
-            <span>{{ anoSelecionado }}</span>
-          </div>
-          <button type="button" class="relatorio-saldo-filtros__nav-btn" (click)="proximoAno.emit()"
-            [disabled]="!podeProximoAno" title="Próximo ano" aria-label="Próximo ano">
-            <span class="material-icons">chevron_right</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="relatorio-saldo-filtros__acoes">
-        <button *ngIf="podeAdicionarAnoGraficoSaldo" type="button" class="relatorio-saldo-filtros__btn"
-          (click)="adicionarAnoAoGraficoSaldo.emit()">
-          Adicionar ano
-        </button>
-        <button *ngIf="podeLimparFiltrosGraficoSaldo" type="button"
-          class="relatorio-saldo-filtros__btn relatorio-saldo-filtros__btn--sec"
-          (click)="limparFiltrosGraficoSaldo.emit()">
-          Limpar filtros
-        </button>
-        <span *ngIf="podeAdicionarAnoGraficoSaldo || podeLimparFiltrosGraficoSaldo"
-          class="relatorio-saldo-filtros__contador">
-          {{ totalAnosAdicionaisGraficoSaldo }}/{{ limiteAnosAdicionaisGraficoSaldo }} anos adicionais
-        </span>
-      </div>
-    </div>
-
-    <div class="relatorio-saldo-filtros__chips" aria-label="Anos selecionados no gráfico">
-      <button type="button" class="relatorio-saldo-filtros__chip" *ngFor="let ano of anosSaldoSelecionados"
-        (click)="removerAno(ano)" [disabled]="ano === anoAtual || anosSaldoSelecionados.length <= 1"
-        [attr.title]="ano === anoAtual ? 'Ano atual fixo' : 'Remover ' + ano"
-        [attr.aria-label]="ano === anoAtual ? 'Ano atual fixo' : 'Remover ' + ano">
-        {{ rotuloAnoGraficoSaldo(ano) }}
-        <ng-container *ngIf="ano !== anoAtual">
-          <span class="material-icons" aria-hidden="true">close</span>
-        </ng-container>
-      </button>
-    </div>
-
-    <div #chartSaldo class="demo-chart"></div>
+<div class="relatorio-graficos">
+  <div *ngIf="exibirAvisoRelatorioVazio" class="relatorio-graficos__empty" role="status" aria-live="polite">
+    <p class="relatorio-graficos__empty-text">Nenhum dado encontrado para este período.</p>
+    <button type="button" class="relatorio-graficos__empty-btn" (click)="voltarAoAnoAtual()">
+      Voltar para o ano atual
+    </button>
   </div>
 
-  <div class="chart-section">
-    <div #chartReceitasDespesas class="demo-chart"></div>
-  </div>
+  <div *ngIf="!exibirAvisoRelatorioVazio" class="charts-grid">
+    <section class="chart-section">
+      <h2 class="chart-title">Comparação de anos</h2>
+      <div #chartSaldo class="demo-chart"></div>
+    </section>
 
-  <div class="chart-section">
-    <div #chartDividasInvestimentos class="demo-chart"></div>
+    <section class="chart-section">
+      <h2 class="chart-title">Receitas x Despesas</h2>
+      <div #chartReceitasDespesas class="demo-chart"></div>
+    </section>
+
+    <section class="chart-section">
+      <h2 class="chart-title">Receitas fixas e variáveis</h2>
+      <div #chartReceitasFixasVariaveis class="demo-chart"></div>
+    </section>
+
+    <section class="chart-section">
+      <h2 class="chart-title">Despesas por categoria</h2>
+      <div #chartDespesasCategoria class="demo-chart"></div>
+    </section>
+
+    <section class="chart-section">
+      <h2 class="chart-title">Faturas</h2>
+      <div #chartFaturas class="demo-chart"></div>
+    </section>
+
+    <section class="chart-section">
+      <h2 class="chart-title">Investimentos</h2>
+      <div #chartInvestimentos class="demo-chart"></div>
+    </section>
+
+    <section class="chart-section">
+      <h2 class="chart-title">Dívidas: Pago x Restante</h2>
+      <div #chartDividas class="demo-chart"></div>
+    </section>
   </div>
 </div>
