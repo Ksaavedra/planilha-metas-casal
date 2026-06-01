@@ -217,15 +217,38 @@ export class RelatorioPageComponent implements AfterViewInit {
       chartReceitasDespesas: isGraficos
         ? this.graficosComponent?.chartReceitasDespesas
         : this.chartReceitasDespesas,
+      chartReceitasFixasVariaveis: isGraficos
+        ? this.graficosComponent?.chartReceitasFixasVariaveis
+        : undefined,
+      chartDespesasCategoria: isGraficos
+        ? this.graficosComponent?.chartDespesasCategoria
+        : undefined,
+      chartFaturas: isGraficos
+        ? this.graficosComponent?.chartFaturas
+        : undefined,
+      chartInvestimentos: isGraficos
+        ? this.graficosComponent?.chartInvestimentos
+        : undefined,
+      chartDividas: isGraficos
+        ? this.graficosComponent?.chartDividas
+        : undefined,
       chartDividasInvestimentos: isGraficos
-        ? this.graficosComponent?.chartDividasInvestimentos
+        ? undefined
         : this.chartDividasInvestimentos,
     };
   }
 
   private initCharts() {
-    const { chartSaldo, chartReceitasDespesas, chartDividasInvestimentos } =
-      this.getGraphicContainers();
+    const {
+      chartSaldo,
+      chartReceitasDespesas,
+      chartReceitasFixasVariaveis,
+      chartDespesasCategoria,
+      chartFaturas,
+      chartInvestimentos,
+      chartDividas,
+      chartDividasInvestimentos,
+    } = this.getGraphicContainers();
 
     const e = echarts as any;
 
@@ -236,16 +259,46 @@ export class RelatorioPageComponent implements AfterViewInit {
     const saldoChart = e.init(chartSaldo.nativeElement);
     saldoChart.setOption(this.chartOption);
 
-    const receitasEl = chartReceitasDespesas?.nativeElement;
-    if (receitasEl) {
-      const receitasChart = e.init(receitasEl);
-      receitasChart.setOption(this.chartOptionReceitasDespesas);
+    const receiptsEl = chartReceitasDespesas?.nativeElement;
+    if (receiptsEl) {
+      const receiptsChart = e.init(receiptsEl);
+      receiptsChart.setOption(this.chartOptionReceitasDespesas);
     }
 
-    const dividasEl = chartDividasInvestimentos?.nativeElement;
+    const receitasFixasEl = chartReceitasFixasVariaveis?.nativeElement;
+    if (receitasFixasEl) {
+      const receitasFixasChart = e.init(receitasFixasEl);
+      receitasFixasChart.setOption(this.chartOptionReceitasFixasVariaveis);
+    }
+
+    const despesasCategoriaEl = chartDespesasCategoria?.nativeElement;
+    if (despesasCategoriaEl) {
+      const despesasCategoriaChart = e.init(despesasCategoriaEl);
+      despesasCategoriaChart.setOption(this.chartOptionDespesasCategoria);
+    }
+
+    const faturasEl = chartFaturas?.nativeElement;
+    if (faturasEl) {
+      const faturasChart = e.init(faturasEl);
+      faturasChart.setOption(this.chartOptionFaturas);
+    }
+
+    const investimentosEl = chartInvestimentos?.nativeElement;
+    if (investimentosEl) {
+      const investimentosChart = e.init(investimentosEl);
+      investimentosChart.setOption(this.chartOptionInvestimentos);
+    }
+
+    const dividasEl = chartDividas?.nativeElement;
     if (dividasEl) {
       const dividasChart = e.init(dividasEl);
-      dividasChart.setOption(this.chartOptionDividasInvestimentos);
+      dividasChart.setOption(this.chartOptionDividasDonut);
+    }
+
+    const dividasInvestimentosEl = chartDividasInvestimentos?.nativeElement;
+    if (dividasInvestimentosEl) {
+      const dividasInvestimentosChart = e.init(dividasInvestimentosEl);
+      dividasInvestimentosChart.setOption(this.chartOptionDividasInvestimentos);
     }
   }
 
@@ -268,25 +321,35 @@ export class RelatorioPageComponent implements AfterViewInit {
   }
 
   private sincronizarGraficosBarraELinha(): void {
-    const { chartReceitasDespesas, chartDividasInvestimentos } =
-      this.getGraphicContainers();
-    const el2 = chartReceitasDespesas?.nativeElement;
-    const el3 = chartDividasInvestimentos?.nativeElement;
-
-    if (!el2 && !el3) return;
+    const {
+      chartReceitasDespesas,
+      chartReceitasFixasVariaveis,
+      chartDespesasCategoria,
+      chartFaturas,
+      chartInvestimentos,
+      chartDividas,
+      chartDividasInvestimentos,
+    } = this.getGraphicContainers();
 
     const e = echarts as any;
 
-    if (el2) {
-      const c = e.getInstanceByDom(el2) || e.init(el2);
+    const sync = (
+      element: ElementRef<HTMLElement> | undefined,
+      option: EChartsOption,
+    ) => {
+      const el = element?.nativeElement;
+      if (!el || !option || Object.keys(option).length === 0) return;
+      const chart = e.getInstanceByDom(el) || e.init(el);
+      chart.setOption(option, { notMerge: false });
+    };
 
-      c.setOption(this.chartOptionReceitasDespesas, { notMerge: false });
-    }
-    if (el3) {
-      const c = e.getInstanceByDom(el3) || e.init(el3);
-
-      c.setOption(this.chartOptionDividasInvestimentos, { notMerge: false });
-    }
+    sync(chartReceitasDespesas, this.chartOptionReceitasDespesas);
+    sync(chartReceitasFixasVariaveis, this.chartOptionReceitasFixasVariaveis);
+    sync(chartDespesasCategoria, this.chartOptionDespesasCategoria);
+    sync(chartFaturas, this.chartOptionFaturas);
+    sync(chartInvestimentos, this.chartOptionInvestimentos);
+    sync(chartDividas, this.chartOptionDividasDonut);
+    sync(chartDividasInvestimentos, this.chartOptionDividasInvestimentos);
   }
 
   chartOption: EChartsOption = {
@@ -356,6 +419,11 @@ export class RelatorioPageComponent implements AfterViewInit {
 
   mergeOptions: EChartsOption = {};
   chartOptionReceitasDespesas: EChartsOption = {};
+  chartOptionReceitasFixasVariaveis: EChartsOption = {};
+  chartOptionDespesasCategoria: EChartsOption = {};
+  chartOptionFaturas: EChartsOption = {};
+  chartOptionInvestimentos: EChartsOption = {};
+  chartOptionDividasDonut: EChartsOption = {};
 
   private formatarTooltipReceitasDespesas(params: any): string {
     const valor = params.value;
@@ -766,11 +834,24 @@ export class RelatorioPageComponent implements AfterViewInit {
       getInstanceByDom?: (d: HTMLElement) => { resize: () => void } | null;
     };
     if (!e.getInstanceByDom) return;
-    const { chartSaldo, chartReceitasDespesas, chartDividasInvestimentos } =
-      this.getGraphicContainers();
+    const {
+      chartSaldo,
+      chartReceitasDespesas,
+      chartReceitasFixasVariaveis,
+      chartDespesasCategoria,
+      chartFaturas,
+      chartInvestimentos,
+      chartDividas,
+      chartDividasInvestimentos,
+    } = this.getGraphicContainers();
     for (const ref of [
       chartSaldo,
       chartReceitasDespesas,
+      chartReceitasFixasVariaveis,
+      chartDespesasCategoria,
+      chartFaturas,
+      chartInvestimentos,
+      chartDividas,
       chartDividasInvestimentos,
     ]) {
       const el = ref?.nativeElement;
@@ -851,6 +932,282 @@ export class RelatorioPageComponent implements AfterViewInit {
             formatter: (params: any) =>
               this.formatarValorRealComCentavos(params),
           },
+        },
+      ],
+    };
+  }
+
+  private atualizarGraficosFinanceiros(): void {
+    const receitasFixas =
+      this.naturezaReceitaLinhas.find((item) => item.id === 'fixa')?.valores ||
+      new Array(12).fill(0);
+    const receitasVariaveis =
+      this.naturezaReceitaLinhas.find((item) => item.id === 'variavel')
+        ?.valores || new Array(12).fill(0);
+
+    this.chartOptionReceitasFixasVariaveis = {
+      title: {
+        text: 'Receitas fixas e variáveis',
+        left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: '700',
+          color: '#334155',
+        },
+      },
+      legend: {
+        data: ['Fixas', 'Variáveis'],
+        bottom: 10,
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        formatter: (params: any) =>
+          this.formatarTooltipReceitasDespesas(params[0]),
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '15%',
+        top: '15%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        data: this.meses,
+        axisLabel: {
+          rotate: 45,
+          fontSize: 10,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Valor (R$)',
+        axisLabel: {
+          formatter: (value: number) =>
+            this.formatarValorRealSemCentavos(value),
+        },
+      },
+      series: [
+        {
+          name: 'Fixas',
+          type: 'bar',
+          data: receitasFixas,
+          itemStyle: { color: '#2563EB' },
+        },
+        {
+          name: 'Variáveis',
+          type: 'bar',
+          data: receitasVariaveis,
+          itemStyle: { color: '#38BDF8' },
+        },
+      ],
+    };
+
+    const despesasCategoria = this.despesasPorCategoriaLinhas.map((item) => ({
+      name: item.categoria,
+      value: item.total,
+    }));
+
+    this.chartOptionDespesasCategoria = {
+      title: {
+        text: 'Despesas por categoria',
+        left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: '700',
+          color: '#334155',
+        },
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: any) =>
+          `${params.name}: R$ ${Number(params.value).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+          })}`,
+      },
+      legend: {
+        orient: 'vertical',
+        left: 'left',
+        top: 'center',
+      },
+      series: [
+        {
+          name: 'Categorias',
+          type: 'pie',
+          radius: ['50%', '75%'],
+          avoidLabelOverlap: false,
+          label: {
+            show: true,
+            formatter: '{b}: {d}%',
+          },
+          labelLine: {
+            show: true,
+          },
+          data: despesasCategoria.length
+            ? despesasCategoria
+            : [{ name: 'Sem dados', value: 1 }],
+        },
+      ],
+    };
+
+    this.chartOptionFaturas = {
+      title: {
+        text: 'Faturas',
+        left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: '700',
+          color: '#334155',
+        },
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'cross' },
+        formatter: (params: any) =>
+          this.formatarValorRealComCentavos(params[0]),
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '15%',
+        top: '15%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        data: this.meses,
+        axisLabel: {
+          rotate: 45,
+          fontSize: 10,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Valor (R$)',
+        axisLabel: {
+          formatter: (value: number) =>
+            this.formatarValorRealSemCentavos(value),
+        },
+      },
+      series: [
+        {
+          name: 'Faturas',
+          type: 'line',
+          data: this.dadosCartaoCredito,
+          itemStyle: { color: '#f97316' },
+          lineStyle: { width: 3 },
+          symbol: 'circle',
+          symbolSize: 6,
+          smooth: true,
+        },
+      ],
+    };
+
+    this.chartOptionInvestimentos = {
+      title: {
+        text: 'Investimentos',
+        left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: '700',
+          color: '#334155',
+        },
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'cross' },
+        formatter: (params: any) =>
+          this.formatarValorRealComCentavos(params[0]),
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '15%',
+        top: '15%',
+        containLabel: true,
+      },
+      xAxis: {
+        type: 'category',
+        data: this.meses,
+        axisLabel: {
+          rotate: 45,
+          fontSize: 10,
+        },
+      },
+      yAxis: {
+        type: 'value',
+        name: 'Valor (R$)',
+        axisLabel: {
+          formatter: (value: number) =>
+            this.formatarValorRealSemCentavos(value),
+        },
+      },
+      series: [
+        {
+          name: 'Investimentos',
+          type: 'line',
+          data: this.dadosInvestimentos,
+          itemStyle: { color: '#10b981' },
+          lineStyle: { width: 3 },
+          areaStyle: { color: 'rgba(16, 185, 129, 0.2)' },
+          symbol: 'circle',
+          symbolSize: 6,
+          smooth: true,
+        },
+      ],
+    };
+
+    const totalPago = Math.max(
+      0,
+      this.totalReceitas - this.totalDespesas - this.totalCartaoCredito,
+    );
+    const totalRestante = Math.max(0, this.totalDividas - totalPago);
+
+    this.chartOptionDividasDonut = {
+      title: {
+        text: 'Dívidas: Pago x Restante',
+        left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: '700',
+          color: '#334155',
+        },
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: any) =>
+          `${params.name}: R$ ${Number(params.value).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+          })}`,
+      },
+      legend: {
+        bottom: 10,
+      },
+      series: [
+        {
+          type: 'pie',
+          radius: ['45%', '70%'],
+          avoidLabelOverlap: false,
+          label: {
+            show: true,
+            formatter: '{b}: {d}%',
+          },
+          labelLine: {
+            show: true,
+          },
+          data: [
+            {
+              name: 'Pago',
+              value: totalPago || 1,
+              itemStyle: { color: '#0ea5e9' },
+            },
+            {
+              name: 'Restante',
+              value: totalRestante || 1,
+              itemStyle: { color: '#f97316' },
+            },
+          ],
         },
       ],
     };
@@ -964,7 +1321,6 @@ export class RelatorioPageComponent implements AfterViewInit {
   chartOptionReceitas: EChartsOption = {};
   chartOptionDespesas: EChartsOption = {};
   chartOptionDividas: EChartsOption = {};
-  chartOptionInvestimentos: EChartsOption = {};
   chartOptionSaldo: EChartsOption = {};
 
   constructor(
@@ -979,6 +1335,7 @@ export class RelatorioPageComponent implements AfterViewInit {
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
+    this.atualizarGraficosFinanceiros();
   }
 
   private carregarReceitasAno(ano: number): void {
@@ -1172,6 +1529,7 @@ export class RelatorioPageComponent implements AfterViewInit {
     this.calcularTotais();
     this.configurarGraficosCards();
     this.atualizarGraficoReceitasDespesas();
+    this.atualizarGraficosFinanceiros();
     this.sincronizarGraficoSaldoECharts();
     this.sincronizarGraficosBarraELinha();
   }
