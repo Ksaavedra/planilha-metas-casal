@@ -971,4 +971,243 @@ describe('RelatorioPageComponent', () => {
       done();
     }, 0);
   });
+
+  it('deve inicializar todos os gráficos da visão gráficos quando os containers existem', () => {
+    const ref = () => ({ nativeElement: document.createElement('div') });
+    component.visaoRelatorio = 'graficos';
+    (component as any).graficosComponent = {
+      chartSaldo: ref(),
+      chartReceitasDespesas: ref(),
+      chartReceitasFixasVariaveis: ref(),
+      chartDespesasCategoria: ref(),
+      chartFaturas: ref(),
+      chartInvestimentos: ref(),
+      chartDividas: ref(),
+    };
+
+    (component as any).initCharts();
+
+    expect(echartsInitMock).toHaveBeenCalledTimes(7);
+    expect(chartMock.setOption).toHaveBeenCalledTimes(7);
+  });
+
+  it('deve retornar sem inicializar gráficos quando o container principal não existe', () => {
+    component.visaoRelatorio = 'graficos';
+    (component as any).graficosComponent = {};
+
+    (component as any).initCharts();
+
+    expect(echartsInitMock).not.toHaveBeenCalled();
+  });
+
+  it('deve cobrir guardas de ano e filtros do gráfico de saldo', () => {
+    const onAnoChangeSpy = jest.spyOn(component, 'onAnoChange');
+    component.anoSelecionado = 2020;
+    component.anoAnterior();
+    expect(onAnoChangeSpy).not.toHaveBeenCalled();
+
+    component.voltarParaAnoAtual();
+    expect(onAnoChangeSpy).toHaveBeenCalledTimes(1);
+
+    onAnoChangeSpy.mockClear();
+    component.voltarParaAnoAtual();
+    expect(onAnoChangeSpy).not.toHaveBeenCalled();
+
+    component.anoSelecionado = Number.NaN;
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+
+    component.anoSelecionado = component.anoAtual;
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+
+    component.anoSelecionado = component.anoAtual - 1;
+    component.anosSaldoComparacao = [component.anoAtual, component.anoSelecionado];
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+
+    component.anosSaldoComparacao = [
+      component.anoAtual,
+      component.anoAtual - 1,
+      component.anoAtual - 2,
+      component.anoAtual - 3,
+    ];
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+  });
+
+  it('deve cobrir remoção de anos de comparação sem alterar quando inválida', () => {
+    const sincronizarSpy = jest.spyOn(
+      component as any,
+      'sincronizarGraficoSaldoECharts',
+    );
+    component.anosSaldoComparacao = [component.anoAtual];
+    component.anosSaldoSelecionados = [component.anoAtual];
+
+    component.removerAnoDoGraficoSaldo(component.anoAtual);
+    expect(component.anosSaldoComparacao).toEqual([component.anoAtual]);
+    expect(sincronizarSpy).not.toHaveBeenCalled();
+
+    component.anosSaldoComparacao = [component.anoAtual - 1];
+    component.removerAnoDoGraficoSaldo(component.anoAtual - 1);
+    expect(component.anosSaldoComparacao).toEqual([component.anoAtual - 1]);
+    expect(sincronizarSpy).not.toHaveBeenCalled();
+  });
+
+  it('onAnoChange deve ignorar ano inválido e preservar comparação selecionada', () => {
+    const anoAntes = component.anoSelecionado;
+    component.anoSelecionado = 2022;
+    component.onAnoChange();
+    expect(component.anoSelecionado).toBe(2022);
+
+    component.anoSelecionado = Number.NaN;
+    component.onAnoChange();
+    expect(Number.isNaN(component.anoSelecionado)).toBe(true);
+
+    component.anoSelecionado = component.anoAtual - 1;
+    (component as any).comparandoGraficoSaldo = true;
+    component.anosSaldoComparacao = [component.anoAtual - 1, component.anoAtual];
+    component.onAnoChange();
+    expect(component.anosSaldoSelecionados).toEqual([
+      component.anoAtual - 1,
+      component.anoAtual,
+    ]);
+
+    component.anoSelecionado = anoAntes;
+  });
+
+  it('carregamentos da API devem tratar retornos nulos e valores inválidos como zero', (done) => {
+    receitasStub.getReceitas.mockReturnValue(of(null));
+    despesasStub.getDespesas.mockReturnValue(of(null));
+    cartoesStub.getCartoes.mockReturnValue(of(null));
+
+    (component as any).carregarReceitasAno(2026);
+    (component as any).carregarDespesasAno(2026);
+    (component as any).carregarCartoesAno(2026);
+
+    setTimeout(() => {
+      expect(component.dadosPorAno[2026].receitas.every((v) => v === 0)).toBe(
+        true,
+      );
+      expect(component.dadosPorAno[2026].despesas.every((v) => v === 0)).toBe(
+        true,
+      );
+      expect(
+        component.dadosPorAno[2026].cartaoCredito.every((v) => v === 0),
+      ).toBe(true);
+      done();
+    }, 0);
+  });
+
+  it('agregadores devem ignorar meses ausentes, zeros e categorias vazias', () => {
+    const receitasPorMes = new Array(12).fill(undefined) as any[];
+    receitasPorMes[0] = [
+      { valor: 0, natureza: 'fixa', categoria: 'Ignorada' },
+      { valor: '10', natureza: 'variavel', categoria: ' ' },
+      { valor: '15', natureza: 'fixa', categoria: 'Outras' },
+      { valor: '5', natureza: 'fixa', categoria: 'Outras' },
+    ];
+
+    (component as any).agregarReceitasPorCategorias(receitasPorMes);
+
+    expect(component.naturezaReceitaLinhas[0].total).toBe(20);
+    expect(component.naturezaReceitaLinhas[1].total).toBe(10);
+    expect(
+      component.receitasPorTipoLinhas.find(
+        (linha) => linha.tipo === 'Outras' && linha.total === 30,
+      ),
+    ).toBeTruthy();
+
+    const despesasPorMes = new Array(12).fill(undefined) as any[];
+    despesasPorMes[0] = [
+      { valor: 0, natureza: 'fixa', categoria: 'Ignorada' },
+      { valor: '12', natureza: 'variavel', categoria: '' },
+      { valor: '8', natureza: 'fixa', categoria: 'Moradia' },
+      { valor: '2', natureza: 'fixa', categoria: 'Moradia' },
+    ];
+
+    (component as any).agregarDespesasPorCategorias(despesasPorMes);
+
+    expect(component.naturezaDespesaLinhas[0].total).toBe(10);
+    expect(component.naturezaDespesaLinhas[1].total).toBe(12);
+    expect(
+      component.despesasPorCategoriaLinhas.find(
+        (linha) => linha.categoria === 'Moradia' && linha.total === 10,
+      ),
+    ).toBeTruthy();
+    expect(
+      component.despesasPorCategoriaLinhas.find(
+        (linha) => linha.categoria === 'Outras' && linha.total === 12,
+      ),
+    ).toBeTruthy();
+  });
+
+  it('ngAfterViewInit deve reinicializar gráficos quando está na visão gráficos', () => {
+    jest.useFakeTimers();
+    const reinicializarSpy = jest
+      .spyOn(component as any, 'reinicializarGraficosAposVoltarResumo')
+      .mockImplementation();
+    component.visaoRelatorio = 'graficos';
+
+    component.ngAfterViewInit();
+    jest.runOnlyPendingTimers();
+
+    expect(reinicializarSpy).toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('deve cobrir fallbacks restantes de gráficos e séries vazias', () => {
+    component.anoSelecionado = 2035;
+    (component as any).calcularTotais();
+    expect(component.dadosReceitas.length).toBe(12);
+
+    const proximoAnoSpy = jest.spyOn(component, 'podeProximoAno', 'get').mockReturnValue(false);
+    const anoAntes = component.anoSelecionado;
+    component.proximoAno();
+    expect(component.anoSelecionado).toBe(anoAntes);
+    proximoAnoSpy.mockRestore();
+
+    const sincronizarSpy = jest.spyOn(
+      component as any,
+      'sincronizarGraficoSaldoECharts',
+    );
+    component.anoSelecionado = component.anoAtual - 1;
+    component.anosSaldoComparacao = [component.anoAtual, component.anoAtual - 1];
+    component.removerAnoDoGraficoSaldo(component.anoAtual - 1);
+    expect(component.anosSaldoSelecionados).toEqual([component.anoSelecionado]);
+    expect(sincronizarSpy).toHaveBeenCalled();
+
+    (component as any).reinicializarGraficosAposVoltarResumo();
+
+    component.naturezaReceitaLinhas = [];
+    component.despesasPorCategoriaLinhas = [];
+    (component as any).atualizarGraficosFinanceiros();
+    expect((component.chartOptionDespesasCategoria as any).series[0].data).toEqual([
+      { name: 'Sem dados', value: 1 },
+    ]);
+
+    component.anosSaldoSelecionados = [];
+    expect((component as any).getAnosGraficoSaldo()).toEqual([component.anoAtual]);
+  });
+
+  it('carregamentos da API devem somar valores inválidos como zero', (done) => {
+    receitasStub.getReceitas.mockReturnValue(of([{ valor: undefined } as any]));
+    despesasStub.getDespesas.mockReturnValue(of([{ valor: undefined } as any]));
+    cartoesStub.getCartoes.mockReturnValue(
+      of([{ totalAPagarMes: undefined } as any]),
+    );
+
+    (component as any).carregarReceitasAno(2026);
+    (component as any).carregarDespesasAno(2026);
+    (component as any).carregarCartoesAno(2026);
+
+    setTimeout(() => {
+      expect(component.dadosPorAno[2026].receitas.every((v) => v === 0)).toBe(
+        true,
+      );
+      expect(component.dadosPorAno[2026].despesas.every((v) => v === 0)).toBe(
+        true,
+      );
+      expect(
+        component.dadosPorAno[2026].cartaoCredito.every((v) => v === 0),
+      ).toBe(true);
+      done();
+    }, 0);
+  });
 });
