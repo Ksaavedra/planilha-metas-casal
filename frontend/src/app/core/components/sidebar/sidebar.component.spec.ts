@@ -8,13 +8,19 @@ import { SidebarService } from '../../services/sidebar/sidebar.service';
 describe('SidebarComponent', () => {
   let component: SidebarComponent;
   let fixture: ComponentFixture<SidebarComponent>;
-  let sidebarService: { getStatus: jest.Mock; isMobile: jest.Mock; changeStatus: jest.Mock };
+  let sidebarService: {
+    getStatus: jest.Mock;
+    isMobile: jest.Mock;
+    changeStatus: jest.Mock;
+    close: jest.Mock;
+  };
 
   beforeEach(async () => {
     sidebarService = {
       getStatus: jest.fn().mockReturnValue(of(false)),
       isMobile: jest.fn().mockReturnValue(of(false)),
       changeStatus: jest.fn(),
+      close: jest.fn(),
     };
     await TestBed.configureTestingModule({
       declarations: [SidebarComponent],
@@ -85,11 +91,12 @@ describe('SidebarComponent', () => {
     expect(sidebarService.changeStatus).toHaveBeenCalledTimes(2);
   });
 
-  it('não deve fechar a sidebar ao navegar no desktop', () => {
+  it('deve fechar a sidebar ao navegar no desktop', () => {
     component.isMobile = false;
 
     component.onNavigationClick();
 
+    expect(sidebarService.close).toHaveBeenCalledTimes(1);
     expect(sidebarService.changeStatus).not.toHaveBeenCalled();
   });
 
@@ -98,6 +105,7 @@ describe('SidebarComponent', () => {
 
     component.onNavigationClick();
 
-    expect(sidebarService.changeStatus).toHaveBeenCalledTimes(1);
+    expect(sidebarService.close).toHaveBeenCalledTimes(1);
+    expect(sidebarService.changeStatus).not.toHaveBeenCalled();
   });
 });
