@@ -174,15 +174,12 @@ describe('AdicionarDividaDialogComponent', () => {
 
     component.salvar();
 
-    expect(dividasService.updateDivida).toHaveBeenCalledWith(
-      1,
-      expect.objectContaining({
-        objetivo: 'Empréstimo editado',
-        valorTotal: 600,
-        valorPago: 200,
-        parcelaMensal: 100,
-      }),
-    );
+    const [dividaId, payload] = dividasService.updateDivida.mock.calls[0];
+    expect(dividaId).toBe(1);
+    expect(payload.objetivo).toBe('Empréstimo editado');
+    expect(payload.valorTotal).toBe(600);
+    expect(payload.valorPago).toBe(200);
+    expect(payload.parcelaMensal).toBe(100);
     expect(dialogRef.close).toHaveBeenCalledWith(true);
   });
 

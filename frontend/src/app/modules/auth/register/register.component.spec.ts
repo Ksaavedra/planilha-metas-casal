@@ -88,5 +88,17 @@ describe('RegisterComponent', () => {
     authService.register.mockReturnValueOnce(throwError(() => new Error('erro')));
     component.criarConta();
     expect(component.erro).toBe('Não foi possível criar a conta. Tente novamente.');
+
+    authService.register.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 400, error: {} })),
+    );
+    component.criarConta();
+    expect(component.erro).toBe('Não foi possível criar a conta. Tente novamente.');
+
+    authService.register.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 400, error: 'erro' })),
+    );
+    component.criarConta();
+    expect(component.erro).toBe('Não foi possível criar a conta. Tente novamente.');
   });
 });

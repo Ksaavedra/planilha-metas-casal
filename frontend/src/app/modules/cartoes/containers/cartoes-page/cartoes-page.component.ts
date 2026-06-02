@@ -13,6 +13,7 @@ import { Cartao } from '@core/interfaces/cartoes/cartoes';
 import { Divida, DividaNoMes } from '@core/interfaces/dividas/dividas';
 import { CartoesService } from '@core/services/cartoes/cartoes.service';
 import { DividasService } from '@core/services/dividas/dividas.service';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 import {
   calcularResumoCartoes,
   percentualUtilizadoCartao,
@@ -77,6 +78,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   readonly tamanhoPagina = 6;
   paginaTabela = 1;
+  readonly temGrupoFamiliar$ = this.perfilService.temGrupoFamiliar$;
 
   readonly meses = [
     'Janeiro',
@@ -99,6 +101,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     private cartoesService: CartoesService,
     private dividasService: DividasService,
     private dialog: MatDialog,
+    private perfilService: PerfilFinanceiroService,
   ) {}
 
   get resumo() {

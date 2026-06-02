@@ -37,6 +37,21 @@ describe('FaturaAtrasadaDialogComponent', () => {
     expect(component.podePagarAgora).toBe(true);
   });
 
+  it('deve usar fallbacks quando cartão não tiver valores opcionais', () => {
+    const component = criar({
+      ...cartao,
+      valorUtilizado: undefined as any,
+      observacaoAtraso: undefined,
+      previsaoPagamento: undefined,
+    });
+
+    expect(component.valorEmAberto).toBe(0);
+    expect(component.form.get('valorPago')?.value).toBe(0);
+    expect(component.form.get('observacaoAtraso')?.value).toBe('');
+    expect(component.form.get('previsaoPagamento')?.value).toBe('');
+    expect(component.podePagarAgora).toBe(false);
+  });
+
   it('deve bloquear pagamento agora sem previsão ou valor suficiente', () => {
     const component = criar({ ...cartao, previsaoPagamento: '', observacaoAtraso: null });
 
@@ -81,6 +96,30 @@ describe('FaturaAtrasadaDialogComponent', () => {
       observacaoAtraso: 'Pagar após receber',
       previsaoPagamento: '2026-06-01',
     });
+  });
+
+  it('deve confirmar pagar depois sem observação', () => {
+    const component = criar();
+    component.form.patchValue({
+      observacaoAtraso: '',
+      previsaoPagamento: '2026-06-01',
+    });
+
+    component.pagarDepois();
+
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      acao: 'depois',
+      observacaoAtraso: undefined,
+      previsaoPagamento: '2026-06-01',
+    });
+  });
+
+  it('podePagarAgora deve ser false quando valor em aberto é zero', () => {
+    const component = criar({ ...cartao, valorUtilizado: 0, previsaoPagamento: '2026-06-01' });
+    component.form.patchValue({ valorPago: 100 });
+
+    expect(component.podePagarDepois).toBe(true);
+    expect(component.podePagarAgora).toBe(false);
   });
 
   it('deve fechar sem resultado', () => {

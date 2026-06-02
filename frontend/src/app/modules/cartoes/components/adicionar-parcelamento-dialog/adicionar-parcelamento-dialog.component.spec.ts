@@ -89,6 +89,28 @@ describe('AdicionarParcelamentoDialogComponent', () => {
     expect(dividasService.createDivida).not.toHaveBeenCalled();
   });
 
+  it('deve calcular parcela como zero quando valores estão vazios', () => {
+    const component = criar();
+
+    expect(component.parcelaCalculada).toBe(0);
+  });
+
+  it('deve bloquear salvar quando já estiver salvando', () => {
+    const component = criar();
+    component.form.patchValue({
+      objetivo: 'Roupa',
+      valorTotal: 300,
+      quantidadeParcelas: 3,
+      dataInicio: '2026-05-10',
+    });
+    component.saving = true;
+
+    component.salvar();
+
+    expect(component.erro).toBe('Preencha descrição, valor e quantidade de parcelas.');
+    expect(dividasService.createDivida).not.toHaveBeenCalled();
+  });
+
   it('deve criar parcelamento', () => {
     const component = criar();
     component.form.patchValue({
@@ -152,6 +174,8 @@ describe('AdicionarParcelamentoDialogComponent', () => {
     expect(component.erro).toContain('Servidor indisponível');
     expect(component.saving).toBe(false);
     expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 400, error: { error: 'Erro API' } }))).toBe('Erro API');
+    expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 400, error: {} }))).toBe('Não foi possível salvar o parcelamento.');
+    expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 400, error: 'erro' }))).toBe('Não foi possível salvar o parcelamento.');
     expect(component['mensagemErroHttp'](new Error('erro'))).toBe('Não foi possível salvar o parcelamento.');
   });
 });

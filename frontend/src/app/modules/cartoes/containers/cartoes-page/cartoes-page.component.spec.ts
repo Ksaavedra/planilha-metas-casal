@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ElementRef } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { Cartao } from '@core/interfaces/cartoes/cartoes';
 import { Divida, DividaNoMes } from '@core/interfaces/dividas/dividas';
 import * as echarts from 'echarts';
@@ -19,6 +19,9 @@ describe('CartoesPageComponent', () => {
     deleteDivida: jest.Mock;
   };
   let dialog: { open: jest.Mock };
+  let perfilService: {
+    temGrupoFamiliar$: Observable<boolean>;
+  };
 
   const cartao = (partial: Partial<Cartao> = {}): Cartao => ({
     id: partial.id ?? 1,
@@ -80,11 +83,15 @@ describe('CartoesPageComponent', () => {
     dialog = {
       open: jest.fn().mockReturnValue(afterClosed(false)),
     };
+    perfilService = {
+      temGrupoFamiliar$: of(true),
+    };
 
     component = new CartoesPageComponent(
       cartoesService as any,
       dividasService as any,
       dialog as any,
+      perfilService as any,
     );
     component.mesAtual = new Date(2026, 4, 1);
   });
@@ -379,13 +386,10 @@ describe('CartoesPageComponent', () => {
     expect(cartoesService.updateCartao).not.toHaveBeenCalled();
 
     component['registrarPagamentoAtrasado'](c, -10);
-    expect(cartoesService.updateCartao).toHaveBeenCalledWith(
-      1,
-      expect.objectContaining({
-        valorUtilizado: 100,
-        valorFaturaPaga: 0,
-      }),
-    );
+    const [cartaoId, payload] = cartoesService.updateCartao.mock.calls[0];
+    expect(cartaoId).toBe(1);
+    expect(payload.valorUtilizado).toBe(100);
+    expect(payload.valorFaturaPaga).toBe(0);
   });
 
   it('deve pagar, desfazer pagamento e excluir cartão', () => {
@@ -397,16 +401,25 @@ describe('CartoesPageComponent', () => {
 
     dialog.open.mockReturnValueOnce(afterClosed(true)).mockReturnValueOnce(afterClosed(undefined));
     component.confirmarPagarFatura(c);
-    expect(cartoesService.updateCartao).toHaveBeenCalledWith(1, expect.objectContaining({ valorUtilizado: 0 }));
-    expect(dividasService.updateDivida).toHaveBeenCalledWith(10, expect.any(Object));
+    const [cartaoPagoId, payloadPagamento] = cartoesService.updateCartao.mock.calls[0];
+    expect(cartaoPagoId).toBe(1);
+    expect(payloadPagamento.valorUtilizado).toBe(0);
+    const [dividaPagaId, payloadDividaPaga] = dividasService.updateDivida.mock.calls[0];
+    expect(dividaPagaId).toBe(10);
+    expect(typeof payloadDividaPaga).toBe('object');
 
     component.parcelamentos = [
       parcelaMes({ id: 11, cartaoId: 1, statusParcelaMes: 'paga', parcelaMesPaga: true }),
     ];
     dialog.open.mockReturnValueOnce(afterClosed(true)).mockReturnValueOnce(afterClosed(undefined));
     component.confirmarDesfazerPagamento(c);
-    expect(cartoesService.updateCartao).toHaveBeenCalledWith(1, expect.objectContaining({ faturaPaga: false, valorFaturaPaga: 0 }));
-    expect(dividasService.updateDivida).toHaveBeenCalledWith(11, expect.any(Object));
+    const [cartaoDesfeitoId, payloadDesfazer] = cartoesService.updateCartao.mock.calls[1];
+    expect(cartaoDesfeitoId).toBe(1);
+    expect(payloadDesfazer.faturaPaga).toBe(false);
+    expect(payloadDesfazer.valorFaturaPaga).toBe(0);
+    const [dividaDesfeitaId, payloadDividaDesfeita] = dividasService.updateDivida.mock.calls[1];
+    expect(dividaDesfeitaId).toBe(11);
+    expect(typeof payloadDividaDesfeita).toBe('object');
 
     dialog.open.mockReturnValueOnce(afterClosed(true));
     component.confirmarExcluir(c);
@@ -419,16 +432,13 @@ describe('CartoesPageComponent', () => {
 
     component['registrarPagamentoAtrasado'](c, 999);
 
-    expect(cartoesService.updateCartao).toHaveBeenCalledWith(
-      1,
-      expect.objectContaining({
-        valorUtilizado: 0,
-        faturaPaga: false,
-        valorFaturaPaga: 150,
-        observacaoAtraso: null,
-        previsaoPagamento: null,
-      }),
-    );
+    const [cartaoId, payload] = cartoesService.updateCartao.mock.calls[0];
+    expect(cartaoId).toBe(1);
+    expect(payload.valorUtilizado).toBe(0);
+    expect(payload.faturaPaga).toBe(false);
+    expect(payload.valorFaturaPaga).toBe(150);
+    expect(payload.observacaoAtraso).toBeNull();
+    expect(payload.previsaoPagamento).toBeNull();
   });
 
   it('deve abrir dialog de adicionar e editar cartão', () => {
@@ -512,7 +522,7 @@ describe('CartoesPageComponent', () => {
 
     expect(chart.setOption).toHaveBeenCalled();
     expect(initSpy).toHaveBeenCalled();
-    expect(component['charts']).toContain(chart);
+    expect((component['charts'] as any[]).includes(chart)).toBe(true);
   });
 
   it('deve cobrir fallbacks de valores de fatura, limite e resumo', () => {

@@ -16,6 +16,7 @@ import {
   NaturezaReceita,
 } from '@app/core/interfaces/receitas/receitas';
 import { SuccessModalComponent } from '@app/shared/components/success-modal/success-modal.component';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 @Component({
   selector: 'app-receitas-page',
@@ -26,6 +27,7 @@ import { SuccessModalComponent } from '@app/shared/components/success-modal/succ
 })
 export class ReceitasPageComponent implements OnInit {
   readonly tituloSecundario = 'Acompanhem tudo o que entra e construam juntos.';
+  readonly temGrupoFamiliar$ = this.perfilService.temGrupoFamiliar$;
 
   visaoReceitas: 'lista' | 'exemplos' | 'usuario' = 'lista';
   mesAtual: Date = new Date();
@@ -58,6 +60,7 @@ export class ReceitasPageComponent implements OnInit {
     private receitasService: ReceitasService,
     private cdr: ChangeDetectorRef,
     private dialog: MatDialog,
+    private perfilService: PerfilFinanceiroService,
   ) {}
 
   get nomeMesAtual(): string {

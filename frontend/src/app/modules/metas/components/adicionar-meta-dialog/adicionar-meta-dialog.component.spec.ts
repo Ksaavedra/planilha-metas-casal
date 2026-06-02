@@ -334,6 +334,32 @@ describe('AdicionarMetaDialogComponent', () => {
 
       expect((component as any).buildMeses(100, 0).length).toBe(12);
     });
+
+    it('usa string vazia quando controles numéricos não existem', () => {
+      component.form.removeControl('nome');
+      component.form.removeControl('valorMeta');
+      component.form.removeControl('valorPorMes');
+
+      const result = (component as any).buildDadosMetaParaEnviar();
+
+      expect(result).toBeNull();
+      expect(component.erro).toBe('Por favor, preencha o nome da meta.');
+    });
+
+    it('usa string vazia quando valorAtual não existe e checkbox está marcado', () => {
+      component.form.patchValue({
+        nome: 'Meta',
+        valorMeta: '1000,00',
+        valorPorMes: '100,00',
+        temValorAtual: true,
+      });
+      component.form.removeControl('valorAtual');
+
+      const result = (component as any).buildDadosMetaParaEnviar();
+
+      expect(result).toBeNull();
+      expect(component.erro).toBe('Preencha o valor já guardado.');
+    });
   });
 
   describe('Validators', () => {

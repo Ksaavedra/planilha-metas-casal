@@ -26,6 +26,7 @@ import {
   quantidadeMesesPlanejamento,
   regenerarMesesMeta,
 } from '@core/utils/metas-meses.util';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
 
@@ -39,6 +40,7 @@ const ANO_REFERENCIA_MIN = 2020;
 })
 export class MetasPageComponent implements OnInit {
   readonly tituloSecundario = 'Construindo sonhos juntos, passo a passo';
+  readonly temGrupoFamiliar$ = this.perfilService.temGrupoFamiliar$;
 
   visaoMetas: 'lista' | 'exemplos' = 'lista';
 
@@ -66,6 +68,7 @@ export class MetasPageComponent implements OnInit {
   constructor(
     private metasService: MetasService,
     private dialog: MatDialog,
+    private perfilService: PerfilFinanceiroService,
   ) {}
 
   anosComparacao: number[] = [];

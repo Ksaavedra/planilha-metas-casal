@@ -160,6 +160,8 @@ describe('CartoesUsuarioComponent', () => {
     expect(component.linhasVisiveis).toEqual([]);
     expect(component.cartoesUsuario).toEqual([]);
     expect(component.totalLimiteUsuario).toBe(0);
+    expect(component.totalUtilizadoUsuario).toBe(0);
+    expect(component.totalDisponivelUsuario).toBe(0);
     expect(component.proximoVencimentoUsuario).toBe('-');
   });
 
@@ -235,5 +237,64 @@ describe('CartoesUsuarioComponent', () => {
     expect(component.statusLinhaLabel(emDia)).toContain('Fatura em dia');
     expect(component.statusLinhaClasse(emDia)).toBe('status--em-dia');
     expect(component.statusLinhaClasse(pago)).toBe('status--fatura-paga');
+  });
+
+  it('deve tratar vencimento ausente, pessoa com espaços e limite negativo', () => {
+    const semVencimento = {
+      ...cartao({ id: 1, pessoa: '  Carla  ', limite: -100, valorUtilizado: -50 }),
+      diaVencimento: null,
+    };
+    component.cartoes = [semVencimento];
+    component.usuarioFiltro = 'Carla';
+
+    expect(component.normalizarUsuario(component.cartoes[0])).toBe('Carla');
+    expect(component.linhasPorUsuario[0].limite).toBe(0);
+    expect(component.linhasPorUsuario[0].utilizado).toBe(0);
+    expect(component.proximoVencimentoUsuario).toBe('-');
+  });
+
+  it('deve tratar limite e valor restante undefined nos agregados', () => {
+    const c = {
+      ...cartao({ id: 1, pessoa: 'Max', valorUtilizado: undefined as any }),
+      limite: undefined as any,
+    };
+    component.cartoes = [c];
+    component.parcelamentos = [
+      { ...parcela({ cartaoId: 1 }), valorRestante: undefined as any },
+    ];
+
+    expect(component.linhasPorUsuario[0].limite).toBe(0);
+    expect(component.linhasPorUsuario[0].utilizado).toBe(0);
+    expect(component.valorUtilizadoLimite(c)).toBe(0);
+  });
+
+  it('deve priorizar totalAPagarMes e arredondar valores', () => {
+    const c = { ...cartao({ id: 1, valorUtilizado: 999 }), totalAPagarMes: 123.456 };
+
+    expect(component.valorUtilizadoFatura(c)).toBe(123.46);
+
+    const negativo = { ...cartao({ id: 2, valorUtilizado: 999 }), totalAPagarMes: -10 };
+    expect(component.valorUtilizadoFatura(negativo)).toBe(0);
+  });
+
+  it('deve resolver status de parcelas quitadas, futuras e sem prioridade', () => {
+    const c = cartao({ id: 1, valorUtilizado: 0, diaVencimento: 31 });
+    component.mesReferencia = new Date(2026, 0, 1);
+
+    component.parcelamentos = [
+      parcela({ cartaoId: 1, statusParcelaMes: 'quitada' }),
+      parcela({ cartaoId: 1, statusParcelaMes: 'paga' }),
+    ];
+    expect(component.statusLinhaLabel(c)).toContain('Parcela paga');
+
+    component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'futura' })];
+    expect((component as any).statusResumoParcelasCartao(c)).toBe('futura');
+
+    component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'quitada' })];
+    expect((component as any).statusResumoParcelasCartao(c)).toBe('paga');
+
+    component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'desconhecida' as any })];
+    expect((component as any).statusResumoParcelasCartao(c)).toBeNull();
+    expect(component.statusLinhaClasse(c)).toBe('status--atrasado');
   });
 });

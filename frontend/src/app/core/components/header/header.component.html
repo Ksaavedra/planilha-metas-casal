@@ -12,14 +12,110 @@
         <small>Planejamento Financeiro</small>
       </div>
     </div>
+
     <div class="header-user" *ngIf="currentUser$ | async as user">
-      <div class="user-pill" [title]="user.nome">
-        <span class="user-avatar" aria-hidden="true">{{ user.nome.charAt(0).toUpperCase() }}</span>
-        <span class="user-name">{{ user.nome }}</span>
-      </div>
-      <button class="logout-button" type="button" (click)="logout()" aria-label="Sair do sistema">
-        Sair
+      <button class="user-pill" type="button" [title]="nomeUsuario(user)" [attr.aria-expanded]="isUserMenuOpen"
+        aria-haspopup="menu" (click)="toggleUserMenu()">
+        <span class="user-avatar" aria-hidden="true">👤</span>
+        <span class="user-name">{{ nomeUsuario(user) }}</span>
+        <span class="material-icons user-chevron" aria-hidden="true">
+          {{ isUserMenuOpen ? 'expand_less' : 'expand_more' }}
+        </span>
       </button>
+
+      <div class="user-menu" *ngIf="isUserMenuOpen && (perfis$ | async) as perfis" role="menu">
+        <div class="user-menu__section user-menu__section--profile" aria-label="Meu perfil">
+          <span class="user-menu__label">Meu perfil</span>
+          <span class="user-menu__current">{{ nomeUsuario(user) }}</span>
+        </div>
+
+        <div class="user-menu__section" [attr.aria-label]="tituloLista(perfis)">
+          <span class="user-menu__label">{{ tituloLista(perfis) }}</span>
+          <div class="user-menu__empty" *ngIf="perfis.length === 0">
+            Nenhum nome cadastrado.
+          </div>
+          <div class="user-menu__person" *ngFor="let perfil of perfis; trackBy: trackByPerfilId">
+            <span aria-hidden="true">•</span>
+            <span>{{ perfil.nome }}</span>
+          </div>
+        </div>
+
+        <div class="user-menu__section user-menu__section--actions" aria-label="Ações">
+          <button class="user-menu__item" type="button" role="menuitem" (click)="abrirAdicionarPerfil()">
+            <span aria-hidden="true">➕</span>
+            <span>Adicionar Perfil</span>
+          </button>
+          <button class="user-menu__item" type="button" role="menuitem" (click)="abrirConfiguracoes()">
+            <span aria-hidden="true">⚙</span>
+            <span>Configurações</span>
+          </button>
+          <button class="user-menu__item user-menu__item--danger" type="button" role="menuitem" (click)="logout()">
+            <span aria-hidden="true">🚪</span>
+            <span>Sair</span>
+          </button>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <div class="profile-modal-backdrop" *ngIf="modalAdicionarAberto" role="presentation">
+    <section class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="adicionarPerfilTitulo">
+      <h2 id="adicionarPerfilTitulo">Adicionar Perfil</h2>
+
+      <label class="profile-field">
+        <span>Nome *</span>
+        <input type="text" [value]="novoPerfilNome" (input)="novoPerfilNome = $any($event.target).value"
+          placeholder="Ex.: Kelly, David, Max" />
+      </label>
+
+      <div class="profile-modal__actions">
+        <button type="button" class="profile-btn profile-btn--ghost" (click)="fecharAdicionarPerfil()">Cancelar</button>
+        <button type="button" class="profile-btn profile-btn--primary" (click)="salvarNovoPerfil()">Salvar</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="profile-modal-backdrop" *ngIf="configuracoesAberta && (perfis$ | async) as perfis" role="presentation">
+    <section class="profile-modal profile-modal--settings" role="dialog" aria-modal="true"
+      aria-labelledby="configuracoesPerfilTitulo">
+      <header class="profile-modal__header">
+        <h2 id="configuracoesPerfilTitulo">⚙ Configurações</h2>
+        <button type="button" class="profile-modal__close" aria-label="Fechar configurações"
+          (click)="fecharConfiguracoes()">×</button>
+      </header>
+
+      <div class="profile-settings__section">
+        <h3>Gerenciar nomes cadastrados</h3>
+        <div class="profile-settings__empty" *ngIf="perfis.length === 0">
+          Nenhum nome cadastrado ainda.
+        </div>
+        <div class="profile-settings__list">
+          <div class="profile-settings__item" *ngFor="let perfil of perfis; trackBy: trackByPerfilId">
+            <span class="profile-settings__name" *ngIf="perfilEditandoId !== perfil.id">
+              <span aria-hidden="true">👤</span>
+              {{ perfil.nome }}
+            </span>
+
+            <input class="profile-settings__input" *ngIf="perfilEditandoId === perfil.id" type="text"
+              [value]="perfilEditandoNome" (input)="atualizarNomeEdicao($event)" />
+
+            <div class="profile-settings__actions">
+              <button type="button" *ngIf="perfilEditandoId !== perfil.id" (click)="iniciarEdicaoPerfil(perfil)">
+                Editar
+              </button>
+              <button type="button" *ngIf="perfilEditandoId === perfil.id" (click)="salvarEdicaoPerfil()">
+                Salvar
+              </button>
+              <button type="button" *ngIf="perfilEditandoId === perfil.id" (click)="cancelarEdicaoPerfil()">
+                Cancelar
+              </button>
+              <button type="button" class="profile-settings__remove" (click)="removerPerfil(perfil)">
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </header>

@@ -1,4 +1,4 @@
-import { FormBuilder } from '@angular/forms';
+import { FormBuilder, FormControl } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { Cartao } from '@core/interfaces/cartoes/cartoes';
@@ -73,6 +73,25 @@ describe('AdicionarCartaoDialogComponent', () => {
     expect(component.form.get('diaMelhorCompra')?.value).toBe(11);
   });
 
+  it('deve usar fallbacks em edição quando campos opcionais são nulos', () => {
+    const component = criar({
+      cartao: {
+        ...cartao,
+        pessoa: null,
+        diaFechamento: null,
+        diaVencimento: null,
+        diaMelhorCompra: null,
+      },
+    });
+
+    component.ngOnInit();
+
+    expect(component.form.get('pessoa')?.value).toBe('');
+    expect(component.form.get('diaFechamento')?.value).toBeNull();
+    expect(component.form.get('diaVencimento')?.value).toBeNull();
+    expect(component.form.get('diaMelhorCompra')?.value).toBeNull();
+  });
+
   it('deve fechar com false', () => {
     const component = criar();
 
@@ -117,6 +136,21 @@ describe('AdicionarCartaoDialogComponent', () => {
     });
     expect(dialogRef.close).toHaveBeenCalledWith(true);
     expect(component.saving).toBe(false);
+  });
+
+  it('deve zerar status de fatura quando houver valor utilizado no formulário', () => {
+    const component = criar({
+      cartao: { ...cartao, faturaPaga: true, valorFaturaPaga: 300 },
+    });
+    component.ngOnInit();
+    component.form.addControl('valorUtilizado', new FormControl(150));
+    component.form.patchValue({ nome: 'Roxo', banco: 'Nubank', limite: 1000 });
+
+    component.salvar();
+
+    const [, payload] = cartoesService.updateCartao.mock.calls[0];
+    expect(payload.faturaPaga).toBe(false);
+    expect(payload.valorFaturaPaga).toBe(0);
   });
 
   it('deve atualizar cartão e preservar status pago quando não houver valor utilizado no formulário', () => {
@@ -164,6 +198,8 @@ describe('AdicionarCartaoDialogComponent', () => {
     const component = criar();
 
     expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 0 }))).toContain('Servidor indisponível');
+    expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 400, error: {} }))).toBe('Não foi possível salvar. Tente novamente.');
+    expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 400, error: 'erro' }))).toBe('Não foi possível salvar. Tente novamente.');
     expect(component['mensagemErroHttp'](new Error('erro'))).toBe('Não foi possível salvar. Tente novamente.');
   });
 });

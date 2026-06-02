@@ -7,7 +7,7 @@
           <span class="material-icons cartoes-hero__icon">credit_card</span>
         </div>
         <div class="cartoes-hero__text">
-          <h1 class="cartoes-hero__title">Faturas do casal</h1>
+          <h1 class="cartoes-hero__title">{{ (temGrupoFamiliar$ | async) ? 'Faturas do casal' : 'Faturas' }}</h1>
           <p class="cartoes-hero__subtitle">Controle de faturas, limites, vencimentos e uso mensal</p>
         </div>
       </div>

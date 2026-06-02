@@ -8,7 +8,7 @@
         </div>
         <div class="metas-hero__text">
           <h1 class="metas-hero__title">
-            Metas do casal
+            {{ (temGrupoFamiliar$ | async) ? 'Metas do casal' : 'Metas' }}
           </h1>
           <p class="metas-hero__subtitle">{{ tituloSecundario }}</p>
         </div>

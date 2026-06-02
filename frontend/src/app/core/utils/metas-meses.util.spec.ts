@@ -145,6 +145,7 @@ describe('metas-meses.util', () => {
   });
 
   it('parseMesAno retorna null para mês inválido e usa ano inteiros válidos', () => {
+    expect(parseMesAno('Invalido')).toBeNull();
     expect(parseMesAno('Invalid/2026')).toBeNull();
     expect(parseMesAno('Janeiro/20xx')).toEqual({ indiceMes: 0, ano: 20 });
     expect(parseMesAno('Janeiro')).toEqual({ indiceMes: 0, ano: NaN });
@@ -165,6 +166,13 @@ describe('metas-meses.util', () => {
     expect(ordenados).toEqual(['Janeiro/2026', 'Fevereiro', 'Março/2026']);
   });
 
+  it('ordenarNomesMeses coloca nomes inválidos no início do fallback', () => {
+    expect(ordenarNomesMeses(['Março/2026', 'Invalido'], 2026)).toEqual([
+      'Invalido',
+      'Março/2026',
+    ]);
+  });
+
   it('filtrarMesesPorAno respeita anoFallback para nomes sem ano', () => {
     expect(filtrarMesesPorAno(['Janeiro', 'Janeiro/2026'], 2026, 2026)).toEqual(
       ['Janeiro', 'Janeiro/2026'],
@@ -179,6 +187,12 @@ describe('metas-meses.util', () => {
       ),
     ).toBe(true);
     expect(metaTemMesesNoAno({ ano: 2026, meses: [] }, 2026)).toBe(false);
+  });
+
+  it('metaTemMesesNoAno usa ano pesquisado quando meta.ano é inválido', () => {
+    expect(
+      metaTemMesesNoAno({ ano: 'abc' as any, meses: [{ nome: 'Janeiro' }] }, 2027),
+    ).toBe(true);
   });
 
   it('quantidadeMesesPlanejamento respeita mesesNecessarios e lista de meses', () => {
@@ -204,6 +218,10 @@ describe('metas-meses.util', () => {
     ).toBe(false);
   });
 
+  it('metaAlcancaAnoCalendario retorna true no ano inicial sem meses planejados', () => {
+    expect(metaAlcancaAnoCalendario({ ano: 2026, mesesNecessarios: 0 }, 2026)).toBe(true);
+  });
+
   it('mesesPadraoDoAno monta 12 meses padrão', () => {
     expect(mesesPadraoDoAno(2025)).toHaveLength(12);
     expect(mesesPadraoDoAno(2025)[0]).toBe('Janeiro/2025');
@@ -217,6 +235,9 @@ describe('metas-meses.util', () => {
   it('gerarMesesPlanejamento limita quantidade máxima e usa valorPorMes 0 corretamente', () => {
     const meses = gerarMesesPlanejamento(2026, 0, 0);
     expect(meses).toHaveLength(0);
+    const vazios = gerarMesesPlanejamento(2026, 1);
+    expect(vazios[0].status).toBe('Vazio');
+    expect(vazios[0].valor).toBe(0);
     const limites = gerarMesesPlanejamento(2026, 601, 100);
     expect(limites).toHaveLength(600);
     expect(limites[0].status).toBe('Programado');

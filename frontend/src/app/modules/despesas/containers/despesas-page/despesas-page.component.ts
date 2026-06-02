@@ -16,6 +16,7 @@ import {
   NaturezaDespesa,
 } from '@app/core/interfaces/despesas/despesas';
 import { SuccessModalComponent } from '@app/shared/components/success-modal/success-modal.component';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 @Component({
   selector: 'app-despesas-page',
@@ -26,6 +27,7 @@ import { SuccessModalComponent } from '@app/shared/components/success-modal/succ
 })
 export class DespesasPageComponent implements OnInit {
   readonly tituloSecundario = 'Tudo que você gasta no dia a dia';
+  readonly temGrupoFamiliar$ = this.perfilService.temGrupoFamiliar$;
 
   visaoDespesas: 'lista' | 'exemplos' | 'usuario' = 'lista';
   mesAtual: Date = new Date();
@@ -58,6 +60,7 @@ export class DespesasPageComponent implements OnInit {
     private despesasService: DespesasService,
     private cdr: ChangeDetectorRef,
     private dialog: MatDialog,
+    private perfilService: PerfilFinanceiroService,
   ) {}
 
   get nomeMesAtual(): string {

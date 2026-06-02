@@ -7,6 +7,7 @@ import { Meta, StatusMeta } from '../../../../core/interfaces/metas/mes-meta';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { mesesPadraoDoAno } from '@core/utils/metas-meses.util';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 describe('MetasPageComponent', () => {
   let component: MetasPageComponent;
@@ -56,6 +57,10 @@ describe('MetasPageComponent', () => {
         {
           provide: MatDialog,
           useValue: { open: jest.fn().mockReturnValue({ afterClosed: () => of(undefined) }) },
+        },
+        {
+          provide: PerfilFinanceiroService,
+          useValue: { temGrupoFamiliar$: of(true) },
         },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -1213,10 +1218,9 @@ describe('MetasPageComponent', () => {
         ],
       };
       (component as any).processarMetaConcluida(concluidaComMeses, false);
-      expect(updateSpy).toHaveBeenCalledWith(
-        61,
-        expect.objectContaining({ mesesNecessarios: 0 }),
-      );
+      const [metaId, payload] = updateSpy.mock.calls[0];
+      expect(metaId).toBe(61);
+      expect(payload.mesesNecessarios).toBe(0);
     });
 
     it('métodos de valores cobrem metas sem meses e valores vazios', () => {

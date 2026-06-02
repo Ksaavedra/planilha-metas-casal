@@ -136,5 +136,21 @@ describe('LoginComponent', () => {
     expect(component.erro).toBe(
       'Não foi possível entrar. Verifique seus dados e tente novamente.',
     );
+
+    authService.login.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 400, error: {} })),
+    );
+    component.entrar();
+    expect(component.erro).toBe(
+      'Não foi possível entrar. Verifique seus dados e tente novamente.',
+    );
+
+    authService.login.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 400, error: 'erro' })),
+    );
+    component.entrar();
+    expect(component.erro).toBe(
+      'Não foi possível entrar. Verifique seus dados e tente novamente.',
+    );
   });
 });

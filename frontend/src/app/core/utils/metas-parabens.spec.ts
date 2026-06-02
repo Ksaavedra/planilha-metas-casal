@@ -35,6 +35,15 @@ describe('metas-parabens', () => {
       });
       expect(getValorRealizadoMeta(meta)).toBe(4100);
     });
+
+    it('deve tratar valorAtual inválido como zero', () => {
+      const meta = metaBase({
+        valorAtual: undefined as any,
+        meses: [{ id: 1, nome: 'Jan', valor: 100, status: 'Pago' }],
+      });
+
+      expect(getValorRealizadoMeta(meta)).toBe(100);
+    });
   });
 
   describe('getValorFaltanteMeta', () => {
@@ -64,6 +73,15 @@ describe('metas-parabens', () => {
       expect(getValorRealizadoSemMes(meta, 6)).toBe(22000);
       expect(getValorRealizadoSemMes(meta, 99)).toBe(23000);
     });
+
+    it('deve tratar valorAtual e valores pagos inválidos como zero', () => {
+      const meta = metaBase({
+        valorAtual: undefined as any,
+        meses: [{ id: 1, nome: 'Jan', valor: undefined as any, status: 'Pago' }],
+      });
+
+      expect(getValorRealizadoSemMes(meta, 99)).toBe(0);
+    });
   });
 
   describe('getValorMaximoPermitidoMes', () => {
@@ -85,6 +103,11 @@ describe('metas-parabens', () => {
       });
       expect(getValorFaltanteMeta(meta)).toBe(57000);
       expect(getValorMaximoPermitidoMes(meta, 6)).toBe(58000);
+    });
+
+    it('deve retornar zero quando valorMeta não é positivo', () => {
+      expect(getValorMaximoPermitidoMes(metaBase({ valorMeta: 0 }), 1)).toBe(0);
+      expect(getValorMaximoPermitidoMes(metaBase({ valorMeta: -1 }), 1)).toBe(0);
     });
   });
 
@@ -148,6 +171,12 @@ describe('metas-parabens', () => {
       expect(mesExecucaoDesabilitado(meta, 0)).toBe(false);
     });
 
+    it('deve retornar false quando meta concluída não tem meses', () => {
+      const meta = metaBase({ meses: undefined, valorAtual: 4124 });
+
+      expect(mesExecucaoDesabilitado(meta, 0)).toBe(false);
+    });
+
     it('deve retornar true quando mês já estiver Finalizado', () => {
       const meta = metaBase({
         valorAtual: 4124,
@@ -164,6 +193,16 @@ describe('metas-parabens', () => {
       expect(mesExecucaoDesabilitado(meta, 0)).toBe(true);
     });
 
+    it('deve retornar false quando mês está pago e não há pagamento anterior diferente dele', () => {
+      const meta = metaBase({
+        valorAtual: 0,
+        valorMeta: 100,
+        meses: [{ id: 1, nome: 'Jan', valor: 100, status: 'Pago' }],
+      });
+
+      expect(mesExecucaoDesabilitado(meta, 0)).toBe(false);
+    });
+
     it('deve retornar true quando índice do mês é após o último pago', () => {
       const meta = metaBase({
         valorAtual: 4124,
@@ -177,6 +216,11 @@ describe('metas-parabens', () => {
   });
 
   describe('finalizarMesesRestantesDaMeta', () => {
+    it('deve retornar false quando meses estiver undefined', () => {
+      const meta = metaBase({ meses: undefined });
+      expect(finalizarMesesRestantesDaMeta(meta)).toBe(false);
+    });
+
     it('deve retornar false quando não há meses', () => {
       const meta = metaBase({ meses: [] });
       expect(finalizarMesesRestantesDaMeta(meta)).toBe(false);

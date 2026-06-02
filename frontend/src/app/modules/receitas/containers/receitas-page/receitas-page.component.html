@@ -8,7 +8,7 @@
         </div>
         <div class="receitas-hero__text">
           <h1 class="receitas-hero__title">
-            Receitas do casal
+            {{ (temGrupoFamiliar$ | async) ? 'Receitas do casal' : 'Receitas' }}
           </h1>
           <p class="receitas-hero__subtitle">{{ tituloSecundario }}</p>
         </div>

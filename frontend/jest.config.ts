@@ -1,3 +1,5 @@
+declare const module: { exports: unknown };
+
 const esModule = [
   '@angular',
   '@ngrx',
@@ -33,10 +35,10 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      statements: 95,
-      branches: 95,
-      functions: 95,
-      lines: 95,
+      statements: 97,
+      branches: 97,
+      functions: 97,
+      lines: 97,
     },
   },
   transformIgnorePatterns: [
