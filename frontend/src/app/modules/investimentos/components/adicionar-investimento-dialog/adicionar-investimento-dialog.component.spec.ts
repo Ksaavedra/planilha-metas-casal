@@ -360,4 +360,70 @@ describe('AdicionarInvestimentoDialogComponent', () => {
 
     expect(component.erro).toBe('Não foi possível salvar. Tente novamente.');
   });
+
+  it('autocomplete retorna vazio até ativar e filtra nomes normalizados', () => {
+    component.pessoasAutocompleteOptions = ['Ana Maria', 'João'];
+    component.listaAutocompletePessoaAtiva = false;
+    component.form.get('pessoa')?.setValue('ana');
+
+    expect((component as any)._filterPessoa('ana')).toEqual([]);
+
+    component.onPessoaFieldFocus();
+
+    expect((component as any)._filterPessoa('ana')).toEqual(['Ana Maria']);
+  });
+
+  it('focus não reativa autocomplete quando já está ativo', () => {
+    const nextSpy = jest.spyOn((component as any).pessoasOpcoesAtualizadas$, 'next');
+    component.listaAutocompletePessoaAtiva = true;
+
+    component.onPessoaFieldFocus();
+
+    expect(nextSpy).not.toHaveBeenCalled();
+  });
+
+  it('blur mantém pessoa quando já está formatada ou vazia', () => {
+    const ctrl = component.form.get('pessoa');
+    ctrl?.setValue('Kelly');
+    component.onPessoaBlur();
+    expect(ctrl?.value).toBe('Kelly');
+
+    ctrl?.setValue('');
+    component.onPessoaBlur();
+    expect(ctrl?.value).toBe('');
+  });
+
+  it('normalizarListaNomes remove vazios, duplica por case e ordena', () => {
+    expect(
+      (component as any).normalizarListaNomes([
+        ' maria ',
+        null,
+        undefined,
+        'Maria',
+        'ana clara',
+      ]),
+    ).toEqual(['Ana Clara', 'Maria']);
+  });
+
+  it('salvar com pessoa continua mesmo quando criação de usuário falha', () => {
+    usuariosServiceMock.createUsuario.mockReturnValue(throwError(() => new Error('erro')));
+    component.form.patchValue({
+      descricao: 'Tesouro',
+      pessoa: ' maria ',
+      tipoInvestimento: 'tesouro',
+      valorInvestido: 100,
+      valorAtual: '',
+      statusInvestimento: 'crescendo',
+    });
+    component.form.get('valorAtual')?.clearValidators();
+    component.form.get('valorAtual')?.updateValueAndValidity();
+
+    component.salvar();
+
+    expect(usuariosServiceMock.createUsuario).toHaveBeenCalledWith('Maria');
+    expect(investimentosServiceMock.createInvestimento).toHaveBeenCalled();
+    const payload = investimentosServiceMock.createInvestimento.mock.calls[0][0];
+    expect(payload.pessoa).toBe('Maria');
+    expect(payload.valorAtual).toBe(100);
+  });
 });
