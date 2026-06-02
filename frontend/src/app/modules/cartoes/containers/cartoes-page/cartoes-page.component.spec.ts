@@ -514,4 +514,81 @@ describe('CartoesPageComponent', () => {
     expect(initSpy).toHaveBeenCalled();
     expect(component['charts']).toContain(chart);
   });
+
+  it('deve cobrir fallbacks de valores de fatura, limite e resumo', () => {
+    const c = {
+      ...cartao({ id: 10, totalAPagarMes: null as any, valorUtilizado: undefined as any }),
+      limite: undefined as any,
+    };
+    component.cartoes = [c];
+    component.parcelamentos = [
+      parcelaMes({ cartaoId: 10, valorRestante: undefined as any, valorTotal: 300, quantidadeParcelas: 3 }),
+      parcelaMes({ cartaoId: 10, valorRestante: -50, valorTotal: 300, quantidadeParcelas: 3 }),
+    ];
+
+    expect(component.valorUtilizadoFatura(c)).toBe(200);
+    expect(component.valorUtilizadoLimite(c)).toBe(300);
+    expect(component.valorDisponivelFatura(c)).toBe(0);
+    expect(component.resumo.limiteTotal).toBe(0);
+  });
+
+  it('deve cobrir status de fatura com parcelas pagas, quitadas e pendentes', () => {
+    const c = cartao({ id: 11, valorUtilizado: 100, diaVencimento: 1 });
+
+    component.parcelamentos = [parcelaMes({ cartaoId: 11, statusParcelaMes: 'paga' })];
+    expect(component.faturaAtrasada(c)).toBe(false);
+
+    component.parcelamentos = [parcelaMes({ cartaoId: 11, statusParcelaMes: 'quitada' })];
+    expect(component.faturaAtrasada(c)).toBe(false);
+
+    component.parcelamentos = [parcelaMes({ cartaoId: 11, statusParcelaMes: 'pendente' })];
+    expect(component.faturaAtrasada(c)).toBe(true);
+
+    component.parcelamentos = [];
+    expect((component as any).statusResumoParcelasCartao(c)).toBeNull();
+  });
+
+  it('deve cobrir datas de previsão inválidas e vencidas', () => {
+    expect(component.previsaoPagamentoVencida(cartao({ previsaoPagamento: undefined, valorUtilizado: 100 }))).toBe(false);
+    expect(component.previsaoPagamentoVencida(cartao({ previsaoPagamento: 'data-invalida', valorUtilizado: 100 }))).toBe(false);
+    expect(component.previsaoPagamentoVencida(cartao({ previsaoPagamento: '2026-05-10', valorUtilizado: 100 }))).toBe(true);
+
+    expect((component as any).dataLocal(null)).toBeNull();
+    expect((component as any).dataLocal('2026-00-10')).toBeNull();
+  });
+
+  it('deve cobrir atualizações de parcelas pagas e desfeitas com dataInicio ausente', () => {
+    const c = cartao({ id: 12 });
+    const pendente = {
+      ...parcelaMes({
+        id: 101,
+        cartaoId: 12,
+        statusParcelaMes: 'pendente',
+        parcelaMesPaga: false,
+        valorTotal: 300,
+        quantidadeParcelas: 3,
+      }),
+      dataInicio: undefined,
+    } as DividaNoMes;
+    const paga = {
+      ...parcelaMes({
+        id: 102,
+        cartaoId: 12,
+        statusParcelaMes: 'paga',
+        parcelaMesPaga: true,
+        valorTotal: 300,
+        quantidadeParcelas: 3,
+      }),
+      dataInicio: undefined,
+    } as DividaNoMes;
+    component.parcelamentos = [pendente, paga];
+
+    const pagar = (component as any).atualizacoesParcelasPagas(c);
+    const desfazer = (component as any).atualizacoesParcelasDesfeitas(c);
+
+    expect(pagar.length).toBe(1);
+    expect(desfazer.length).toBe(1);
+    expect(dividasService.updateDivida).toHaveBeenCalledWith(101, { valorPago: 100 });
+    expect(dividasService.updateDivida).toHaveBeenCalledWith(102, { valorPago: 0 });
+  });
 });

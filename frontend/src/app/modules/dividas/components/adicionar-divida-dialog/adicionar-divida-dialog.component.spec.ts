@@ -216,4 +216,72 @@ describe('AdicionarDividaDialogComponent', () => {
     expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 400, error: { error: 'Erro API' } }))).toBe('Erro API');
     expect(component['mensagemErroHttp'](new Error('erro'))).toBe('Não foi possível salvar. Tente novamente.');
   });
+
+  it('deve preencher edição usando fallbacks quando projeção e opcionais estão ausentes', () => {
+    const component = criar({
+      divida: {
+        ...divida,
+        valorPago: 25,
+        quantidadeParcelas: undefined as any,
+        cartaoId: undefined as any,
+        dataInicio: undefined,
+        observacoes: undefined,
+      },
+      ano: 2025,
+      mes: 1,
+      contexto: 'emprestimos',
+    });
+
+    component.ngOnInit();
+
+    expect(component.form.get('valorPago')?.value).toBe(25);
+    expect(component.form.get('quantidadeParcelas')?.value).toBe(1);
+    expect(component.form.get('cartaoId')?.value).toBe('');
+    expect(component.form.get('dataInicio')?.value).toBe('');
+    expect(component.form.get('observacoes')?.value).toBe('');
+  });
+
+  it('deve criar payload com cartão e omitir data/observações vazias', () => {
+    const component = criar({ divida: null, ano: 2026, mes: undefined, contexto: 'emprestimos' });
+    component.ngOnInit();
+    component.form.patchValue({
+      objetivo: 'Cartão',
+      tipoDivida: 'emprestimo',
+      valorTotal: 500,
+      valorPago: '',
+      quantidadeParcelas: 5,
+      cartaoId: '7',
+      dataInicio: '',
+      observacoes: '',
+    });
+
+    component.salvar();
+
+    const payload = dividasService.createDivida.mock.calls[0][0];
+    expect(payload.cartaoId).toBe(7);
+    expect(payload.valorPago).toBe(0);
+    expect(payload.dataInicio).toBeUndefined();
+    expect(payload.observacoes).toBeUndefined();
+  });
+
+  it('deve calcular parcela zerada quando valores do formulário estão vazios', () => {
+    const component = criar();
+    component.ngOnInit();
+
+    component.form.patchValue({ valorTotal: '', quantidadeParcelas: '' });
+
+    expect(component.valorTotalForm).toBe(0);
+    expect(component.quantidadeParcelasForm).toBe(0);
+    expect(component.parcelaCalculada).toBe(0);
+  });
+
+  it('mensagemErroHttp ignora corpo sem campo error', () => {
+    const component = criar();
+
+    expect(
+      component['mensagemErroHttp'](
+        new HttpErrorResponse({ status: 500, error: { message: 'falha' } }),
+      ),
+    ).toBe('Não foi possível salvar. Tente novamente.');
+  });
 });

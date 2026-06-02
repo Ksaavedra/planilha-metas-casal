@@ -220,6 +220,7 @@ describe('CartoesUsuarioComponent', () => {
     expect(component.statusLinhaLabel(c)).toContain('Fatura');
     expect(component.statusLinhaClasse(c)).toContain('atrasado');
 
+    component.mesReferencia = new Date(2026, 6, 1);
     const emDia = cartao({ id: 1, valorUtilizado: 100, diaFechamento: 31, diaVencimento: 30 });
     component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'pendente' })];
     expect(component.statusLinhaLabel(emDia)).toContain('Pendente');
