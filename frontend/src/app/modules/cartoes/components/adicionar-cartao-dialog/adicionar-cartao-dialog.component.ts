@@ -146,6 +146,10 @@ export class AdicionarCartaoDialogComponent implements OnInit {
     });
   }
 
+  nomeUsuario(usuario: Usuario): string {
+    return usuario.nomeExibicao || usuario.apelido || usuario.nome;
+  }
+
   private mensagemErroHttp(err: unknown): string {
     if (err instanceof HttpErrorResponse) {
       if (err.status === 0) {

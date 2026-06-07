@@ -9,6 +9,7 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 import * as echarts from 'echarts';
 import { Divida, DividaNoMes } from '@core/interfaces/dividas/dividas';
 import {
@@ -37,6 +38,7 @@ import {
 } from '../../components/adicionar-divida-dialog/adicionar-divida-dialog.component';
 import { ConfirmModalComponent } from 'shared/components/confirm-modal/confirm-modal.component';
 import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
+import { PerfilFinanceiroService } from '@app/core/services/perfis/perfil-financeiro.service';
 
 type ContextoDividas = 'emprestimos' | 'financiamentos';
 
@@ -60,10 +62,13 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly progresso = progressoDivida;
   readonly parcelaMensal = parcelaMensalDivida;
   readonly parcelasLabel = parcelasRestantesLabel;
+  readonly temGrupoFamiliar$ = this.perfilService.temGrupoFamiliar$;
 
   dividas: DividaNoMes[] = [];
   private dividasAno: Divida[] = [];
   private anoCarregado: number | null = null;
+  private temGrupoFamiliar = false;
+  private temGrupoFamiliarSub?: Subscription;
   carregando = false;
   erroCarregar: string | null = null;
   mesAtual: Date = new Date();
@@ -94,6 +99,7 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
     private dividasService: DividasService,
     private dialog: MatDialog,
     private route: ActivatedRoute,
+    private perfilService: PerfilFinanceiroService,
   ) {}
 
   get resumo() {
@@ -109,9 +115,13 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get tituloPagina(): string {
-    return this.contextoDividas === 'financiamentos'
-      ? 'Financiamentos do casal'
-      : 'Empréstimos do casal';
+    if (this.contextoDividas === 'financiamentos') {
+      return this.temGrupoFamiliar
+        ? 'Financiamentos do casal'
+        : 'Financiamentos';
+    }
+
+    return this.temGrupoFamiliar ? 'Empréstimos do casal' : 'Empréstimos';
   }
 
   get subtituloPagina(): string {
@@ -246,6 +256,11 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.temGrupoFamiliarSub = this.temGrupoFamiliar$.subscribe(
+      (temGrupoFamiliar) => {
+        this.temGrupoFamiliar = temGrupoFamiliar;
+      },
+    );
     this.atualizarContextoPelaRota();
     this.mesAtual = this.dividasService.getMesReferencia();
     this.carregar();
@@ -256,6 +271,7 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.temGrupoFamiliarSub?.unsubscribe();
     this.charts.forEach((c) => c.dispose());
     this.charts = [];
   }
@@ -370,10 +386,13 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
       width: 'min(420px, 96vw)',
       data: {
         title: 'Pagar parcela?',
-        message: `Deseja marcar a parcela ${this.parcelasLabel(d)} de "${d.objetivo}" como paga (${parcela.toLocaleString('pt-BR', {
-          style: 'currency',
-          currency: 'BRL',
-        })})?`,
+        message: `Deseja marcar a parcela ${this.parcelasLabel(d)} de "${d.objetivo}" como paga (${parcela.toLocaleString(
+          'pt-BR',
+          {
+            style: 'currency',
+            currency: 'BRL',
+          },
+        )})?`,
         confirmText: 'Sim, pagar',
         cancelText: 'Não',
       },

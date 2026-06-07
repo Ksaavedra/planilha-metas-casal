@@ -33,8 +33,8 @@
           <span class="field-label">Quem paga a fatura</span>
           <select formControlName="pessoa" class="input-select">
             <option value="">Selecione uma pessoa</option>
-            <option *ngFor="let usuario of usuarios" [value]="usuario.nome">
-              {{ usuario.nome }}
+            <option *ngFor="let usuario of usuarios" [value]="nomeUsuario(usuario)">
+              {{ nomeUsuario(usuario) }}
             </option>
           </select>
         </label>

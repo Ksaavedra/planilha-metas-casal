@@ -8,13 +8,19 @@ import { CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA } from '@angular/core';
 describe('LoggedComponent', () => {
   let component: LoggedComponent;
   let fixture: ComponentFixture<LoggedComponent>;
-  let sidebarService: { getStatus: jest.Mock; isMobile: jest.Mock; changeStatus: jest.Mock };
+  let sidebarService: {
+    getStatus: jest.Mock;
+    isMobile: jest.Mock;
+    changeStatus: jest.Mock;
+    close: jest.Mock;
+  };
 
   beforeEach(async () => {
     sidebarService = {
       getStatus: jest.fn().mockReturnValue(of(false)),
       isMobile: jest.fn().mockReturnValue(of(false)),
       changeStatus: jest.fn(),
+      close: jest.fn(),
     };
     await TestBed.configureTestingModule({
       declarations: [LoggedComponent],
@@ -74,5 +80,21 @@ describe('LoggedComponent', () => {
     component.fecharSidebarMobile();
 
     expect(sidebarService.changeStatus).not.toHaveBeenCalled();
+  });
+
+  it('deve fechar sidebar ao clicar no conteúdo da tela', () => {
+    component.sidebarStatus = true;
+
+    component.fecharSidebarAoClicarConteudo();
+
+    expect(sidebarService.close).toHaveBeenCalledTimes(1);
+  });
+
+  it('não deve fechar sidebar ao clicar no conteúdo quando menu já está fechado', () => {
+    component.sidebarStatus = false;
+
+    component.fecharSidebarAoClicarConteudo();
+
+    expect(sidebarService.close).not.toHaveBeenCalled();
   });
 });

@@ -47,7 +47,12 @@ describe('AdicionarCartaoDialogComponent', () => {
     jest.clearAllMocks();
     cartoesService.createCartao.mockReturnValue(of({}));
     cartoesService.updateCartao.mockReturnValue(of({}));
-    usuariosService.getUsuarios.mockReturnValue(of([{ id: 1, nome: 'Kelly' }]));
+    usuariosService.getUsuarios.mockReturnValue(
+      of([
+        { id: 1, nome: 'Kelly' },
+        { id: 2, nome: 'David' },
+      ]),
+    );
   });
 
   it('deve iniciar em modo inclusão e carregar usuários', () => {
@@ -57,7 +62,11 @@ describe('AdicionarCartaoDialogComponent', () => {
 
     expect(component.isEdicao).toBe(false);
     expect(component.tituloDialog).toBe('Adicionar cartão');
-    expect(component.usuarios).toEqual([{ id: 1, nome: 'Kelly' }]);
+    expect(usuariosService.getUsuarios).toHaveBeenCalled();
+    expect(component.usuarios).toEqual([
+      { id: 1, nome: 'Kelly' },
+      { id: 2, nome: 'David' },
+    ]);
     expect(cdr.markForCheck).toHaveBeenCalled();
   });
 

@@ -14,108 +14,227 @@
     </div>
 
     <div class="header-user" *ngIf="currentUser$ | async as user">
-      <button class="user-pill" type="button" [title]="nomeUsuario(user)" [attr.aria-expanded]="isUserMenuOpen"
+      <button class="user-pill" type="button" [title]="usuarioLogin(user)" [attr.aria-expanded]="isUserMenuOpen"
         aria-haspopup="menu" (click)="toggleUserMenu()">
         <span class="user-avatar" aria-hidden="true">👤</span>
-        <span class="user-name">{{ nomeUsuario(user) }}</span>
+        <span class="user-name">{{ usuarioLogin(user) }}</span>
         <span class="material-icons user-chevron" aria-hidden="true">
           {{ isUserMenuOpen ? 'expand_less' : 'expand_more' }}
         </span>
       </button>
 
       <div class="user-menu" *ngIf="isUserMenuOpen && (perfis$ | async) as perfis" role="menu">
-        <div class="user-menu__section user-menu__section--profile" aria-label="Meu perfil">
-          <span class="user-menu__label">Meu perfil</span>
-          <span class="user-menu__current">{{ nomeUsuario(user) }}</span>
-        </div>
-
-        <div class="user-menu__section" [attr.aria-label]="tituloLista(perfis)">
-          <span class="user-menu__label">{{ tituloLista(perfis) }}</span>
-          <div class="user-menu__empty" *ngIf="perfis.length === 0">
-            Nenhum nome cadastrado.
+        <ng-container *ngIf="tipoUso$ | async as tipoUso">
+          <div class="user-menu__section user-menu__section--profile" aria-label="Meu perfil">
+            <span class="user-menu__label">Meu perfil</span>
+            <span class="user-menu__current">{{ nomeMeuPerfil(user, perfis) }}</span>
           </div>
-          <div class="user-menu__person" *ngFor="let perfil of perfis; trackBy: trackByPerfilId">
-            <span aria-hidden="true">•</span>
-            <span>{{ perfil.nome }}</span>
-          </div>
-        </div>
 
-        <div class="user-menu__section user-menu__section--actions" aria-label="Ações">
-          <button class="user-menu__item" type="button" role="menuitem" (click)="abrirAdicionarPerfil()">
-            <span aria-hidden="true">➕</span>
-            <span>Adicionar Perfil</span>
-          </button>
-          <button class="user-menu__item" type="button" role="menuitem" (click)="abrirConfiguracoes()">
-            <span aria-hidden="true">⚙</span>
-            <span>Configurações</span>
-          </button>
-          <button class="user-menu__item user-menu__item--danger" type="button" role="menuitem" (click)="logout()">
-            <span aria-hidden="true">🚪</span>
-            <span>Sair</span>
-          </button>
-        </div>
+          <div class="user-menu__section" *ngIf="tipoUso === 'familia' && perfisFamilia(perfis, user).length > 0"
+            [attr.aria-label]="tituloLista()">
+            <span class="user-menu__label">{{ tituloLista() }}</span>
+            <div class="user-menu__person" *ngFor="let perfil of perfisFamilia(perfis, user); trackBy: trackByPerfilId">
+              <span aria-hidden="true">•</span>
+              <span>{{ nomePerfil(perfil) }}</span>
+            </div>
+          </div>
+
+          <div class="user-menu__section user-menu__section--actions" aria-label="Ações">
+            <button class="user-menu__item" type="button" role="menuitem" (click)="abrirConfiguracoes()">
+              <span aria-hidden="true">⚙</span>
+              <span>Configurações</span>
+            </button>
+            <button class="user-menu__item user-menu__item--danger" type="button" role="menuitem" (click)="logout()">
+              <span aria-hidden="true">🚪</span>
+              <span>Sair</span>
+            </button>
+          </div>
+        </ng-container>
       </div>
     </div>
   </div>
 
-  <div class="profile-modal-backdrop" *ngIf="modalAdicionarAberto" role="presentation">
-    <section class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="adicionarPerfilTitulo">
-      <h2 id="adicionarPerfilTitulo">Adicionar Perfil</h2>
+</header>
 
-      <label class="profile-field">
-        <span>Nome *</span>
-        <input type="text" [value]="novoPerfilNome" (input)="novoPerfilNome = $any($event.target).value"
-          placeholder="Ex.: Kelly, David, Max" />
-      </label>
+<div class="profile-modal-backdrop" *ngIf="modalAdicionarAberto" role="presentation" (click)="fecharAdicionarPerfil()">
+  <section class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="adicionarPerfilTitulo"
+    (click)="$event.stopPropagation()">
+    <h2 id="adicionarPerfilTitulo">Adicionar Pessoa</h2>
 
-      <div class="profile-modal__actions">
-        <button type="button" class="profile-btn profile-btn--ghost" (click)="fecharAdicionarPerfil()">Cancelar</button>
-        <button type="button" class="profile-btn profile-btn--primary" (click)="salvarNovoPerfil()">Salvar</button>
-      </div>
-    </section>
-  </div>
+    <label class="profile-field">
+      <span>Nome *</span>
+      <input type="text" [value]="novoPerfilNome" (input)="novoPerfilNome = $any($event.target).value"
+        placeholder="Ex.: Kelly Cristina" />
+    </label>
 
-  <div class="profile-modal-backdrop" *ngIf="configuracoesAberta && (perfis$ | async) as perfis" role="presentation">
-    <section class="profile-modal profile-modal--settings" role="dialog" aria-modal="true"
-      aria-labelledby="configuracoesPerfilTitulo">
+    <label class="profile-field">
+      <span>Apelido (opcional)</span>
+      <input type="text" [value]="novoPerfilApelido" (input)="novoPerfilApelido = $any($event.target).value"
+        placeholder="Ex.: Kelly Filha" />
+    </label>
+
+    <p class="profile-modal__error" *ngIf="perfilErroMensagem">{{ perfilErroMensagem }}</p>
+
+    <div class="profile-modal__actions">
+      <button type="button" class="profile-btn profile-btn--ghost" (click)="fecharAdicionarPerfil()">Cancelar</button>
+      <button type="button" class="profile-btn profile-btn--primary" (click)="salvarNovoPerfil()">Salvar</button>
+    </div>
+  </section>
+</div>
+
+<div class="profile-modal-backdrop" *ngIf="configuracoesAberta && (perfis$ | async) as perfis" role="presentation"
+  (click)="fecharConfiguracoes()">
+  <section class="profile-modal profile-modal--settings" role="dialog" aria-modal="true"
+    aria-labelledby="configuracoesPerfilTitulo" (click)="$event.stopPropagation()">
+    <ng-container *ngIf="tipoUso$ | async as tipoUso">
       <header class="profile-modal__header">
-        <h2 id="configuracoesPerfilTitulo">⚙ Configurações</h2>
+        <h2 id="configuracoesPerfilTitulo">Configurações</h2>
         <button type="button" class="profile-modal__close" aria-label="Fechar configurações"
           (click)="fecharConfiguracoes()">×</button>
       </header>
 
       <div class="profile-settings__section">
-        <h3>Gerenciar nomes cadastrados</h3>
-        <div class="profile-settings__empty" *ngIf="perfis.length === 0">
-          Nenhum nome cadastrado ainda.
-        </div>
-        <div class="profile-settings__list">
-          <div class="profile-settings__item" *ngFor="let perfil of perfis; trackBy: trackByPerfilId">
-            <span class="profile-settings__name" *ngIf="perfilEditandoId !== perfil.id">
-              <span aria-hidden="true">👤</span>
-              {{ perfil.nome }}
-            </span>
+        <section class="profile-settings__card" aria-label="Minha Conta">
+          <h3>👤 Minha Conta</h3>
+          <button type="button" class="profile-settings__link">Editar meu nome</button>
+          <button type="button" class="profile-settings__link">Alterar senha</button>
+        </section>
 
-            <input class="profile-settings__input" *ngIf="perfilEditandoId === perfil.id" type="text"
-              [value]="perfilEditandoNome" (input)="atualizarNomeEdicao($event)" />
+        <section class="profile-settings__card" *ngIf="tipoUso === 'familia'" aria-label="Gerenciar Pessoas">
+          <div class="profile-settings__card-header">
+            <h3>👥 Gerenciar Pessoas</h3>
+            <span>Total de pessoas: {{ perfis.length }}</span>
+          </div>
+          <button type="button" class="profile-settings__link" (click)="abrirAdicionarPessoaConfiguracoes()">
+            ➕ Adicionar Pessoa
+          </button>
+          <div class="profile-settings__empty" *ngIf="perfis.length === 0">
+            Nenhum nome cadastrado ainda.
+          </div>
+          <div class="profile-settings__list">
+            <div class="profile-settings__item" *ngFor="let perfil of perfis; trackBy: trackByPerfilId">
+              <span class="profile-settings__name" *ngIf="perfilEditandoId !== perfil.id">
+                <span aria-hidden="true">👤</span>
+                {{ nomePerfil(perfil) }}
+                <small *ngIf="perfil.principal">Principal</small>
+              </span>
 
-            <div class="profile-settings__actions">
-              <button type="button" *ngIf="perfilEditandoId !== perfil.id" (click)="iniciarEdicaoPerfil(perfil)">
-                Editar
-              </button>
-              <button type="button" *ngIf="perfilEditandoId === perfil.id" (click)="salvarEdicaoPerfil()">
-                Salvar
-              </button>
-              <button type="button" *ngIf="perfilEditandoId === perfil.id" (click)="cancelarEdicaoPerfil()">
-                Cancelar
-              </button>
-              <button type="button" class="profile-settings__remove" (click)="removerPerfil(perfil)">
-                Remover
-              </button>
+              <div class="profile-settings__edit" *ngIf="perfilEditandoId === perfil.id">
+                <label>
+                  <span>Nome *</span>
+                  <input class="profile-settings__input" type="text" [value]="perfilEditandoNome"
+                    (input)="atualizarNomeEdicao($event)" />
+                </label>
+                <label>
+                  <span>Apelido (opcional)</span>
+                  <input class="profile-settings__input" type="text" [value]="perfilEditandoApelido"
+                    (input)="atualizarApelidoEdicao($event)" />
+                </label>
+                <p class="profile-modal__error" *ngIf="perfilErroMensagem">{{ perfilErroMensagem }}</p>
+              </div>
+
+              <div class="profile-settings__actions">
+                <button type="button" *ngIf="perfilEditandoId !== perfil.id && !perfil.principal"
+                  (click)="iniciarEdicaoPerfil(perfil)">
+                  Editar
+                </button>
+                <button type="button" *ngIf="perfilEditandoId === perfil.id" (click)="salvarEdicaoPerfil()">
+                  Salvar
+                </button>
+                <button type="button" *ngIf="perfilEditandoId === perfil.id" (click)="cancelarEdicaoPerfil()">
+                  Cancelar
+                </button>
+                <button type="button" class="profile-settings__remove" *ngIf="!perfil.principal"
+                  (click)="removerPerfil(perfil)">
+                  Remover
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
+
+        <section class="profile-settings__card" aria-label="Tipo de uso">
+          <h3>⚙ Tipo de uso</h3>
+          <button type="button" class="profile-settings__link" (click)="abrirTipoUso()">
+            {{ labelTipoUso(tipoUso) }}
+          </button>
+        </section>
+
+        <section class="profile-settings__card" aria-label="Sair">
+          <button type="button" class="profile-settings__link profile-settings__link--danger" (click)="logout()">
+            🚪 Sair
+          </button>
+        </section>
       </div>
-    </section>
-  </div>
-</header>
+    </ng-container>
+  </section>
+</div>
+
+<div class="profile-modal-backdrop" *ngIf="modalTipoUsoAberto" role="presentation" (click)="fecharTipoUso()">
+  <section class="profile-modal profile-modal--compact" role="dialog" aria-modal="true" aria-labelledby="tipoUsoTitulo"
+    (click)="$event.stopPropagation()">
+    <h2 id="tipoUsoTitulo">Tipo de uso</h2>
+
+    <div class="profile-choice-group">
+      <label>
+        <input type="radio" name="tipoUso" value="individual" [checked]="tipoUsoSelecionado === 'individual'"
+          (change)="tipoUsoSelecionado = 'individual'" />
+        <span>Individual</span>
+      </label>
+      <label>
+        <input type="radio" name="tipoUso" value="familia" [checked]="tipoUsoSelecionado === 'familia'"
+          (change)="tipoUsoSelecionado = 'familia'" />
+        <span>Família</span>
+      </label>
+    </div>
+
+    <div class="profile-modal__actions">
+      <button type="button" class="profile-btn profile-btn--ghost" (click)="fecharTipoUso()">Cancelar</button>
+      <button type="button" class="profile-btn profile-btn--primary" (click)="salvarTipoUso()">Salvar</button>
+    </div>
+  </section>
+</div>
+
+<div class="profile-modal-backdrop" *ngIf="modalConfirmarAtivarFamiliaAberto" role="presentation"
+  (click)="cancelarAtivarFamilia()">
+  <section class="profile-modal profile-modal--compact" role="dialog" aria-modal="true"
+    aria-labelledby="ativarFamiliaTitulo" (click)="$event.stopPropagation()">
+    <h2 id="ativarFamiliaTitulo">Deseja ativar o modo Família?</h2>
+    <p class="profile-modal__text">
+      Você poderá cadastrar pessoas para organizar receitas, despesas, investimentos e metas em conjunto.
+    </p>
+    <div class="profile-modal__actions">
+      <button type="button" class="profile-btn profile-btn--ghost" (click)="cancelarAtivarFamilia()">Cancelar</button>
+      <button type="button" class="profile-btn profile-btn--primary" (click)="confirmarAtivarFamilia()">Ativar</button>
+    </div>
+  </section>
+</div>
+
+<div class="profile-modal-backdrop" *ngIf="modalConfirmarIndividualAberto" role="presentation"
+  (click)="cancelarTrocaParaIndividual()">
+  <section class="profile-modal profile-modal--compact" role="dialog" aria-modal="true"
+    aria-labelledby="individualTitulo" (click)="$event.stopPropagation()">
+    <h2 id="individualTitulo">Existem pessoas cadastradas na família.</h2>
+    <p class="profile-modal__text">O que deseja fazer?</p>
+
+    <div class="profile-choice-group">
+      <label>
+        <input type="radio" name="acaoPessoas" value="manter" [checked]="acaoPessoasAoIndividual === 'manter'"
+          (change)="acaoPessoasAoIndividual = 'manter'" />
+        <span>Manter pessoas cadastradas</span>
+      </label>
+      <label>
+        <input type="radio" name="acaoPessoas" value="remover" [checked]="acaoPessoasAoIndividual === 'remover'"
+          (change)="acaoPessoasAoIndividual = 'remover'" />
+        <span>Remover todas as pessoas</span>
+      </label>
+    </div>
+
+    <div class="profile-modal__actions">
+      <button type="button" class="profile-btn profile-btn--ghost"
+        (click)="cancelarTrocaParaIndividual()">Cancelar</button>
+      <button type="button" class="profile-btn profile-btn--primary"
+        (click)="salvarTrocaParaIndividual()">Salvar</button>
+    </div>
+  </section>
+</div>

@@ -34,7 +34,9 @@ describe('RegisterComponent', () => {
     expect(authService.register).not.toHaveBeenCalled();
 
     component.form.patchValue({
-      nome: 'Kelly',
+      usuario: 'usuario1',
+      nomeCompleto: 'Kelly Michele',
+      apelido: 'Kelly',
       email: 'kelly@email.com',
       senha: '123456',
       confirmarSenha: '654321',
@@ -47,7 +49,9 @@ describe('RegisterComponent', () => {
   it('deve criar conta e navegar para dashboard', () => {
     const component = criar();
     component.form.patchValue({
-      nome: 'Kelly',
+      usuario: 'usuario1',
+      nomeCompleto: 'Kelly Michele',
+      apelido: 'Kelly',
       email: 'kelly@email.com',
       senha: '123456',
       confirmarSenha: '123456',
@@ -56,7 +60,9 @@ describe('RegisterComponent', () => {
     component.criarConta();
 
     expect(authService.register).toHaveBeenCalledWith({
-      nome: 'Kelly',
+      usuario: 'usuario1',
+      nomeCompleto: 'Kelly Michele',
+      apelido: 'Kelly',
       email: 'kelly@email.com',
       senha: '123456',
     });
@@ -76,7 +82,9 @@ describe('RegisterComponent', () => {
     );
     const component = criar();
     component.form.patchValue({
-      nome: 'Kelly',
+      usuario: 'usuario1',
+      nomeCompleto: 'Kelly Michele',
+      apelido: 'Kelly',
       email: 'kelly@email.com',
       senha: '123456',
       confirmarSenha: '123456',

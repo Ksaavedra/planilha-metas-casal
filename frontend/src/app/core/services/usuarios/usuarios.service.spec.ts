@@ -82,4 +82,57 @@ describe('UsuariosService', () => {
       req.flush('Erro', { status: 400, statusText: 'Bad Request' });
     });
   });
+
+  describe('updateUsuario', () => {
+    it('deve fazer PUT/usuarios/:id com payload', () => {
+      const mockUsuario = { id: 1, nome: 'Kelly Silva' };
+
+      service.updateUsuario(1, 'Kelly Silva').subscribe((usuario) => {
+        expect(usuario).toEqual(mockUsuario);
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/usuarios/1`);
+
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ nome: 'Kelly Silva' });
+
+      req.flush(mockUsuario);
+    });
+
+    it('deve tratar erro no PUT', () => {
+      service.updateUsuario(1, 'Kelly').subscribe({
+        error: (error) => {
+          expect(error).toBe(404);
+        },
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/usuarios/1`);
+      req.flush('Erro', { status: 404, statusText: 'Not Found' });
+    });
+  });
+
+  describe('deleteUsuario', () => {
+    it('deve fazer DELETE/usuarios/:id', () => {
+      service.deleteUsuario(1).subscribe((response) => {
+        expect(response).toBeNull();
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/usuarios/1`);
+
+      expect(req.request.method).toBe('DELETE');
+
+      req.flush(null);
+    });
+
+    it('deve tratar erro no DELETE', () => {
+      service.deleteUsuario(1).subscribe({
+        error: (error) => {
+          expect(error).toBe(404);
+        },
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/usuarios/1`);
+      req.flush('Erro', { status: 404, statusText: 'Not Found' });
+    });
+  });
 });

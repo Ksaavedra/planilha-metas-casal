@@ -46,13 +46,13 @@
         (click)="selecionarVisao('categorias')" role="tab" [attr.aria-selected]="visaoRelatorio === 'categorias'">
         Categorias
       </button>
-      <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'guia'"
-        (click)="selecionarVisao('guia')" role="tab" [attr.aria-selected]="visaoRelatorio === 'guia'">
-        Guia
-      </button>
       <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'graficos'"
         (click)="selecionarVisao('graficos')" role="tab" [attr.aria-selected]="visaoRelatorio === 'graficos'">
         Gráficos
+      </button>
+      <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'guia'"
+        (click)="selecionarVisao('guia')" role="tab" [attr.aria-selected]="visaoRelatorio === 'guia'">
+        Guia
       </button>
     </div>
   </header>

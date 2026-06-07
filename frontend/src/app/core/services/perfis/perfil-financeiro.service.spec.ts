@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
 import { PerfilFinanceiroService } from './perfil-financeiro.service';
 import { UsuariosService } from '@core/services/usuarios/usuarios.service';
 
@@ -8,9 +8,9 @@ describe('PerfilFinanceiroService', () => {
   let usuariosService: {
     getUsuarios: jest.Mock;
     createUsuario: jest.Mock;
+    updateUsuario: jest.Mock;
+    deleteUsuario: jest.Mock;
   };
-
-  const storageKey = 'orbis_perfis_financeiros';
 
   const criarService = (): PerfilFinanceiroService => {
     TestBed.resetTestingModule();
@@ -28,78 +28,34 @@ describe('PerfilFinanceiroService', () => {
     usuariosService = {
       getUsuarios: jest.fn().mockReturnValue(of([])),
       createUsuario: jest.fn().mockReturnValue(of({ id: 10, nome: 'Kelly' })),
+      updateUsuario: jest.fn().mockReturnValue(of({ id: 1, nome: 'Kelly Oliveira' })),
+      deleteUsuario: jest.fn().mockReturnValue(of(undefined)),
     };
     service = criarService();
   });
 
-  afterEach(() => {
-    localStorage.clear();
-  });
-
-  it('deve ser criado com lista vazia quando não houver storage', () => {
+  it('deve iniciar vazio sem depender de localStorage', () => {
     expect(service).toBeTruthy();
     expect(service.perfis).toEqual([]);
     expect(service.temGrupoFamiliarAtual).toBe(false);
+    expect(service.tipoUsoAtual).toBe('individual');
   });
 
-  it('deve carregar perfis válidos do localStorage ignorando família antiga e nomes vazios', () => {
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify([
-        { id: 'familia-1', nome: 'Família Kelly', tipo: 'familia' },
-        { id: 'usuario-1', nome: ' Kelly ', tipo: 'usuario' },
-        { id: 'sem-nome', nome: '   ', tipo: 'usuario' },
-        { id: 'usuario-2', nome: 'David' },
-      ]),
-    );
+  it('deve definir tipo de uso e atualizar estado familiar', async () => {
+    service.definirTipoUso('familia');
 
-    service = criarService();
-
-    expect(service.perfis).toEqual([
-      { id: 'usuario-1', nome: 'Kelly' },
-      { id: 'usuario-2', nome: 'David' },
-    ]);
+    expect(service.tipoUsoAtual).toBe('familia');
     expect(service.temGrupoFamiliarAtual).toBe(true);
+    await expect(firstValueFrom(service.temGrupoFamiliar$)).resolves.toBe(true);
   });
 
-  it('deve retornar lista vazia quando localStorage estiver inválido', () => {
-    localStorage.setItem(storageKey, '{erro');
-
-    service = criarService();
-
-    expect(service.perfis).toEqual([]);
-  });
-
-  it('deve retornar lista vazia quando localStorage não for array', () => {
-    localStorage.setItem(storageKey, JSON.stringify({ id: 'usuario-1' }));
-
-    service = criarService();
-
-    expect(service.perfis).toEqual([]);
-  });
-
-  it('deve criar id local quando item do storage não tiver id', () => {
-    localStorage.setItem(storageKey, JSON.stringify([{ nome: 'Carla' }]));
-
-    service = criarService();
-
-    expect(service.perfis[0].nome).toBe('Carla');
-    expect(service.perfis[0].id).toContain('pessoa-carla-');
-  });
-
-  it('deve ignorar perfil do storage com nome nulo', () => {
-    localStorage.setItem(storageKey, JSON.stringify([{ id: null, nome: null }]));
-
-    service = criarService();
-
-    expect(service.perfis).toEqual([]);
-  });
-
-  it('deve carregar usuários cadastrados da API quando a lista local estiver vazia', () => {
+  it('deve carregar usuários cadastrados da API mantendo pessoas cadastradas', async () => {
     usuariosService.getUsuarios.mockReturnValue(
       of([
-        { id: 1, nome: 'Kelly' },
-        { id: 2, nome: 'David' },
+        { id: 1, nome: ' Kelly ' },
+        { id: 2, nome: 'kelly' },
+        { id: 3, nome: 'David' },
+        { id: 4, nome: '' },
       ]),
     );
 
@@ -108,138 +64,144 @@ describe('PerfilFinanceiroService', () => {
     expect(usuariosService.getUsuarios).toHaveBeenCalled();
     expect(service.perfis).toEqual([
       { id: 'usuario-1', nome: 'Kelly' },
-      { id: 'usuario-2', nome: 'David' },
+      { id: 'usuario-2', nome: 'kelly' },
+      { id: 'usuario-3', nome: 'David' },
     ]);
-    expect(JSON.parse(localStorage.getItem(storageKey) || '[]')).toEqual(
-      service.perfis,
-    );
+    expect(service.temGrupoFamiliarAtual).toBe(false);
+    await expect(firstValueFrom(service.temGrupoFamiliar$)).resolves.toBe(false);
   });
 
-  it('não deve persistir nada quando API retornar lista vazia', () => {
-    usuariosService.getUsuarios.mockReturnValue(of([]));
+  it('deve manter estado atual quando carregar usuários falhar', () => {
+    usuariosService.getUsuarios.mockReturnValueOnce(
+      of([{ id: 1, nome: 'Kelly' }]),
+    );
+    service.carregarUsuariosCadastrados();
+    usuariosService.getUsuarios.mockReturnValueOnce(
+      throwError(() => new Error('erro')),
+    );
 
     service.carregarUsuariosCadastrados();
 
-    expect(service.perfis).toEqual([]);
-    expect(localStorage.getItem(storageKey)).toBeNull();
+    expect(service.perfis).toEqual([{ id: 'usuario-1', nome: 'Kelly' }]);
+    expect(service.temGrupoFamiliarAtual).toBe(false);
   });
 
-  it('deve ignorar usuário sem nome ao carregar API', () => {
+  it('deve adicionar perfil usando UsuariosService e atualizar estado', async () => {
+    usuariosService.createUsuario.mockReturnValue(of({ id: 7, nome: 'Kelly Silva' }));
+
+    const novo = await firstValueFrom(service.adicionarPerfil('  Kelly   Silva  '));
+
+    expect(novo).toEqual({ id: 'usuario-7', nome: 'Kelly Silva' });
+    expect(usuariosService.createUsuario).toHaveBeenCalledWith(
+      'Kelly Silva',
+      undefined,
+    );
+    expect(service.perfis).toEqual([{ id: 'usuario-7', nome: 'Kelly Silva' }]);
+  });
+
+  it('não deve adicionar nome vazio ou quando API falhar', async () => {
+    usuariosService.createUsuario.mockReturnValueOnce(of({ id: 1, nome: 'Kélly' }));
+    usuariosService.createUsuario.mockReturnValueOnce(of({ id: 2, nome: 'kelly' }));
+
+    expect(await firstValueFrom(service.adicionarPerfil('   '))).toBeNull();
+    const primeiro = await firstValueFrom(service.adicionarPerfil('Kélly'));
+    const mesmoNomePermitido = await firstValueFrom(service.adicionarPerfil('kelly'));
+    usuariosService.createUsuario.mockReturnValueOnce(
+      throwError(() => new Error('erro')),
+    );
+    const comErro = await firstValueFrom(service.adicionarPerfil('Max'));
+
+    expect(primeiro).toEqual({ id: 'usuario-1', nome: 'Kélly' });
+    expect(mesmoNomePermitido).toEqual({ id: 'usuario-2', nome: 'kelly' });
+    expect(comErro).toBeNull();
+    expect(service.perfis).toEqual([
+      { id: 'usuario-1', nome: 'Kélly' },
+      { id: 'usuario-2', nome: 'kelly' },
+    ]);
+  });
+
+  it('deve atualizar perfil usando UsuariosService', async () => {
+    usuariosService.getUsuarios.mockReturnValue(of([{ id: 1, nome: 'Kelly' }]));
+    usuariosService.updateUsuario.mockReturnValue(
+      of({ id: 1, nome: 'Kelly Oliveira' }),
+    );
+    service.carregarUsuariosCadastrados();
+
+    const atualizado = await firstValueFrom(
+      service.atualizarPerfil('usuario-1', '  Kelly Oliveira '),
+    );
+
+    expect(atualizado).toEqual({ id: 'usuario-1', nome: 'Kelly Oliveira' });
+    expect(usuariosService.updateUsuario).toHaveBeenCalledWith(
+      1,
+      'Kelly Oliveira',
+      undefined,
+    );
+    expect(service.perfis).toEqual([
+      { id: 'usuario-1', nome: 'Kelly Oliveira' },
+    ]);
+  });
+
+  it('não deve atualizar com nome inválido, id local ou erro da API', async () => {
+    usuariosService.getUsuarios.mockReturnValue(of([{ id: 1, nome: 'Kelly' }]));
+    service.carregarUsuariosCadastrados();
+
+    expect(await firstValueFrom(service.atualizarPerfil('usuario-1', '   '))).toBeNull();
+    expect(await firstValueFrom(service.atualizarPerfil('pessoa-local', 'Local'))).toBeNull();
+
+    usuariosService.updateUsuario.mockReturnValueOnce(
+      throwError(() => new Error('erro')),
+    );
+
+    expect(await firstValueFrom(service.atualizarPerfil('usuario-1', 'Kelly Silva'))).toBeNull();
+    expect(service.perfis).toEqual([{ id: 'usuario-1', nome: 'Kelly' }]);
+  });
+
+  it('deve remover perfil usando UsuariosService', async () => {
     usuariosService.getUsuarios.mockReturnValue(
       of([
-        { id: 1, nome: '' },
-        { id: 2, nome: 'Eloina' },
+        { id: 1, nome: 'Kelly' },
+        { id: 2, nome: 'David' },
       ]),
     );
-
     service.carregarUsuariosCadastrados();
 
-    expect(service.perfis).toEqual([{ id: 'usuario-2', nome: 'Eloina' }]);
+    const removido = await firstValueFrom(service.removerPerfil('usuario-1'));
+
+    expect(removido).toBe(true);
+    expect(usuariosService.deleteUsuario).toHaveBeenCalledWith(1);
+    expect(service.perfis).toEqual([{ id: 'usuario-2', nome: 'David' }]);
   });
 
-  it('não deve buscar usuários cadastrados quando já existir lista local', () => {
-    service.adicionarPerfil('Kelly');
-    usuariosService.getUsuarios.mockClear();
-
+  it('deve remover todos os perfis usando UsuariosService', async () => {
+    usuariosService.getUsuarios.mockReturnValue(
+      of([
+        { id: 1, nome: 'Kelly' },
+        { id: 2, nome: 'David' },
+      ]),
+    );
     service.carregarUsuariosCadastrados();
 
-    expect(usuariosService.getUsuarios).not.toHaveBeenCalled();
-  });
+    const removido = await firstValueFrom(service.removerTodosPerfis());
 
-  it('deve ignorar erro ao carregar usuários cadastrados', () => {
-    usuariosService.getUsuarios.mockReturnValue(throwError(() => new Error('erro')));
-
-    service.carregarUsuariosCadastrados();
-
+    expect(removido).toBe(true);
+    expect(usuariosService.deleteUsuario).toHaveBeenCalledWith(1);
+    expect(usuariosService.deleteUsuario).toHaveBeenCalledWith(2);
     expect(service.perfis).toEqual([]);
   });
 
-  it('deve adicionar perfil, persistir e sincronizar id retornado pela API', () => {
-    usuariosService.createUsuario.mockReturnValue(of({ id: 7, nome: 'Kelly' }));
+  it('não deve remover perfil inexistente, id local ou quando API falhar', async () => {
+    usuariosService.getUsuarios.mockReturnValue(of([{ id: 1, nome: 'Kelly' }]));
+    service.carregarUsuariosCadastrados();
 
-    const novo = service.adicionarPerfil('  Kelly   Silva  ');
+    expect(await firstValueFrom(service.removerPerfil('nao-existe'))).toBe(false);
+    expect(await firstValueFrom(service.removerPerfil('pessoa-local'))).toBe(false);
 
-    expect(novo?.nome).toBe('Kelly Silva');
-    expect(usuariosService.createUsuario).toHaveBeenCalledWith('Kelly Silva');
-    expect(service.perfis).toEqual([{ id: 'usuario-7', nome: 'Kelly' }]);
-  });
+    usuariosService.deleteUsuario.mockReturnValueOnce(
+      throwError(() => new Error('erro')),
+    );
 
-  it('deve manter perfil temporário quando criação na API falhar', () => {
-    usuariosService.createUsuario.mockReturnValue(throwError(() => new Error('erro')));
-
-    const novo = service.adicionarPerfil('Max');
-
-    expect(novo?.nome).toBe('Max');
-    expect(service.perfis.length).toBe(1);
-    expect(service.perfis[0].id).toContain('pessoa-max-');
-  });
-
-  it('não deve adicionar nome vazio nem duplicado normalizado', () => {
-    expect(service.adicionarPerfil('   ')).toBeNull();
-    expect(usuariosService.createUsuario).not.toHaveBeenCalled();
-
-    const primeiro = service.adicionarPerfil('Kélly');
-    usuariosService.createUsuario.mockClear();
-    const duplicado = service.adicionarPerfil('kelly');
-
-    expect(primeiro?.nome).toBe('Kélly');
-    expect(duplicado).toEqual(service.perfis[0]);
-    expect(service.perfis.length).toBe(1);
-    expect(usuariosService.createUsuario).not.toHaveBeenCalled();
-  });
-
-  it('deve atualizar nome do perfil e ignorar atualização vazia', () => {
-    usuariosService.createUsuario.mockReturnValue(of({ id: 1, nome: 'Kelly' }));
-    service.adicionarPerfil('Kelly');
-
-    service.atualizarPerfil('usuario-1', '  Kelly Oliveira ');
-
-    expect(service.perfis[0].nome).toBe('Kelly Oliveira');
-
-    service.atualizarPerfil('usuario-1', '   ');
-
-    expect(service.perfis[0].nome).toBe('Kelly Oliveira');
-  });
-
-  it('deve manter demais perfis ao atualizar um id específico', () => {
-    usuariosService.createUsuario
-      .mockReturnValueOnce(of({ id: 1, nome: 'Kelly' }))
-      .mockReturnValueOnce(of({ id: 2, nome: 'David' }));
-    service.adicionarPerfil('Kelly');
-    service.adicionarPerfil('David');
-
-    service.atualizarPerfil('usuario-2', 'David Silva');
-
-    expect(service.perfis).toEqual([
-      { id: 'usuario-1', nome: 'Kelly' },
-      { id: 'usuario-2', nome: 'David Silva' },
-    ]);
-  });
-
-  it('deve gerar id local com timestamp quando o nome não formar slug', () => {
-    usuariosService.createUsuario.mockReturnValue(throwError(() => new Error('erro')));
-
-    const novo = service.adicionarPerfil('!!!');
-
-    expect(novo?.id).toContain('pessoa-');
-    expect(novo?.nome).toBe('!!!');
-  });
-
-  it('deve normalizar comparação nula como string vazia', () => {
-    expect((service as any).normalizarComparacao(null)).toBe('');
-    expect((service as any).normalizarComparacao(undefined)).toBe('');
-  });
-
-  it('deve remover perfil existente e retornar false para inexistente', () => {
-    usuariosService.createUsuario
-      .mockReturnValueOnce(of({ id: 1, nome: 'Kelly' }))
-      .mockReturnValueOnce(of({ id: 2, nome: 'David' }));
-    service.adicionarPerfil('Kelly');
-    service.adicionarPerfil('David');
-
-    expect(service.removerPerfil('usuario-1')).toBe(true);
-    expect(service.perfis).toEqual([{ id: 'usuario-2', nome: 'David' }]);
-    expect(service.temGrupoFamiliarAtual).toBe(false);
-    expect(service.removerPerfil('nao-existe')).toBe(false);
+    expect(await firstValueFrom(service.removerPerfil('usuario-1'))).toBe(false);
+    expect(service.perfis).toEqual([{ id: 'usuario-1', nome: 'Kelly' }]);
   });
 });

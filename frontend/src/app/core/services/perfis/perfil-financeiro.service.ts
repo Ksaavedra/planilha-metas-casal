@@ -1,20 +1,24 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { BehaviorSubject, forkJoin, Observable, of } from 'rxjs';
+import { catchError, map, tap } from 'rxjs/operators';
 import { Perfil } from '@core/interfaces/perfis/perfil';
 import { Usuario } from '@core/interfaces/usuarios';
 import { UsuariosService } from '@core/services/usuarios/usuarios.service';
 
-const STORAGE_PERFIS_KEY = 'orbis_perfis_financeiros';
+export type TipoUsoPerfil = 'individual' | 'familia';
 
 @Injectable({ providedIn: 'root' })
 export class PerfilFinanceiroService {
-  private readonly perfisSubject = new BehaviorSubject<Perfil[]>(
-    this.carregarPerfis(),
+  private readonly tipoUsoStorageKey = 'orbis:tipo-uso-perfil';
+  private readonly perfisSubject = new BehaviorSubject<Perfil[]>([]);
+  private readonly tipoUsoSubject = new BehaviorSubject<TipoUsoPerfil>(
+    this.carregarTipoUso(),
   );
+
   readonly perfis$ = this.perfisSubject.asObservable();
-  readonly temGrupoFamiliar$ = this.perfis$.pipe(
-    map((perfis) => this.temGrupoFamiliar(perfis)),
+  readonly tipoUso$ = this.tipoUsoSubject.asObservable();
+  readonly temGrupoFamiliar$ = this.tipoUso$.pipe(
+    map((tipoUso) => tipoUso === 'familia'),
   );
 
   constructor(private usuariosService: UsuariosService) {}
@@ -24,136 +28,158 @@ export class PerfilFinanceiroService {
   }
 
   get temGrupoFamiliarAtual(): boolean {
-    return this.temGrupoFamiliar(this.perfis);
+    return this.tipoUsoAtual === 'familia';
+  }
+
+  get tipoUsoAtual(): TipoUsoPerfil {
+    return this.tipoUsoSubject.value;
   }
 
   carregarUsuariosCadastrados(): void {
-    if (this.perfis.length) return;
-
-    this.usuariosService.getUsuarios().subscribe({
-      next: (usuarios) => {
-        const perfis = this.criarPerfisDeUsuarios(usuarios);
-        if (perfis.length) {
-          this.salvarPerfis(perfis);
-        }
-      },
-      error: () => undefined,
-    });
+    this.recarregarPerfis().subscribe();
   }
 
-  adicionarPerfil(nome: string): Perfil | null {
+  adicionarPerfil(nome: string, apelido?: string | null): Observable<Perfil | null> {
     const nomeNormalizado = this.normalizarNome(nome);
-    if (!nomeNormalizado) return null;
+    const apelidoNormalizado = this.normalizarNome(apelido ?? '');
+    if (!nomeNormalizado) return of(null);
 
-    const existente = this.perfis.find(
-      (perfil) =>
-        this.normalizarComparacao(perfil.nome) ===
-        this.normalizarComparacao(nomeNormalizado),
+    return this.usuariosService.createUsuario(
+      nomeNormalizado,
+      apelidoNormalizado || undefined,
+    ).pipe(
+      map((usuario) => this.perfilDeUsuario(usuario)),
+      tap((perfil) => this.salvarPerfis([...this.perfis, perfil])),
+      catchError(() => of(null)),
     );
-    if (existente) return existente;
-
-    const novo: Perfil = {
-      id: this.criarId(nomeNormalizado),
-      nome: nomeNormalizado,
-    };
-
-    this.salvarPerfis([...this.perfis, novo]);
-    this.usuariosService.createUsuario(nomeNormalizado).subscribe({
-      next: (usuario) => this.sincronizarUsuarioCriado(novo.id, usuario),
-      error: () => undefined,
-    });
-
-    return novo;
   }
 
-  atualizarPerfil(id: string, nome: string): void {
+  atualizarPerfil(
+    id: string,
+    nome: string,
+    apelido?: string | null,
+  ): Observable<Perfil | null> {
     const nomeNormalizado = this.normalizarNome(nome);
-    if (!nomeNormalizado) return;
+    const apelidoNormalizado = this.normalizarNome(apelido ?? '');
+    const usuarioId = this.extrairUsuarioId(id);
+    if (!nomeNormalizado || usuarioId === null) return of(null);
 
-    const atualizados = this.perfis.map((perfil) =>
-      perfil.id === id ? { ...perfil, nome: nomeNormalizado } : perfil,
-    );
-    this.salvarPerfis(atualizados);
+    return this.usuariosService
+      .updateUsuario(usuarioId, nomeNormalizado, apelidoNormalizado || undefined)
+      .pipe(
+        map((usuario) => this.perfilDeUsuario(usuario)),
+        tap((perfilApi) => {
+          const atualizados = this.perfis.map((perfil) =>
+            perfil.id === id ? perfilApi : perfil,
+          );
+          this.salvarPerfis(atualizados);
+        }),
+        catchError(() => of(null)),
+      );
   }
 
-  removerPerfil(id: string): boolean {
+  removerPerfil(id: string): Observable<boolean> {
+    const usuarioId = this.extrairUsuarioId(id);
     const existe = this.perfis.some((perfil) => perfil.id === id);
-    if (!existe) return false;
+    if (!existe || usuarioId === null) return of(false);
 
-    this.salvarPerfis(this.perfis.filter((perfil) => perfil.id !== id));
-    return true;
+    return this.usuariosService.deleteUsuario(usuarioId).pipe(
+      map(() => true),
+      tap(() => {
+        this.salvarPerfis(this.perfis.filter((perfil) => perfil.id !== id));
+      }),
+      catchError(() => of(false)),
+    );
   }
 
-  private carregarPerfis(): Perfil[] {
-    try {
-      const raw = localStorage.getItem(STORAGE_PERFIS_KEY);
-      const perfis = raw ? (JSON.parse(raw) as unknown[]) : [];
-      if (!Array.isArray(perfis)) return [];
+  removerTodosPerfis(): Observable<boolean> {
+    const ids = this.perfis
+      .filter((perfil) => !perfil.principal)
+      .map((perfil) => this.extrairUsuarioId(perfil.id))
+      .filter((id): id is number => id !== null);
 
-      return perfis
-        .filter((perfil: any) => perfil?.tipo !== 'familia')
-        .map((perfil: any) => ({
-          id: String(perfil?.id ?? this.criarId(perfil?.nome)),
-          nome: this.normalizarNome(perfil?.nome),
-        }))
-        .filter((perfil) => perfil.nome.length > 0);
-    } catch {
-      return [];
-    }
+    if (ids.length === 0) return of(true);
+
+    return forkJoin(ids.map((id) => this.usuariosService.deleteUsuario(id))).pipe(
+      map(() => true),
+      tap(() => this.salvarPerfis([])),
+      catchError(() => of(false)),
+    );
+  }
+
+  definirTipoUso(tipoUso: TipoUsoPerfil): void {
+    this.tipoUsoSubject.next(tipoUso);
+    this.salvarTipoUso(tipoUso);
+  }
+
+  private recarregarPerfis(): Observable<Perfil[]> {
+    return this.usuariosService.getUsuarios().pipe(
+      map((usuarios) => this.criarPerfisDeUsuarios(usuarios)),
+      tap((perfis) => this.salvarPerfis(perfis)),
+      catchError(() => of(this.perfis)),
+    );
   }
 
   private criarPerfisDeUsuarios(usuarios: Usuario[]): Perfil[] {
-    const perfisPorNome = new Map<string, Perfil>();
-    usuarios.forEach((usuario) => {
-      const perfil = this.perfilDeUsuario(usuario);
-      if (perfil.nome) {
-        perfisPorNome.set(this.normalizarComparacao(perfil.nome), perfil);
-      }
-    });
-
-    return Array.from(perfisPorNome.values());
-  }
-
-  private sincronizarUsuarioCriado(idTemporario: string, usuario: Usuario): void {
-    const perfilApi = this.perfilDeUsuario(usuario);
-    const atualizados = this.perfis.map((perfil) =>
-      perfil.id === idTemporario ? perfilApi : perfil,
-    );
-    this.salvarPerfis(atualizados);
+    return usuarios
+      .map((usuario) => this.perfilDeUsuario(usuario))
+      .filter((perfil) => Boolean(perfil.nome));
   }
 
   private perfilDeUsuario(usuario: Usuario): Perfil {
-    return {
+    const nome = this.normalizarNome(usuario.nome);
+    const apelido = this.normalizarNome(usuario.apelido ?? '');
+    const nomeExibicao = this.normalizarNome(usuario.nomeExibicao || apelido || nome);
+    const perfil: Perfil = {
       id: `usuario-${usuario.id}`,
-      nome: this.normalizarNome(usuario.nome),
+      nome,
     };
+
+    if (usuario.principal !== undefined) {
+      perfil.principal = Boolean(usuario.principal);
+    }
+
+    if (apelido) {
+      perfil.apelido = apelido;
+    }
+
+    if (nomeExibicao && nomeExibicao !== nome) {
+      perfil.nomeExibicao = nomeExibicao;
+    }
+
+    return perfil;
   }
 
   private salvarPerfis(perfis: Perfil[]): void {
     this.perfisSubject.next(perfis);
-    localStorage.setItem(STORAGE_PERFIS_KEY, JSON.stringify(perfis));
   }
 
-  private criarId(nome: string): string {
-    const base = this.normalizarComparacao(nome)
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-    return `pessoa-${base || Date.now()}-${Date.now()}`;
+  private extrairUsuarioId(id: string): number | null {
+    if (!id.startsWith('usuario-')) return null;
+
+    const usuarioId = Number(id.replace('usuario-', ''));
+    return Number.isInteger(usuarioId) && usuarioId > 0 ? usuarioId : null;
   }
 
   private normalizarNome(nome: string): string {
     return String(nome ?? '').trim().replace(/\s+/g, ' ');
   }
 
-  private normalizarComparacao(nome: string | null | undefined): string {
-    return String(nome ?? '')
-      .trim()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+  private carregarTipoUso(): TipoUsoPerfil {
+    try {
+      return localStorage.getItem(this.tipoUsoStorageKey) === 'familia'
+        ? 'familia'
+        : 'individual';
+    } catch {
+      return 'individual';
+    }
   }
 
-  private temGrupoFamiliar(perfis: Perfil[]): boolean {
-    return perfis.length > 1;
+  private salvarTipoUso(tipoUso: TipoUsoPerfil): void {
+    try {
+      localStorage.setItem(this.tipoUsoStorageKey, tipoUso);
+    } catch {
+      // O app continua funcional mesmo se o navegador bloquear storage.
+    }
   }
 }
