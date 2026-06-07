@@ -1,5 +1,3 @@
-declare const module: { exports: unknown };
-
 const esModule = [
   '@angular',
   '@ngrx',
@@ -9,7 +7,7 @@ const esModule = [
   'angular2-text-mask',
 ];
 
-module.exports = {
+const config = {
   verbose: true,
   preset: 'jest-preset-angular',
   globalSetup: '',
@@ -80,3 +78,5 @@ module.exports = {
     ],
   },
 };
+
+export default config;
