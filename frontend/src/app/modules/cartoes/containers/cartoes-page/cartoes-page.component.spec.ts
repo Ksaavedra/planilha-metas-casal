@@ -168,6 +168,16 @@ describe('CartoesPageComponent', () => {
     expect(component.paginaTabela).toBe(2);
   });
 
+  it('deve priorizar totalAPagarMes e nunca retornar valor negativo na fatura', () => {
+    const c = {
+      ...cartao({ valorUtilizado: 500 }),
+      totalAPagarMes: -10,
+    } as Cartao;
+
+    expect(component.valorUtilizadoFatura(c)).toBe(0);
+    expect(component.valorPagarFatura(c)).toBe(0);
+  });
+
   it('deve cobrir fallback de resumo vazio e limites de paginação', () => {
     component.cartoes = [];
     component.paginaTabela = 1;

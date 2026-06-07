@@ -71,6 +71,24 @@ describe('UsuariosService', () => {
       req.flush(mockUsuario);
     });
 
+    it('deve incluir apelido no POST quando informado', () => {
+      const mockUsuario = { id: 1, nome: 'David Henrique', apelido: 'David' };
+
+      service.createUsuario('David Henrique', ' David ').subscribe((usuario) => {
+        expect(usuario).toEqual(mockUsuario);
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/usuarios`);
+
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({
+        nome: 'David Henrique',
+        apelido: 'David',
+      });
+
+      req.flush(mockUsuario);
+    });
+
     it('deve tratar erro no POST', () => {
       service.createUsuario('David').subscribe({
         error: (error) => {
@@ -95,6 +113,24 @@ describe('UsuariosService', () => {
 
       expect(req.request.method).toBe('PUT');
       expect(req.request.body).toEqual({ nome: 'Kelly Silva' });
+
+      req.flush(mockUsuario);
+    });
+
+    it('deve incluir apelido no PUT quando informado', () => {
+      const mockUsuario = { id: 1, nome: 'Kelly Michele', apelido: 'Kelly' };
+
+      service.updateUsuario(1, 'Kelly Michele', ' Kelly ').subscribe((usuario) => {
+        expect(usuario).toEqual(mockUsuario);
+      });
+
+      const req = httpMock.expectOne(`${baseUrl}/usuarios/1`);
+
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({
+        nome: 'Kelly Michele',
+        apelido: 'Kelly',
+      });
 
       req.flush(mockUsuario);
     });

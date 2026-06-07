@@ -121,6 +121,14 @@ describe('HeaderComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('deve ignorar erro ao buscar perfil no init', () => {
+    authService.getProfile.mockReturnValueOnce(
+      new Observable((subscriber) => subscriber.error(new Error('erro'))),
+    );
+
+    expect(() => component.ngOnInit()).not.toThrow();
+  });
+
   it('should call sidebar service when onSidebarClick is called', () => {
     component.onSidebarClick();
     expect(sidebarService.changeStatus).toHaveBeenCalled();
@@ -228,6 +236,20 @@ describe('HeaderComponent', () => {
     expect(dialog.open).not.toHaveBeenCalled();
   });
 
+  it('deve mostrar erro quando API não adicionar pessoa válida', () => {
+    perfilService.adicionarPerfil.mockReturnValueOnce(of(null));
+    component.modalAdicionarAberto = true;
+    component.novoPerfilNome = 'Kelly Michele';
+
+    component.salvarNovoPerfil();
+
+    expect(component.modalAdicionarAberto).toBe(true);
+    expect(component.perfilErroMensagem).toBe(
+      'Esta pessoa já corresponde ao proprietário da conta.',
+    );
+    expect(dialog.open).not.toHaveBeenCalled();
+  });
+
   it('deve abrir e fechar modais de perfil', () => {
     component.isUserMenuOpen = true;
     component.novoPerfilNome = 'Kelly';
@@ -260,6 +282,9 @@ describe('HeaderComponent', () => {
     expect(component.perfilEditandoNome).toBe(perfil.nome);
 
     component.atualizarNomeEdicao({ target: { value: 'Kelly Silva' } } as any);
+    component.atualizarApelidoEdicao({ target: { value: 'Kelly' } } as any);
+    expect(component.perfilEditandoApelido).toBe('Kelly');
+    component.perfilEditandoApelido = '';
     component.salvarEdicaoPerfil();
 
     expect(perfilService.atualizarPerfil).toHaveBeenCalledWith(
@@ -300,6 +325,21 @@ describe('HeaderComponent', () => {
 
     expect(perfilService.atualizarPerfil).not.toHaveBeenCalled();
     expect(dialog.open).not.toHaveBeenCalled();
+  });
+
+  it('deve mostrar erro quando atualização retorna nula e ignorar remoção principal', () => {
+    const principal: Perfil = { id: 'usuario-9', nome: 'Kelly', principal: true };
+    perfilService.atualizarPerfil.mockReturnValueOnce(of(null));
+    component.iniciarEdicaoPerfil(principal);
+    component.perfilEditandoNome = 'Kelly';
+
+    component.salvarEdicaoPerfil();
+    component.removerPerfil(principal);
+
+    expect(component.perfilErroMensagem).toBe(
+      'Esta pessoa já corresponde ao proprietário da conta.',
+    );
+    expect(perfilService.removerPerfil).not.toHaveBeenCalledWith(principal.id);
   });
 
   it('deve retornar título, label, usuário no topo e apelido no perfil', () => {
@@ -397,6 +437,26 @@ describe('HeaderComponent', () => {
     expect(component.modalConfirmarIndividualAberto).toBe(false);
   });
 
+  it('deve trocar para individual direto quando não houver perfis cadastrados', () => {
+    perfilService.perfis = [];
+    component.tipoUsoSelecionado = 'individual';
+
+    component.salvarTipoUso();
+
+    expect(authService.atualizarTipoUso).toHaveBeenCalledWith('individual');
+    expect(component.modalConfirmarIndividualAberto).toBe(false);
+  });
+
+  it('não deve abrir confirmação quando tipo de uso não mudou', () => {
+    component.tipoUsoSelecionado = 'familia';
+
+    component.salvarTipoUso();
+
+    expect(component.modalConfirmarAtivarFamiliaAberto).toBe(false);
+    expect(component.modalConfirmarIndividualAberto).toBe(false);
+    expect(authService.atualizarTipoUso).not.toHaveBeenCalled();
+  });
+
   it('deve ativar família com confirmação e remover pessoas quando solicitado', () => {
     perfilService.tipoUsoAtual = 'individual';
     component.abrirTipoUso();
@@ -416,5 +476,45 @@ describe('HeaderComponent', () => {
     component.salvarTrocaParaIndividual();
 
     expect(perfilService.removerTodosPerfis).toHaveBeenCalled();
+  });
+
+  it('deve cancelar confirmações de tipo de uso', () => {
+    component.modalConfirmarAtivarFamiliaAberto = true;
+    component.modalConfirmarIndividualAberto = true;
+    component.acaoPessoasAoIndividual = 'remover';
+
+    component.cancelarAtivarFamilia();
+    component.cancelarTrocaParaIndividual();
+
+    expect(component.modalConfirmarAtivarFamiliaAberto).toBe(false);
+    expect(component.modalConfirmarIndividualAberto).toBe(false);
+    expect(component.acaoPessoasAoIndividual).toBe('manter');
+  });
+
+  it('deve manter atualização local quando atualizar tipo de uso falhar', () => {
+    authService.atualizarTipoUso.mockReturnValueOnce(
+      new Observable((subscriber) => subscriber.error(new Error('erro'))),
+    );
+    component.tipoUsoSelecionado = 'individual';
+
+    component.salvarTipoUso();
+    component.salvarTrocaParaIndividual();
+
+    expect(perfilService.definirTipoUso).toHaveBeenCalledWith('individual');
+  });
+
+  it('nomeMeuPerfil retorna vazio quando usuário e principal não têm nome', () => {
+    expect(
+      component.nomeMeuPerfil(
+        {
+          id: 10,
+          usuario: 'sem@email.com',
+          nomeCompleto: '',
+          apelido: '',
+          email: 'sem@email.com',
+        },
+        [{ id: 'usuario-10', nome: '' }],
+      ),
+    ).toBe('');
   });
 });

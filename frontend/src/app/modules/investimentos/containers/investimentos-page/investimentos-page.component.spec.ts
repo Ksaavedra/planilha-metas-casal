@@ -8,6 +8,7 @@ import * as echarts from 'echarts';
 import { InvestimentosPageComponent } from './investimentos-page.component';
 import { InvestimentosService } from '@core/services/investimentos/investimentos.service';
 import { Investimento } from '@core/interfaces/investimentos/investimentos';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 jest.mock('echarts', () => ({
   init: jest.fn(),
@@ -39,6 +40,9 @@ describe('InvestimentosPageComponent', () => {
   };
 
   const dialogMock = { open: jest.fn() };
+  const perfilFinanceiroServiceMock = {
+    temGrupoFamiliar$: of(false),
+  };
 
   const echartsInitMock = echarts.init as jest.Mock;
   const echartsGetInstanceMock = echarts.getInstanceByDom as jest.Mock;
@@ -78,6 +82,10 @@ describe('InvestimentosPageComponent', () => {
       providers: [
         { provide: InvestimentosService, useValue: investimentosServiceMock },
         { provide: MatDialog, useValue: dialogMock },
+        {
+          provide: PerfilFinanceiroService,
+          useValue: perfilFinanceiroServiceMock,
+        },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     })
@@ -204,6 +212,19 @@ describe('InvestimentosPageComponent', () => {
       const spy = jest.spyOn(component, 'carregar');
       component.onTipoFiltroChange();
       expect(spy).toHaveBeenCalled();
+    });
+
+    it('selecionarVisao agenda gráficos somente ao voltar para lista', () => {
+      component.selecionarVisao('usuario');
+      expect(component.visaoInvestimentos).toBe('usuario');
+
+      chartMock.setOption.mockClear();
+      component.investimentos = [criarInvestimento(1)];
+      component.selecionarVisao('lista');
+      jest.runOnlyPendingTimers();
+
+      expect(component.visaoInvestimentos).toBe('lista');
+      expect(chartMock.setOption).toHaveBeenCalled();
     });
 
     it('abrirModalAdicionar abre dialog', () => {

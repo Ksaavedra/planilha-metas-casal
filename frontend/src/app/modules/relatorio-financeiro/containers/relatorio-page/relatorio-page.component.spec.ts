@@ -638,6 +638,46 @@ describe('RelatorioPageComponent', () => {
     expect(result).toBe('R$ 3.456,00');
   });
 
+  it('formatters dos gráficos financeiros devem formatar tooltips e eixo Y', () => {
+    (
+      component as unknown as { atualizarGraficosFinanceiros: () => void }
+    ).atualizarGraficosFinanceiros();
+
+    const receitas = component.chartOptionReceitasFixasVariaveis as any;
+    const despesas = component.chartOptionDespesasCategoria as any;
+    const faturas = component.chartOptionFaturas as any;
+    const investimentos = component.chartOptionInvestimentos as any;
+
+    expect(
+      receitas.tooltip.formatter([
+        {
+          value: 1200,
+          seriesName: 'Fixas',
+          name: 'Janeiro',
+          color: '#2563EB',
+        },
+      ]),
+    ).toContain('R$ 1.200,00');
+    expect(receitas.yAxis.axisLabel.formatter(1200)).toBe('R$ 1.200');
+
+    expect(
+      despesas.tooltip.formatter({
+        name: 'Mercado',
+        value: 345.67,
+      }),
+    ).toContain('Mercado: R$ 345,67');
+
+    expect(
+      faturas.tooltip.formatter([{ value: 500, name: 'Janeiro' }]),
+    ).toBe('R$ 500,00');
+    expect(faturas.yAxis.axisLabel.formatter(500)).toBe('R$ 500');
+
+    expect(
+      investimentos.tooltip.formatter([{ value: 900, name: 'Janeiro' }]),
+    ).toBe('R$ 900,00');
+    expect(investimentos.yAxis.axisLabel.formatter(900)).toBe('R$ 900');
+  });
+
   // it('testeAno() dispara alert com o ano selecionado', () => {
   //   const spy = jest.spyOn(window, 'alert').mockImplementation(() => {});
   //   component.anoSelecionado = 2024;

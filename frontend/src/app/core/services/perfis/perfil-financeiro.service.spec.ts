@@ -71,6 +71,46 @@ describe('PerfilFinanceiroService', () => {
     await expect(firstValueFrom(service.temGrupoFamiliar$)).resolves.toBe(false);
   });
 
+  it('deve mapear apelido, nome de exibição e principal vindos da API', () => {
+    usuariosService.getUsuarios.mockReturnValue(
+      of([
+        {
+          id: 1,
+          nome: 'Kelly Michele Torrico',
+          apelido: 'Kelly Michele',
+          nomeExibicao: 'Kelly Michele',
+          principal: true,
+        },
+        {
+          id: 2,
+          nome: 'David Rodrigues',
+          apelido: 'David',
+          nomeExibicao: 'David',
+          principal: false,
+        },
+      ]),
+    );
+
+    service.carregarUsuariosCadastrados();
+
+    expect(service.perfis).toEqual([
+      {
+        id: 'usuario-1',
+        nome: 'Kelly Michele Torrico',
+        apelido: 'Kelly Michele',
+        nomeExibicao: 'Kelly Michele',
+        principal: true,
+      },
+      {
+        id: 'usuario-2',
+        nome: 'David Rodrigues',
+        apelido: 'David',
+        nomeExibicao: 'David',
+        principal: false,
+      },
+    ]);
+  });
+
   it('deve manter estado atual quando carregar usuários falhar', () => {
     usuariosService.getUsuarios.mockReturnValueOnce(
       of([{ id: 1, nome: 'Kelly' }]),
@@ -121,7 +161,12 @@ describe('PerfilFinanceiroService', () => {
   });
 
   it('deve atualizar perfil usando UsuariosService', async () => {
-    usuariosService.getUsuarios.mockReturnValue(of([{ id: 1, nome: 'Kelly' }]));
+    usuariosService.getUsuarios.mockReturnValue(
+      of([
+        { id: 1, nome: 'Kelly' },
+        { id: 2, nome: 'David' },
+      ]),
+    );
     usuariosService.updateUsuario.mockReturnValue(
       of({ id: 1, nome: 'Kelly Oliveira' }),
     );
@@ -139,6 +184,7 @@ describe('PerfilFinanceiroService', () => {
     );
     expect(service.perfis).toEqual([
       { id: 'usuario-1', nome: 'Kelly Oliveira' },
+      { id: 'usuario-2', nome: 'David' },
     ]);
   });
 
@@ -148,6 +194,8 @@ describe('PerfilFinanceiroService', () => {
 
     expect(await firstValueFrom(service.atualizarPerfil('usuario-1', '   '))).toBeNull();
     expect(await firstValueFrom(service.atualizarPerfil('pessoa-local', 'Local'))).toBeNull();
+    expect(await firstValueFrom(service.atualizarPerfil('usuario-abc', 'Local'))).toBeNull();
+    expect(await firstValueFrom(service.atualizarPerfil('usuario-0', 'Local'))).toBeNull();
 
     usuariosService.updateUsuario.mockReturnValueOnce(
       throwError(() => new Error('erro')),
@@ -190,12 +238,47 @@ describe('PerfilFinanceiroService', () => {
     expect(service.perfis).toEqual([]);
   });
 
+  it('deve ignorar principal e retornar falso quando remover todos falhar', async () => {
+    usuariosService.getUsuarios.mockReturnValue(
+      of([
+        { id: 1, nome: 'Kelly', principal: true },
+        { id: 2, nome: 'David', principal: false },
+      ]),
+    );
+    usuariosService.deleteUsuario.mockReturnValueOnce(
+      throwError(() => new Error('erro')),
+    );
+    service.carregarUsuariosCadastrados();
+
+    const removido = await firstValueFrom(service.removerTodosPerfis());
+
+    expect(removido).toBe(false);
+    expect(usuariosService.deleteUsuario).toHaveBeenCalledWith(2);
+    expect(usuariosService.deleteUsuario).not.toHaveBeenCalledWith(1);
+    expect(service.perfis).toEqual([
+      { id: 'usuario-1', nome: 'Kelly', principal: true },
+      { id: 'usuario-2', nome: 'David', principal: false },
+    ]);
+  });
+
+  it('deve retornar verdadeiro ao remover todos sem perfis removíveis', async () => {
+    usuariosService.getUsuarios.mockReturnValue(
+      of([{ id: 1, nome: 'Kelly', principal: true }]),
+    );
+    service.carregarUsuariosCadastrados();
+
+    await expect(firstValueFrom(service.removerTodosPerfis())).resolves.toBe(true);
+    expect(usuariosService.deleteUsuario).not.toHaveBeenCalled();
+  });
+
   it('não deve remover perfil inexistente, id local ou quando API falhar', async () => {
     usuariosService.getUsuarios.mockReturnValue(of([{ id: 1, nome: 'Kelly' }]));
     service.carregarUsuariosCadastrados();
 
     expect(await firstValueFrom(service.removerPerfil('nao-existe'))).toBe(false);
     expect(await firstValueFrom(service.removerPerfil('pessoa-local'))).toBe(false);
+    expect(await firstValueFrom(service.removerPerfil('usuario-abc'))).toBe(false);
+    expect(await firstValueFrom(service.removerPerfil('usuario-0'))).toBe(false);
 
     usuariosService.deleteUsuario.mockReturnValueOnce(
       throwError(() => new Error('erro')),
@@ -203,5 +286,27 @@ describe('PerfilFinanceiroService', () => {
 
     expect(await firstValueFrom(service.removerPerfil('usuario-1'))).toBe(false);
     expect(service.perfis).toEqual([{ id: 'usuario-1', nome: 'Kelly' }]);
+  });
+
+  it('deve iniciar como família quando localStorage estiver salvo', () => {
+    localStorage.setItem('orbis:tipo-uso-perfil', 'familia');
+
+    service = criarService();
+
+    expect(service.tipoUsoAtual).toBe('familia');
+    expect(service.temGrupoFamiliarAtual).toBe(true);
+  });
+
+  it('deve iniciar individual quando localStorage lançar erro', () => {
+    const spy = jest
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementationOnce(() => {
+        throw new Error('storage indisponível');
+      });
+
+    service = criarService();
+
+    expect(service.tipoUsoAtual).toBe('individual');
+    spy.mockRestore();
   });
 });

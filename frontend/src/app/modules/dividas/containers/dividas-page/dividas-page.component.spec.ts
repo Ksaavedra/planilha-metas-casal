@@ -181,6 +181,22 @@ describe('DividasPageComponent - lógica da tela', () => {
     expect(component.labelVazio).toBe('Nenhum financiamento cadastrado');
   });
 
+  it('deve exibir títulos individuais para empréstimos e financiamentos', () => {
+    (component as any).temGrupoFamiliar = false;
+
+    component.contextoDividas = 'emprestimos';
+    expect(component.tituloPagina).toBe('Empréstimos');
+    expect(component.labelAdicionar).toBe('Adicionar empréstimo');
+    expect(component.tituloEvolucao).toBe('Evolução dos empréstimos');
+    expect(component.tituloTabela).toBe('Controle dos empréstimos');
+
+    component.contextoDividas = 'financiamentos';
+    expect(component.tituloPagina).toBe('Financiamentos');
+    expect(component.labelAdicionar).toBe('Adicionar financiamento');
+    expect(component.tituloEvolucao).toBe('Evolução dos financiamentos');
+    expect(component.tituloTabela).toBe('Controle dos financiamentos');
+  });
+
   it('deve tratar erro de carregamento', () => {
     dividasService.getDividas.mockReturnValue(
       throwError(() => new HttpErrorResponse({ status: 0 })),
@@ -417,6 +433,23 @@ describe('DividasPageComponent - lógica da tela', () => {
     component.ngOnDestroy();
     expect(chart.dispose).toHaveBeenCalled();
     expect(component['charts']).toEqual([]);
+  });
+
+  it('deve montar títulos de gráficos conforme contexto', () => {
+    component.dividas = [dividaMes({ id: 1, tipoDivida: 'financiamento' })];
+    component['dividasAno'] = [divida({ id: 1, tipoDivida: 'financiamento' })];
+
+    component.contextoDividas = 'financiamentos';
+    const pagoRestanteFinanciamento: any = component['opcaoGraficoPagoRestante']();
+    const categoriaFinanciamento: any = component['opcaoGraficoCategoria']();
+    expect(pagoRestanteFinanciamento.title.text).toContain('saldo devedor');
+    expect(categoriaFinanciamento.title.text).toContain('Financiamentos');
+
+    component.contextoDividas = 'emprestimos';
+    const pagoRestanteEmprestimo: any = component['opcaoGraficoPagoRestante']();
+    const categoriaEmprestimo: any = component['opcaoGraficoCategoria']();
+    expect(pagoRestanteEmprestimo.title.text).toContain('saldo restante');
+    expect(categoriaEmprestimo.title.text).toContain('Empréstimos');
   });
 
   it('deve atualizar gráficos no ciclo de vida e reutilizar/criar instâncias', () => {
