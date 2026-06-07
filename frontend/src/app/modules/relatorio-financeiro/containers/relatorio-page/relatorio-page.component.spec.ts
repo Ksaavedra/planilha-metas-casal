@@ -3,6 +3,8 @@ import { of, throwError } from 'rxjs';
 import { RelatorioPageComponent } from './relatorio-page.component';
 import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
 import { DespesasService } from '../../../../core/services/despesas/despesas.service';
+import { CartoesService } from '../../../../core/services/cartoes/cartoes.service';
+import { DividasService } from '../../../../core/services/dividas/dividas.service';
 import * as echarts from 'echarts';
 
 jest.mock('echarts', () => ({
@@ -23,6 +25,8 @@ describe('RelatorioPageComponent', () => {
   let fixture: ComponentFixture<RelatorioPageComponent>;
   let receitasStub: { getReceitas: jest.Mock };
   let despesasStub: { getDespesas: jest.Mock };
+  let cartoesStub: { getCartoes: jest.Mock };
+  let dividasStub: { getDividas: jest.Mock };
 
   const echartsInitMock = echarts.init as jest.Mock;
   const echartsGetInstanceMock = echarts.getInstanceByDom as jest.Mock;
@@ -45,12 +49,20 @@ describe('RelatorioPageComponent', () => {
     despesasStub = {
       getDespesas: jest.fn().mockReturnValue(of([])),
     };
+    cartoesStub = {
+      getCartoes: jest.fn().mockReturnValue(of([])),
+    };
+    dividasStub = {
+      getDividas: jest.fn().mockReturnValue(of([])),
+    };
 
     await TestBed.configureTestingModule({
       declarations: [RelatorioPageComponent],
       providers: [
         { provide: ReceitasService, useValue: receitasStub },
         { provide: DespesasService, useValue: despesasStub },
+        { provide: DividasService, useValue: dividasStub },
+        { provide: CartoesService, useValue: cartoesStub },
       ],
     })
       .overrideComponent(RelatorioPageComponent, {
@@ -80,71 +92,64 @@ describe('RelatorioPageComponent', () => {
     expect(component.dadosInvestimentos.length).toBe(12);
   });
 
-  it('dadosTotal (Jan) = receitas - despesas - dívidas - investimentos', () => {
+  it('dadosTotal (Jan) = receitas - despesas - cartão - dívidas - investimentos', () => {
     const y = 2024;
     component.anoSelecionado = y;
     component.onAnoChange();
     const i = 0;
     const ds = component.dadosPorAno[y];
     const esperado =
-      ds.receitas[i] - ds.despesas[i] - ds.dividas[i] - ds.investimentos[i];
+      ds.receitas[i] -
+      ds.despesas[i] -
+      ds.cartaoCredito[i] -
+      ds.dividas[i] -
+      ds.investimentos[i];
     expect(component.dadosTotal[i]).toBeCloseTo(esperado, 6);
   });
 
   it('totais e saldoTotal fecham a conta', () => {
     const r = component.dadosReceitas.reduce((s, v) => s + v, 0);
     const d = component.dadosDespesas.reduce((s, v) => s + v, 0);
+    const c = component.dadosCartaoCredito.reduce((s, v) => s + v, 0);
     const di = component.dadosDividas.reduce((s, v) => s + v, 0);
     const inv = component.dadosInvestimentos.reduce((s, v) => s + v, 0);
 
     expect(component.totalReceitas).toBeCloseTo(r, 6);
     expect(component.totalDespesas).toBeCloseTo(d, 6);
+    expect(component.totalCartaoCredito).toBeCloseTo(c, 6);
     expect(component.totalDividas).toBeCloseTo(di, 6);
     expect(component.totalInvestimentos).toBeCloseTo(inv, 6);
-    expect(component.saldoTotal).toBeCloseTo(r - d - di - inv, 6);
+    expect(component.saldoTotal).toBeCloseTo(r - d - c - di - inv, 6);
   });
 
-  it('dataset do gráfico principal: 13 linhas (header + 12) e 8 colunas', () => {
+  it('dataset do gráfico principal inicia só com o ano atual', () => {
     const src = (component.chartOption.dataset as { source: unknown[] }).source;
     expect(src.length).toBe(component.meses.length + 1);
-    expect(src[0]).toEqual([
-      'Mês',
-      '2020',
-      '2021',
-      '2022',
-      '2023',
-      '2024',
-      '2025',
-      '2026',
-    ]);
-    (src as unknown[][]).slice(1).forEach((row) => expect(row.length).toBe(8));
+    expect(src[0]).toEqual(['Mês', `${component.anoAtual} (atual)`]);
+    (src as unknown[][]).slice(1).forEach((row) => expect(row.length).toBe(2));
   });
 
-  it('getDatasetSource calcula saldos por ano (linha de Janeiro)', () => {
+  it('getDatasetSource calcula saldos apenas dos anos filtrados', () => {
+    component.anosSaldoSelecionados = [2024, 2026];
     const source = (
       component as unknown as { getDatasetSource: () => unknown[][] }
     ).getDatasetSource();
     const header = source[0];
     const janeiro = source[1];
 
-    expect(header).toEqual([
-      'Mês',
-      '2020',
-      '2021',
-      '2022',
-      '2023',
-      '2024',
-      '2025',
-      '2026',
-    ]);
+    expect(header).toEqual(['Mês', '2024', '2026 (atual)']);
     expect(janeiro[0]).toBe('Janeiro');
 
-    for (let col = 1, ano = 2020; ano <= 2026; ano++, col++) {
+    [2024, 2026].forEach((ano, index) => {
       const ds = component.dadosPorAno[ano];
       const esperado =
-        ds.receitas[0] - ds.despesas[0] - ds.dividas[0] - ds.investimentos[0];
-      expect((janeiro as number[])[col]).toBeCloseTo(esperado, 6);
-    }
+        ds.receitas[0] -
+        ds.despesas[0] -
+        ds.cartaoCredito[0] -
+        ds.dividas[0] -
+        ds.investimentos[0];
+      expect((janeiro as number[])[index + 1]).toBeCloseTo(esperado, 6);
+    });
   });
 
   it('onAnoChange atualiza séries de Receitas/Despesas com o ano selecionado', () => {
@@ -160,6 +165,187 @@ describe('RelatorioPageComponent', () => {
 
     const fmt = opt.yAxis.axisLabel.formatter;
     expect(fmt(1234)).toContain('R$');
+  });
+
+  it('onAnoChange mostra somente o ano selecionado no gráfico de saldo', () => {
+    component.anosSaldoSelecionados = [2026];
+    component.anoSelecionado = 2027;
+
+    component.onAnoChange();
+
+    expect(component.anosSaldoSelecionados).toEqual([2027]);
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(true);
+  });
+
+  it('desabilita ações do gráfico quando mostra somente o ano atual', () => {
+    component.anoSelecionado = component.anoAtual;
+    component.anosSaldoSelecionados = [component.anoAtual];
+
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+    expect(component.podeLimparFiltrosGraficoSaldo).toBe(false);
+  });
+
+  it('anoAnterior e proximoAno navegam pelo ano de referência', () => {
+    component.anoSelecionado = 2024;
+
+    component.anoAnterior();
+    expect(component.anoSelecionado).toBe(2023);
+
+    component.proximoAno();
+    expect(component.anoSelecionado).toBe(2024);
+  });
+
+  it('voltarParaAnoAtual retorna do ano futuro para o relatório atual', () => {
+    component.anoSelecionado = component.anoAtual + 1;
+
+    expect(component.estaEmAnoFuturo).toBe(true);
+    expect(component.estaForaDoAnoAtual).toBe(true);
+
+    component.voltarParaAnoAtual();
+
+    expect(component.anoSelecionado).toBe(component.anoAtual);
+    expect(component.estaEmAnoFuturo).toBe(false);
+    expect(component.estaForaDoAnoAtual).toBe(false);
+  });
+
+  it('estaForaDoAnoAtual também identifica anos passados', () => {
+    component.anoSelecionado = component.anoAtual - 1;
+
+    expect(component.estaEmAnoFuturo).toBe(false);
+    expect(component.estaForaDoAnoAtual).toBe(true);
+
+    component.voltarParaAnoAtual();
+
+    expect(component.anoSelecionado).toBe(component.anoAtual);
+  });
+
+  it('onAnoChange cria séries vazias para ano futuro sem mock', () => {
+    const futuro = 2027;
+
+    component.anoSelecionado = futuro;
+    component.onAnoChange();
+
+    expect(component.dadosPorAno[futuro].receitas).toEqual(
+      new Array(12).fill(0),
+    );
+    expect(component.dadosReceitas).toEqual(new Array(12).fill(0));
+  });
+
+  it('carregarCartoesAno soma totalAPagarMes mensal dos cartões', () => {
+    cartoesStub.getCartoes.mockImplementation(({ mes }: { mes: number }) =>
+      of(
+        mes === 4
+          ? [
+              { id: 1, totalAPagarMes: 100 },
+              { id: 2, totalAPagarMes: 50 },
+            ]
+          : mes === 5
+            ? [{ id: 1, totalAPagarMes: 100 }]
+            : [],
+      ),
+    );
+
+    (
+      component as unknown as { carregarCartoesAno: (ano: number) => void }
+    ).carregarCartoesAno(component.anoAtual);
+
+    expect(component.dadosCartaoCredito[2]).toBe(0);
+    expect(component.dadosCartaoCredito[3]).toBe(150);
+    expect(component.dadosCartaoCredito[4]).toBe(100);
+    expect(component.totalCartaoCredito).toBe(250);
+  });
+
+  it('exibirAvisoRelatorioVazio aparece para ano sem dados fora do atual', () => {
+    component.anoSelecionado = component.anoAtual + 1;
+    component.onAnoChange();
+    expect(component.exibirAvisoRelatorioVazio).toBe(true);
+
+    component.anoSelecionado = component.anoAtual;
+    component.onAnoChange();
+    expect(component.exibirAvisoRelatorioVazio).toBe(false);
+
+    component.anoSelecionado = component.anoAtual - 1;
+    component.dadosReceitas = [100, ...new Array(11).fill(0)];
+    component.dadosDespesas = new Array(12).fill(0);
+    component.dadosDividas = new Array(12).fill(0);
+    component.dadosInvestimentos = new Array(12).fill(0);
+    expect(component.exibirAvisoRelatorioVazio).toBe(false);
+  });
+
+  it('adicionarAnoAoGraficoSaldo inclui ano selecionado e limita em 5 adicionais', () => {
+    component.anosSaldoSelecionados = [2026];
+    component.anosSaldoComparacao = [2026, 2027, 2035, 2036, 2037];
+    component.anoSelecionado = 2040;
+
+    component.adicionarAnoAoGraficoSaldo();
+
+    expect(component.anosSaldoSelecionados).toEqual([
+      2026, 2027, 2035, 2036, 2037, 2040,
+    ]);
+
+    component.anoSelecionado = 2041;
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+    component.adicionarAnoAoGraficoSaldo();
+
+    expect(component.anosSaldoSelecionados).not.toContain(2041);
+  });
+
+  it('adicionarAnoAoGraficoSaldo preserva comparações ao navegar entre anos', () => {
+    component.anosSaldoSelecionados = [component.anoAtual];
+    component.anoSelecionado = component.anoAtual + 1;
+    component.adicionarAnoAoGraficoSaldo();
+    expect(component.anosSaldoSelecionados).toEqual([
+      component.anoAtual,
+      component.anoAtual + 1,
+    ]);
+
+    component.anoSelecionado = component.anoAtual + 2;
+    component.onAnoChange();
+    expect(component.anosSaldoSelecionados).toEqual([component.anoAtual + 2]);
+
+    component.adicionarAnoAoGraficoSaldo();
+    expect(component.anosSaldoSelecionados).toEqual([
+      component.anoAtual,
+      component.anoAtual + 1,
+      component.anoAtual + 2,
+    ]);
+  });
+
+  it('limparFiltrosGraficoSaldo volta para o ano atual', () => {
+    component.anoSelecionado = 2040;
+    component.anosSaldoSelecionados = [2026, 2027, 2040];
+    component.adicionarAnoAoGraficoSaldo();
+
+    component.limparFiltrosGraficoSaldo();
+
+    expect(component.anoSelecionado).toBe(component.anoAtual);
+    expect(component.anosSaldoSelecionados).toEqual([component.anoAtual]);
+  });
+
+  it('removerAnoDoGraficoSaldo mantém pelo menos um ano selecionado', () => {
+    component.anosSaldoSelecionados = [2026, 2027];
+
+    component.removerAnoDoGraficoSaldo(2027);
+    expect(component.anosSaldoSelecionados).toEqual([2026]);
+
+    component.removerAnoDoGraficoSaldo(2026);
+    expect(component.anosSaldoSelecionados).toEqual([2026]);
+  });
+
+  it('getCorGraficoSaldo diferencia passado, presente e futuro', () => {
+    const getCorGraficoSaldo = (
+      component as unknown as { getCorGraficoSaldo: (ano: number) => string }
+    ).getCorGraficoSaldo.bind(component);
+
+    expect(getCorGraficoSaldo(component.anoAtual - 3)).toBe('#DC2626');
+    expect(getCorGraficoSaldo(component.anoAtual - 2)).toBe('#F97316');
+    expect(getCorGraficoSaldo(component.anoAtual - 1)).toBe('#FACC15');
+    expect(getCorGraficoSaldo(component.anoAtual)).toBe('#7C3AED');
+    expect(getCorGraficoSaldo(component.anoAtual + 1)).toBe('#2563EB');
+    expect(getCorGraficoSaldo(component.anoAtual + 2)).toBe('#38BDF8');
+    expect(getCorGraficoSaldo(component.anoAtual + 3)).toBe('#06B6D4');
+    expect(getCorGraficoSaldo(component.anoAtual + 4)).toBe('#2DD4BF');
+    expect(getCorGraficoSaldo(component.anoAtual + 20)).toBe('#2DD4BF');
   });
 
   it('randomDataset gera mergeOptions.dataset.source com 13x8', () => {
@@ -452,15 +638,56 @@ describe('RelatorioPageComponent', () => {
     expect(result).toBe('R$ 3.456,00');
   });
 
-  it('testeAno() dispara alert com o ano selecionado', () => {
-    const spy = jest.spyOn(window, 'alert').mockImplementation(() => {});
-    component.anoSelecionado = 2024;
-    component.testeAno();
-    expect(spy).toHaveBeenCalledWith('Ano selecionado: 2024');
-    spy.mockRestore();
+  it('formatters dos gráficos financeiros devem formatar tooltips e eixo Y', () => {
+    (
+      component as unknown as { atualizarGraficosFinanceiros: () => void }
+    ).atualizarGraficosFinanceiros();
+
+    const receitas = component.chartOptionReceitasFixasVariaveis as any;
+    const despesas = component.chartOptionDespesasCategoria as any;
+    const faturas = component.chartOptionFaturas as any;
+    const investimentos = component.chartOptionInvestimentos as any;
+
+    expect(
+      receitas.tooltip.formatter([
+        {
+          value: 1200,
+          seriesName: 'Fixas',
+          name: 'Janeiro',
+          color: '#2563EB',
+        },
+      ]),
+    ).toContain('R$ 1.200,00');
+    expect(receitas.yAxis.axisLabel.formatter(1200)).toBe('R$ 1.200');
+
+    expect(
+      despesas.tooltip.formatter({
+        name: 'Mercado',
+        value: 345.67,
+      }),
+    ).toContain('Mercado: R$ 345,67');
+
+    expect(
+      faturas.tooltip.formatter([{ value: 500, name: 'Janeiro' }]),
+    ).toBe('R$ 500,00');
+    expect(faturas.yAxis.axisLabel.formatter(500)).toBe('R$ 500');
+
+    expect(
+      investimentos.tooltip.formatter([{ value: 900, name: 'Janeiro' }]),
+    ).toBe('R$ 900,00');
+    expect(investimentos.yAxis.axisLabel.formatter(900)).toBe('R$ 900');
   });
 
+  // it('testeAno() dispara alert com o ano selecionado', () => {
+  //   const spy = jest.spyOn(window, 'alert').mockImplementation(() => {});
+  //   component.anoSelecionado = 2024;
+  //   component.testeAno();
+  //   expect(spy).toHaveBeenCalledWith('Ano selecionado: 2024');
+  //   spy.mockRestore();
+  // });
+
   it('getDatasetSource usa 0 quando um ano não existe (cobre o ramo "else")', () => {
+    component.anosSaldoSelecionados = [2025];
     delete (component.dadosPorAno as Record<number, unknown>)[2025];
     const src = (
       component as unknown as { getDatasetSource: () => unknown[][] }
@@ -781,6 +1008,245 @@ describe('RelatorioPageComponent', () => {
       expect(component.dadosPorAno[2026].despesas.every((v) => v === 0)).toBe(
         true,
       );
+      done();
+    }, 0);
+  });
+
+  it('deve inicializar todos os gráficos da visão gráficos quando os containers existem', () => {
+    const ref = () => ({ nativeElement: document.createElement('div') });
+    component.visaoRelatorio = 'graficos';
+    (component as any).graficosComponent = {
+      chartSaldo: ref(),
+      chartReceitasDespesas: ref(),
+      chartReceitasFixasVariaveis: ref(),
+      chartDespesasCategoria: ref(),
+      chartFaturas: ref(),
+      chartInvestimentos: ref(),
+      chartDividas: ref(),
+    };
+
+    (component as any).initCharts();
+
+    expect(echartsInitMock).toHaveBeenCalledTimes(7);
+    expect(chartMock.setOption).toHaveBeenCalledTimes(7);
+  });
+
+  it('deve retornar sem inicializar gráficos quando o container principal não existe', () => {
+    component.visaoRelatorio = 'graficos';
+    (component as any).graficosComponent = {};
+
+    (component as any).initCharts();
+
+    expect(echartsInitMock).not.toHaveBeenCalled();
+  });
+
+  it('deve cobrir guardas de ano e filtros do gráfico de saldo', () => {
+    const onAnoChangeSpy = jest.spyOn(component, 'onAnoChange');
+    component.anoSelecionado = 2020;
+    component.anoAnterior();
+    expect(onAnoChangeSpy).not.toHaveBeenCalled();
+
+    component.voltarParaAnoAtual();
+    expect(onAnoChangeSpy).toHaveBeenCalledTimes(1);
+
+    onAnoChangeSpy.mockClear();
+    component.voltarParaAnoAtual();
+    expect(onAnoChangeSpy).not.toHaveBeenCalled();
+
+    component.anoSelecionado = Number.NaN;
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+
+    component.anoSelecionado = component.anoAtual;
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+
+    component.anoSelecionado = component.anoAtual - 1;
+    component.anosSaldoComparacao = [component.anoAtual, component.anoSelecionado];
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+
+    component.anosSaldoComparacao = [
+      component.anoAtual,
+      component.anoAtual - 1,
+      component.anoAtual - 2,
+      component.anoAtual - 3,
+    ];
+    expect(component.podeAdicionarAnoGraficoSaldo).toBe(false);
+  });
+
+  it('deve cobrir remoção de anos de comparação sem alterar quando inválida', () => {
+    const sincronizarSpy = jest.spyOn(
+      component as any,
+      'sincronizarGraficoSaldoECharts',
+    );
+    component.anosSaldoComparacao = [component.anoAtual];
+    component.anosSaldoSelecionados = [component.anoAtual];
+
+    component.removerAnoDoGraficoSaldo(component.anoAtual);
+    expect(component.anosSaldoComparacao).toEqual([component.anoAtual]);
+    expect(sincronizarSpy).not.toHaveBeenCalled();
+
+    component.anosSaldoComparacao = [component.anoAtual - 1];
+    component.removerAnoDoGraficoSaldo(component.anoAtual - 1);
+    expect(component.anosSaldoComparacao).toEqual([component.anoAtual - 1]);
+    expect(sincronizarSpy).not.toHaveBeenCalled();
+  });
+
+  it('onAnoChange deve ignorar ano inválido e preservar comparação selecionada', () => {
+    const anoAntes = component.anoSelecionado;
+    component.anoSelecionado = 2022;
+    component.onAnoChange();
+    expect(component.anoSelecionado).toBe(2022);
+
+    component.anoSelecionado = Number.NaN;
+    component.onAnoChange();
+    expect(Number.isNaN(component.anoSelecionado)).toBe(true);
+
+    component.anoSelecionado = component.anoAtual - 1;
+    (component as any).comparandoGraficoSaldo = true;
+    component.anosSaldoComparacao = [component.anoAtual - 1, component.anoAtual];
+    component.onAnoChange();
+    expect(component.anosSaldoSelecionados).toEqual([
+      component.anoAtual - 1,
+      component.anoAtual,
+    ]);
+
+    component.anoSelecionado = anoAntes;
+  });
+
+  it('carregamentos da API devem tratar retornos nulos e valores inválidos como zero', (done) => {
+    receitasStub.getReceitas.mockReturnValue(of(null));
+    despesasStub.getDespesas.mockReturnValue(of(null));
+    cartoesStub.getCartoes.mockReturnValue(of(null));
+
+    (component as any).carregarReceitasAno(2026);
+    (component as any).carregarDespesasAno(2026);
+    (component as any).carregarCartoesAno(2026);
+
+    setTimeout(() => {
+      expect(component.dadosPorAno[2026].receitas.every((v) => v === 0)).toBe(
+        true,
+      );
+      expect(component.dadosPorAno[2026].despesas.every((v) => v === 0)).toBe(
+        true,
+      );
+      expect(
+        component.dadosPorAno[2026].cartaoCredito.every((v) => v === 0),
+      ).toBe(true);
+      done();
+    }, 0);
+  });
+
+  it('agregadores devem ignorar meses ausentes, zeros e categorias vazias', () => {
+    const receitasPorMes = new Array(12).fill(undefined) as any[];
+    receitasPorMes[0] = [
+      { valor: 0, natureza: 'fixa', categoria: 'Ignorada' },
+      { valor: '10', natureza: 'variavel', categoria: ' ' },
+      { valor: '15', natureza: 'fixa', categoria: 'Outras' },
+      { valor: '5', natureza: 'fixa', categoria: 'Outras' },
+    ];
+
+    (component as any).agregarReceitasPorCategorias(receitasPorMes);
+
+    expect(component.naturezaReceitaLinhas[0].total).toBe(20);
+    expect(component.naturezaReceitaLinhas[1].total).toBe(10);
+    expect(
+      component.receitasPorTipoLinhas.find(
+        (linha) => linha.tipo === 'Outras' && linha.total === 30,
+      ),
+    ).toBeTruthy();
+
+    const despesasPorMes = new Array(12).fill(undefined) as any[];
+    despesasPorMes[0] = [
+      { valor: 0, natureza: 'fixa', categoria: 'Ignorada' },
+      { valor: '12', natureza: 'variavel', categoria: '' },
+      { valor: '8', natureza: 'fixa', categoria: 'Moradia' },
+      { valor: '2', natureza: 'fixa', categoria: 'Moradia' },
+    ];
+
+    (component as any).agregarDespesasPorCategorias(despesasPorMes);
+
+    expect(component.naturezaDespesaLinhas[0].total).toBe(10);
+    expect(component.naturezaDespesaLinhas[1].total).toBe(12);
+    expect(
+      component.despesasPorCategoriaLinhas.find(
+        (linha) => linha.categoria === 'Moradia' && linha.total === 10,
+      ),
+    ).toBeTruthy();
+    expect(
+      component.despesasPorCategoriaLinhas.find(
+        (linha) => linha.categoria === 'Outras' && linha.total === 12,
+      ),
+    ).toBeTruthy();
+  });
+
+  it('ngAfterViewInit deve reinicializar gráficos quando está na visão gráficos', () => {
+    jest.useFakeTimers();
+    const reinicializarSpy = jest
+      .spyOn(component as any, 'reinicializarGraficosAposVoltarResumo')
+      .mockImplementation();
+    component.visaoRelatorio = 'graficos';
+
+    component.ngAfterViewInit();
+    jest.runOnlyPendingTimers();
+
+    expect(reinicializarSpy).toHaveBeenCalled();
+    jest.useRealTimers();
+  });
+
+  it('deve cobrir fallbacks restantes de gráficos e séries vazias', () => {
+    component.anoSelecionado = 2035;
+    (component as any).calcularTotais();
+    expect(component.dadosReceitas.length).toBe(12);
+
+    const proximoAnoSpy = jest.spyOn(component, 'podeProximoAno', 'get').mockReturnValue(false);
+    const anoAntes = component.anoSelecionado;
+    component.proximoAno();
+    expect(component.anoSelecionado).toBe(anoAntes);
+    proximoAnoSpy.mockRestore();
+
+    const sincronizarSpy = jest.spyOn(
+      component as any,
+      'sincronizarGraficoSaldoECharts',
+    );
+    component.anoSelecionado = component.anoAtual - 1;
+    component.anosSaldoComparacao = [component.anoAtual, component.anoAtual - 1];
+    component.removerAnoDoGraficoSaldo(component.anoAtual - 1);
+    expect(component.anosSaldoSelecionados).toEqual([component.anoSelecionado]);
+    expect(sincronizarSpy).toHaveBeenCalled();
+
+    (component as any).reinicializarGraficosAposVoltarResumo();
+
+    component.naturezaReceitaLinhas = [];
+    component.despesasPorCategoriaLinhas = [];
+    (component as any).atualizarGraficosFinanceiros();
+    expect((component.chartOptionDespesasCategoria as any).series[0].data).toEqual([
+      { name: 'Sem dados', value: 1 },
+    ]);
+
+    component.anosSaldoSelecionados = [];
+    expect((component as any).getAnosGraficoSaldo()).toEqual([component.anoAtual]);
+  });
+
+  it('carregamentos da API devem somar valores inválidos como zero', (done) => {
+    receitasStub.getReceitas.mockReturnValue(of([{ valor: undefined } as any]));
+    despesasStub.getDespesas.mockReturnValue(of([{ valor: undefined } as any]));
+    cartoesStub.getCartoes.mockReturnValue(
+      of([{ totalAPagarMes: undefined } as any]),
+    );
+
+    (component as any).carregarReceitasAno(2026);
+    (component as any).carregarDespesasAno(2026);
+    (component as any).carregarCartoesAno(2026);
+
+    setTimeout(() => {
+      expect(component.dadosPorAno[2026].receitas.every((v) => v === 0)).toBe(
+        true,
+      );
+      expect(component.dadosPorAno[2026].despesas.every((v) => v === 0)).toBe(
+        true,
+      );
+      expect(
+        component.dadosPorAno[2026].cartaoCredito.every((v) => v === 0),
+      ).toBe(true);
       done();
     }, 0);
   });

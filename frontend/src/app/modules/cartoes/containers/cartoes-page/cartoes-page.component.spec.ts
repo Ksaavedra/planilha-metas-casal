@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ElementRef } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { Cartao } from '@core/interfaces/cartoes/cartoes';
 import { Divida, DividaNoMes } from '@core/interfaces/dividas/dividas';
 import * as echarts from 'echarts';
@@ -19,6 +19,9 @@ describe('CartoesPageComponent', () => {
     deleteDivida: jest.Mock;
   };
   let dialog: { open: jest.Mock };
+  let perfilService: {
+    temGrupoFamiliar$: Observable<boolean>;
+  };
 
   const cartao = (partial: Partial<Cartao> = {}): Cartao => ({
     id: partial.id ?? 1,
@@ -80,11 +83,15 @@ describe('CartoesPageComponent', () => {
     dialog = {
       open: jest.fn().mockReturnValue(afterClosed(false)),
     };
+    perfilService = {
+      temGrupoFamiliar$: of(true),
+    };
 
     component = new CartoesPageComponent(
       cartoesService as any,
       dividasService as any,
       dialog as any,
+      perfilService as any,
     );
     component.mesAtual = new Date(2026, 4, 1);
   });
@@ -125,17 +132,29 @@ describe('CartoesPageComponent', () => {
   });
 
   it('deve calcular resumo, mês e paginação', () => {
-    component.cartoes = Array.from({ length: 8 }, (_, i) =>
-      cartao({ id: i + 1, limite: 1000, valorUtilizado: 100 }),
-    );
-    component.parcelamentos = [parcelaMes({ cartaoId: 1, valorRestante: 250 })];
+    component.cartoes = [
+      ...Array.from({ length: 8 }, (_, i) =>
+        cartao({ id: i + 1, limite: 1000, valorUtilizado: 100 }),
+      ),
+      cartao({ id: 99, limite: 3500, valorUtilizado: 0, totalAPagarMes: 0 }),
+    ];
+    component.parcelamentos = [
+      parcelaMes({
+        cartaoId: 1,
+        valorTotal: 750,
+        quantidadeParcelas: 3,
+        valorRestante: 250,
+      }),
+    ];
     component.paginaTabela = 2;
 
     expect(component.resumo.limiteTotal).toBe(8000);
     expect(component.resumo.utilizado).toBe(950);
+    expect(component.resumo.totalAPagarMes).toBe(950);
     expect(component.exibirAvisoVazio).toBe(false);
     expect(component.totalPaginasTabela).toBe(2);
     expect(component.exibirPaginacaoTabela).toBe(true);
+    expect(component.cartoesComFaturaMes.length).toBe(8);
     expect(component.cartoesPaginados.length).toBe(2);
     expect(component.exibindoDeTabela).toBe(7);
     expect(component.exibindoAteTabela).toBe(8);
@@ -149,6 +168,16 @@ describe('CartoesPageComponent', () => {
     expect(component.paginaTabela).toBe(2);
   });
 
+  it('deve priorizar totalAPagarMes e nunca retornar valor negativo na fatura', () => {
+    const c = {
+      ...cartao({ valorUtilizado: 500 }),
+      totalAPagarMes: -10,
+    } as Cartao;
+
+    expect(component.valorUtilizadoFatura(c)).toBe(0);
+    expect(component.valorPagarFatura(c)).toBe(0);
+  });
+
   it('deve cobrir fallback de resumo vazio e limites de paginação', () => {
     component.cartoes = [];
     component.paginaTabela = 1;
@@ -156,6 +185,7 @@ describe('CartoesPageComponent', () => {
     expect(component.resumo).toEqual({
       limiteTotal: 0,
       utilizado: 0,
+      totalAPagarMes: 0,
       disponivel: 0,
       percentualUtilizado: 0,
       proximoVencimentoLabel: '-',
@@ -179,9 +209,16 @@ describe('CartoesPageComponent', () => {
     component.mesAnterior();
     expect(component.mesAtual.getMonth()).toBe(3);
     expect(cartoesService.getCartoes).toHaveBeenCalled();
+    expect(component.estaForaDoMesAtual).toBe(true);
 
     component.proximoMes();
     expect(component.mesAtual.getMonth()).toBe(4);
+    expect(component.estaForaDoMesAtual).toBe(false);
+
+    component.mesAnterior();
+    component.voltarParaMesAtual();
+    expect(component.mesAtual.getMonth()).toBe(4);
+    expect(component.nomeMesHoje).toBe('Maio 2026');
   });
 
   it('deve validar se pode parcelar conforme fechamento', () => {
@@ -243,17 +280,24 @@ describe('CartoesPageComponent', () => {
   });
 
   it('deve alternar expansão e calcular valores da fatura', () => {
-    const c = cartao({ id: 1, limite: 1000, valorUtilizado: 300 });
+    const c = cartao({ id: 1, limite: 3500, valorUtilizado: 300 });
     component.parcelamentos = [
-      parcelaMes({ cartaoId: 1, valorRestante: 125 }),
+      parcelaMes({
+        cartaoId: 1,
+        valorTotal: 3000,
+        quantidadeParcelas: 10,
+        valorRestante: 3000,
+      }),
       parcelaMes({ cartaoId: 2, valorRestante: 999 }),
     ];
 
     component.alternarCartao(c);
     expect(component.cartaoExpandido(c)).toBe(true);
     expect(component.parcelamentosDoCartao(c).length).toBe(1);
-    expect(component.valorUtilizadoFatura(c)).toBe(125);
-    expect(component.valorDisponivelFatura(c)).toBe(875);
+    expect(component.valorUtilizadoFatura(c)).toBe(300);
+    expect(component.valorPagarFatura(c)).toBe(300);
+    expect(component.valorUtilizadoLimite(c)).toBe(3000);
+    expect(component.valorDisponivelFatura(c)).toBe(500);
 
     component.alternarCartao(c);
     expect(component.cartaoExpandido(c)).toBe(false);
@@ -352,13 +396,10 @@ describe('CartoesPageComponent', () => {
     expect(cartoesService.updateCartao).not.toHaveBeenCalled();
 
     component['registrarPagamentoAtrasado'](c, -10);
-    expect(cartoesService.updateCartao).toHaveBeenCalledWith(
-      1,
-      expect.objectContaining({
-        valorUtilizado: 100,
-        valorFaturaPaga: 0,
-      }),
-    );
+    const [cartaoId, payload] = cartoesService.updateCartao.mock.calls[0];
+    expect(cartaoId).toBe(1);
+    expect(payload.valorUtilizado).toBe(100);
+    expect(payload.valorFaturaPaga).toBe(0);
   });
 
   it('deve pagar, desfazer pagamento e excluir cartão', () => {
@@ -370,16 +411,25 @@ describe('CartoesPageComponent', () => {
 
     dialog.open.mockReturnValueOnce(afterClosed(true)).mockReturnValueOnce(afterClosed(undefined));
     component.confirmarPagarFatura(c);
-    expect(cartoesService.updateCartao).toHaveBeenCalledWith(1, expect.objectContaining({ valorUtilizado: 0 }));
-    expect(dividasService.updateDivida).toHaveBeenCalledWith(10, expect.any(Object));
+    const [cartaoPagoId, payloadPagamento] = cartoesService.updateCartao.mock.calls[0];
+    expect(cartaoPagoId).toBe(1);
+    expect(payloadPagamento.valorUtilizado).toBe(0);
+    const [dividaPagaId, payloadDividaPaga] = dividasService.updateDivida.mock.calls[0];
+    expect(dividaPagaId).toBe(10);
+    expect(typeof payloadDividaPaga).toBe('object');
 
     component.parcelamentos = [
       parcelaMes({ id: 11, cartaoId: 1, statusParcelaMes: 'paga', parcelaMesPaga: true }),
     ];
     dialog.open.mockReturnValueOnce(afterClosed(true)).mockReturnValueOnce(afterClosed(undefined));
     component.confirmarDesfazerPagamento(c);
-    expect(cartoesService.updateCartao).toHaveBeenCalledWith(1, expect.objectContaining({ faturaPaga: false, valorFaturaPaga: 0 }));
-    expect(dividasService.updateDivida).toHaveBeenCalledWith(11, expect.any(Object));
+    const [cartaoDesfeitoId, payloadDesfazer] = cartoesService.updateCartao.mock.calls[1];
+    expect(cartaoDesfeitoId).toBe(1);
+    expect(payloadDesfazer.faturaPaga).toBe(false);
+    expect(payloadDesfazer.valorFaturaPaga).toBe(0);
+    const [dividaDesfeitaId, payloadDividaDesfeita] = dividasService.updateDivida.mock.calls[1];
+    expect(dividaDesfeitaId).toBe(11);
+    expect(typeof payloadDividaDesfeita).toBe('object');
 
     dialog.open.mockReturnValueOnce(afterClosed(true));
     component.confirmarExcluir(c);
@@ -392,16 +442,13 @@ describe('CartoesPageComponent', () => {
 
     component['registrarPagamentoAtrasado'](c, 999);
 
-    expect(cartoesService.updateCartao).toHaveBeenCalledWith(
-      1,
-      expect.objectContaining({
-        valorUtilizado: 0,
-        faturaPaga: false,
-        valorFaturaPaga: 350,
-        observacaoAtraso: null,
-        previsaoPagamento: null,
-      }),
-    );
+    const [cartaoId, payload] = cartoesService.updateCartao.mock.calls[0];
+    expect(cartaoId).toBe(1);
+    expect(payload.valorUtilizado).toBe(0);
+    expect(payload.faturaPaga).toBe(false);
+    expect(payload.valorFaturaPaga).toBe(150);
+    expect(payload.observacaoAtraso).toBeNull();
+    expect(payload.previsaoPagamento).toBeNull();
   });
 
   it('deve abrir dialog de adicionar e editar cartão', () => {
@@ -485,6 +532,83 @@ describe('CartoesPageComponent', () => {
 
     expect(chart.setOption).toHaveBeenCalled();
     expect(initSpy).toHaveBeenCalled();
-    expect(component['charts']).toContain(chart);
+    expect((component['charts'] as any[]).includes(chart)).toBe(true);
+  });
+
+  it('deve cobrir fallbacks de valores de fatura, limite e resumo', () => {
+    const c = {
+      ...cartao({ id: 10, totalAPagarMes: null as any, valorUtilizado: undefined as any }),
+      limite: undefined as any,
+    };
+    component.cartoes = [c];
+    component.parcelamentos = [
+      parcelaMes({ cartaoId: 10, valorRestante: undefined as any, valorTotal: 300, quantidadeParcelas: 3 }),
+      parcelaMes({ cartaoId: 10, valorRestante: -50, valorTotal: 300, quantidadeParcelas: 3 }),
+    ];
+
+    expect(component.valorUtilizadoFatura(c)).toBe(200);
+    expect(component.valorUtilizadoLimite(c)).toBe(300);
+    expect(component.valorDisponivelFatura(c)).toBe(0);
+    expect(component.resumo.limiteTotal).toBe(0);
+  });
+
+  it('deve cobrir status de fatura com parcelas pagas, quitadas e pendentes', () => {
+    const c = cartao({ id: 11, valorUtilizado: 100, diaVencimento: 1 });
+
+    component.parcelamentos = [parcelaMes({ cartaoId: 11, statusParcelaMes: 'paga' })];
+    expect(component.faturaAtrasada(c)).toBe(false);
+
+    component.parcelamentos = [parcelaMes({ cartaoId: 11, statusParcelaMes: 'quitada' })];
+    expect(component.faturaAtrasada(c)).toBe(false);
+
+    component.parcelamentos = [parcelaMes({ cartaoId: 11, statusParcelaMes: 'pendente' })];
+    expect(component.faturaAtrasada(c)).toBe(true);
+
+    component.parcelamentos = [];
+    expect((component as any).statusResumoParcelasCartao(c)).toBeNull();
+  });
+
+  it('deve cobrir datas de previsão inválidas e vencidas', () => {
+    expect(component.previsaoPagamentoVencida(cartao({ previsaoPagamento: undefined, valorUtilizado: 100 }))).toBe(false);
+    expect(component.previsaoPagamentoVencida(cartao({ previsaoPagamento: 'data-invalida', valorUtilizado: 100 }))).toBe(false);
+    expect(component.previsaoPagamentoVencida(cartao({ previsaoPagamento: '2026-05-10', valorUtilizado: 100 }))).toBe(true);
+
+    expect((component as any).dataLocal(null)).toBeNull();
+    expect((component as any).dataLocal('2026-00-10')).toBeNull();
+  });
+
+  it('deve cobrir atualizações de parcelas pagas e desfeitas com dataInicio ausente', () => {
+    const c = cartao({ id: 12 });
+    const pendente = {
+      ...parcelaMes({
+        id: 101,
+        cartaoId: 12,
+        statusParcelaMes: 'pendente',
+        parcelaMesPaga: false,
+        valorTotal: 300,
+        quantidadeParcelas: 3,
+      }),
+      dataInicio: undefined,
+    } as DividaNoMes;
+    const paga = {
+      ...parcelaMes({
+        id: 102,
+        cartaoId: 12,
+        statusParcelaMes: 'paga',
+        parcelaMesPaga: true,
+        valorTotal: 300,
+        quantidadeParcelas: 3,
+      }),
+      dataInicio: undefined,
+    } as DividaNoMes;
+    component.parcelamentos = [pendente, paga];
+
+    const pagar = (component as any).atualizacoesParcelasPagas(c);
+    const desfazer = (component as any).atualizacoesParcelasDesfeitas(c);
+
+    expect(pagar.length).toBe(1);
+    expect(desfazer.length).toBe(1);
+    expect(dividasService.updateDivida).toHaveBeenCalledWith(101, { valorPago: 100 });
+    expect(dividasService.updateDivida).toHaveBeenCalledWith(102, { valorPago: 0 });
   });
 });

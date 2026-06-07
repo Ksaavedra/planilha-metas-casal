@@ -11,6 +11,8 @@ export interface Cartao {
   banco: string;
   limite: number;
   valorUtilizado: number;
+  totalAPagarMes?: number;
+  valorParcela?: number;
   valorDisponivel: number;
   faturaPaga?: boolean;
   valorFaturaPaga?: number;
@@ -44,6 +46,7 @@ export type UpdateCartaoRequest = Partial<CreateCartaoRequest>;
 export interface ResumoCartoesView {
   limiteTotal: number;
   utilizado: number;
+  totalAPagarMes: number;
   disponivel: number;
   percentualUtilizado: number;
   proximoVencimentoLabel: string;

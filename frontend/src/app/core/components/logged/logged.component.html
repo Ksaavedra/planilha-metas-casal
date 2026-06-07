@@ -13,7 +13,7 @@
     ></button>
 
     <div class="main-content" [class.mobile-layout]="isMobile" [class.sidebar-open]="sidebarStatus"
-      [class.sidebar-closed]="!sidebarStatus">
+      [class.sidebar-closed]="!sidebarStatus" (click)="fecharSidebarAoClicarConteudo()">
       <router-outlet></router-outlet>
     </div>
   </div>

@@ -7,7 +7,8 @@
           <span class="material-icons investimentos-hero__icon">savings</span>
         </div>
         <div class="investimentos-hero__text">
-          <h1 class="investimentos-hero__title">Investimentos do casal</h1>
+          <h1 class="investimentos-hero__title">
+            {{ (temGrupoFamiliar$ | async) ? 'Investimentos do casal' : 'Investimentos' }}</h1>
           <p class="investimentos-hero__subtitle">
             Acompanhando crescimento financeiro e patrimônio
           </p>

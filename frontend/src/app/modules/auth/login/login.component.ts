@@ -18,7 +18,7 @@ export class LoginComponent {
   modoRecuperacao = false;
 
   form = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
+    usuarioOuEmail: ['', Validators.required],
     senha: ['', Validators.required],
   });
 
@@ -35,16 +35,16 @@ export class LoginComponent {
 
     if (this.form.invalid || this.carregando) {
       this.form.markAllAsTouched();
-      this.erro = 'Informe email e senha para entrar.';
+      this.erro = 'Informe usuário ou email e senha para entrar.';
       return;
     }
 
-    const { email, senha } = this.form.getRawValue();
+    const { usuarioOuEmail, senha } = this.form.getRawValue();
     this.carregando = true;
 
     this.authService
       .login({
-        email: String(email).trim(),
+        usuarioOuEmail: String(usuarioOuEmail).trim(),
         senha: String(senha),
       })
       .subscribe({
@@ -79,10 +79,11 @@ export class LoginComponent {
     this.erro = null;
     this.sucesso = null;
 
-    const emailControl = this.form.get('email');
-    emailControl?.markAsTouched();
+    const identificadorControl = this.form.get('usuarioOuEmail');
+    identificadorControl?.markAsTouched();
+    const email = String(identificadorControl?.value || '').trim();
 
-    if (emailControl?.invalid) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       this.erro = 'Informe um email válido para recuperar sua senha.';
       return;
     }

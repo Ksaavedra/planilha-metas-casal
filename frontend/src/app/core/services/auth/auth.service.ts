@@ -94,6 +94,17 @@ export class AuthService {
     );
   }
 
+  atualizarTipoUso(tipoUso: 'individual' | 'familia'): Observable<PerfilResponse> {
+    return this.apiService
+      .put<PerfilResponse>('/auth/tipo-uso', { tipoUso })
+      .pipe(
+        tap((usuario) => {
+          localStorage.setItem(this.userKey, JSON.stringify(usuario));
+          this.currentUserSubject.next(usuario);
+        }),
+      );
+  }
+
   private setAuth(token: string, user: Usuario): void {
     localStorage.setItem(this.tokenKey, token);
     localStorage.setItem(this.userKey, JSON.stringify(user));

@@ -1,98 +1,135 @@
 <section class="relatorio-categorias"
   [attr.aria-label]="'Receitas e despesas em ' + anoSelecionado + ' por categoria'">
-  <p class="relatorio-categorias__intro">
-    Valores com base nas receitas lançadas no exercício <strong>{{ anoSelecionado }}</strong> (mesma origem da página
-    Receitas).
-  </p>
+  <section class="relatorio-categorias__bloco relatorio-categorias__bloco--receitas"
+    aria-label="Resumo de receitas por natureza e tipo">
+    <div class="relatorio-categorias__bloco-header">
+      <span class="material-icons relatorio-categorias__bloco-icon" aria-hidden="true">trending_up</span>
+      <div>
+        <p class="relatorio-categorias__bloco-kicker">Receitas</p>
+        <p class="relatorio-categorias__intro">
+          Valores com base nas receitas lançadas no exercício <strong>{{ anoSelecionado }}</strong> (mesma origem da
+          página Receitas).
+        </p>
+      </div>
+    </div>
 
-  <h2 class="relatorio-categorias__h2">Receitas — natureza: fixa e variável</h2>
-  <div class="data-table data-table--categorias">
-    <table>
-      <thead>
-        <tr>
-          <th>Receita</th>
-          <th *ngFor="let mes of meses">{{ mes }}</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of naturezaReceitaLinhas" [ngClass]="'natureza-receita--' + row.id">
-          <td>{{ row.label }}</td>
-          <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
-          <td>{{ row.total | currency : 'BRL' }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <div class="relatorio-categorias__subbloco">
+      <h2 class="relatorio-categorias__h2">Receitas — natureza: fixa e variável</h2>
+      <div class="data-table data-table--categorias" *ngIf="temNaturezaReceitaComValor; else semNaturezaReceita">
+        <table>
+          <thead>
+            <tr>
+              <th>Receita</th>
+              <th *ngFor="let mes of meses">{{ mes }}</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of naturezaReceitaLinhas" [ngClass]="'natureza-receita--' + row.id">
+              <td>{{ row.label }}</td>
+              <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
+              <td>{{ row.total | currency : 'BRL' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #semNaturezaReceita>
+        <p class="relatorio-categorias__vazio relatorio-categorias__vazio--receitas">
+          Nenhum lançamento de receita com valor neste exercício.
+        </p>
+      </ng-template>
+    </div>
 
-  <h2 class="relatorio-categorias__h2">Receitas — por tipo (Salário, Freela, etc.)</h2>
-  <div class="data-table data-table--categorias" *ngIf="receitasPorTipoLinhas.length">
-    <table>
-      <thead>
-        <tr>
-          <th>Tipo</th>
-          <th *ngFor="let mes of meses">{{ mes }}</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of receitasPorTipoLinhas" class="tipo-receita-linha">
-          <td>{{ row.tipo }}</td>
-          <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
-          <td>{{ row.total | currency : 'BRL' }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <p *ngIf="!receitasPorTipoLinhas.length" class="relatorio-categorias__vazio">
-    Nenhum lançamento de receita com valor neste exercício, ou ainda não há tipos agregados.
-  </p>
+    <div class="relatorio-categorias__subbloco">
+      <h2 class="relatorio-categorias__h2">Receitas — por tipo (Salário, Freela, etc.)</h2>
+      <div class="data-table data-table--categorias" *ngIf="temReceitasPorTipoComValor">
+        <table>
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th *ngFor="let mes of meses">{{ mes }}</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of receitasPorTipoLinhas" class="tipo-receita-linha">
+              <td>{{ row.tipo }}</td>
+              <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
+              <td>{{ row.total | currency : 'BRL' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p *ngIf="!temReceitasPorTipoComValor" class="relatorio-categorias__vazio relatorio-categorias__vazio--receitas">
+        Nenhum lançamento de receita com valor neste exercício, ou ainda não há tipos agregados.
+      </p>
+    </div>
+  </section>
 
-  <p class="relatorio-categorias__intro relatorio-categorias__intro--bloco-despesas">
-    Valores com base nas despesas lançadas no exercício <strong>{{ anoSelecionado }}</strong> (mesma origem da página
-    Despesas).
-  </p>
+  <section class="relatorio-categorias__bloco relatorio-categorias__bloco--despesas"
+    aria-label="Resumo de despesas por natureza e categoria">
+    <div class="relatorio-categorias__bloco-header">
+      <span class="material-icons relatorio-categorias__bloco-icon" aria-hidden="true">trending_down</span>
+      <div>
+        <p class="relatorio-categorias__bloco-kicker">Despesas</p>
+        <p class="relatorio-categorias__intro">
+          Valores com base nas despesas lançadas no exercício <strong>{{ anoSelecionado }}</strong> (mesma origem da
+          página Despesas).
+        </p>
+      </div>
+    </div>
 
-  <h2 class="relatorio-categorias__h2">Despesas — natureza: fixa e variável</h2>
-  <div class="data-table data-table--categorias">
-    <table>
-      <thead>
-        <tr>
-          <th>Despesa</th>
-          <th *ngFor="let mes of meses">{{ mes }}</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of naturezaDespesaLinhas" [ngClass]="'natureza-despesa--' + row.id">
-          <td>{{ row.label }}</td>
-          <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
-          <td>{{ row.total | currency : 'BRL' }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+    <div class="relatorio-categorias__subbloco">
+      <h2 class="relatorio-categorias__h2">Despesas — natureza: fixa e variável</h2>
+      <div class="data-table data-table--categorias" *ngIf="temNaturezaDespesaComValor; else semNaturezaDespesa">
+        <table>
+          <thead>
+            <tr>
+              <th>Despesa</th>
+              <th *ngFor="let mes of meses">{{ mes }}</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of naturezaDespesaLinhas" [ngClass]="'natureza-despesa--' + row.id">
+              <td>{{ row.label }}</td>
+              <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
+              <td>{{ row.total | currency : 'BRL' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #semNaturezaDespesa>
+        <p class="relatorio-categorias__vazio relatorio-categorias__vazio--despesas">
+          Nenhum lançamento de despesa com valor neste exercício.
+        </p>
+      </ng-template>
+    </div>
 
-  <h2 class="relatorio-categorias__h2">Despesas — por categoria (Moradia, Alimentação, etc.)</h2>
-  <div class="data-table data-table--categorias" *ngIf="despesasPorCategoriaLinhas.length">
-    <table>
-      <thead>
-        <tr>
-          <th>Categoria</th>
-          <th *ngFor="let mes of meses">{{ mes }}</th>
-          <th>Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of despesasPorCategoriaLinhas" class="tipo-despesa-linha">
-          <td>{{ row.categoria }}</td>
-          <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
-          <td>{{ row.total | currency : 'BRL' }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <p *ngIf="!despesasPorCategoriaLinhas.length" class="relatorio-categorias__vazio">
-    Nenhum lançamento de despesa com valor neste exercício, ou ainda não há categorias agregadas.
-  </p>
+    <div class="relatorio-categorias__subbloco">
+      <h2 class="relatorio-categorias__h2">Despesas — por categoria (Moradia, Alimentação, etc.)</h2>
+      <div class="data-table data-table--categorias" *ngIf="temDespesasPorCategoriaComValor">
+        <table>
+          <thead>
+            <tr>
+              <th>Categoria</th>
+              <th *ngFor="let mes of meses">{{ mes }}</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of despesasPorCategoriaLinhas" class="tipo-despesa-linha">
+              <td>{{ row.categoria }}</td>
+              <td *ngFor="let v of row.valores">{{ v | currency : 'BRL' }}</td>
+              <td>{{ row.total | currency : 'BRL' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p *ngIf="!temDespesasPorCategoriaComValor"
+        class="relatorio-categorias__vazio relatorio-categorias__vazio--despesas">
+        Nenhum lançamento de despesa com valor neste exercício, ou ainda não há categorias agregadas.
+      </p>
+    </div>
+  </section>
 </section>

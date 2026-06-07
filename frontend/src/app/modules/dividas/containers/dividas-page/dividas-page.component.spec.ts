@@ -4,8 +4,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import { ElementRef } from '@angular/core';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { Divida, DividaNoMes } from '@core/interfaces/dividas/dividas';
+import { PerfilFinanceiroService } from '@app/core/services/perfis/perfil-financeiro.service';
 import * as echarts from 'echarts';
 import { DividasPageComponent } from './dividas-page.component';
 
@@ -31,6 +32,10 @@ describe('DividasPageComponent', () => {
               pathFromRoot: [{ data: { contextoDividas: 'emprestimos' } }],
             },
           },
+        },
+        {
+          provide: PerfilFinanceiroService,
+          useValue: { temGrupoFamiliar$: of(true) },
         },
       ],
     }).compileComponents();
@@ -60,7 +65,10 @@ describe('DividasPageComponent - lógica da tela', () => {
     deleteDivida: jest.Mock;
   };
   let dialog: { open: jest.Mock };
-  let route: { snapshot: { pathFromRoot: Array<{ data: Record<string, string> }> } };
+  let route: {
+    snapshot: { pathFromRoot: Array<{ data: Record<string, string> }> };
+  };
+  let perfilService: { temGrupoFamiliar$: Observable<boolean> };
 
   const afterClosed = (value: unknown) => ({ afterClosed: () => of(value) });
 
@@ -109,11 +117,15 @@ describe('DividasPageComponent - lógica da tela', () => {
         pathFromRoot: [{ data: { contextoDividas: 'emprestimos' } }],
       },
     };
+    perfilService = {
+      temGrupoFamiliar$: of(true),
+    };
 
     component = new DividasPageComponent(
       dividasService as any,
       dialog as any,
       route as any,
+      perfilService as any,
     );
     component.mesAtual = new Date(2026, 4, 1);
   });
@@ -146,7 +158,9 @@ describe('DividasPageComponent - lógica da tela', () => {
   });
 
   it('deve carregar financiamentos quando contexto for financiamento', () => {
-    route.snapshot.pathFromRoot = [{ data: { contextoDividas: 'financiamentos' } }];
+    route.snapshot.pathFromRoot = [
+      { data: { contextoDividas: 'financiamentos' } },
+    ];
     dividasService.getDividas.mockReturnValue(
       of([
         divida({ id: 1, tipoDivida: 'emprestimo' }),
@@ -167,6 +181,22 @@ describe('DividasPageComponent - lógica da tela', () => {
     expect(component.labelVazio).toBe('Nenhum financiamento cadastrado');
   });
 
+  it('deve exibir títulos individuais para empréstimos e financiamentos', () => {
+    (component as any).temGrupoFamiliar = false;
+
+    component.contextoDividas = 'emprestimos';
+    expect(component.tituloPagina).toBe('Empréstimos');
+    expect(component.labelAdicionar).toBe('Adicionar empréstimo');
+    expect(component.tituloEvolucao).toBe('Evolução dos empréstimos');
+    expect(component.tituloTabela).toBe('Controle dos empréstimos');
+
+    component.contextoDividas = 'financiamentos';
+    expect(component.tituloPagina).toBe('Financiamentos');
+    expect(component.labelAdicionar).toBe('Adicionar financiamento');
+    expect(component.tituloEvolucao).toBe('Evolução dos financiamentos');
+    expect(component.tituloTabela).toBe('Controle dos financiamentos');
+  });
+
   it('deve tratar erro de carregamento', () => {
     dividasService.getDividas.mockReturnValue(
       throwError(() => new HttpErrorResponse({ status: 0 })),
@@ -177,13 +207,22 @@ describe('DividasPageComponent - lógica da tela', () => {
     expect(component.erroCarregar).toContain('Servidor indisponível');
     expect(component.dividas).toEqual([]);
     expect(component.paginaTabela).toBe(1);
-    expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 404 }))).toContain('API de dívidas');
-    expect(component['mensagemErroHttp'](new Error('x'))).toBe('Não foi possível carregar as dívidas.');
+    expect(
+      component['mensagemErroHttp'](new HttpErrorResponse({ status: 404 })),
+    ).toContain('API de dívidas');
+    expect(component['mensagemErroHttp'](new Error('x'))).toBe(
+      'Não foi possível carregar as dívidas.',
+    );
   });
 
   it('deve calcular getters de mês, resumo, vazio e paginação', () => {
     component.dividas = Array.from({ length: 7 }, (_, i) =>
-      dividaMes({ id: i + 1, valorTotal: 300, valorPago: 100, valorRestante: 200 }),
+      dividaMes({
+        id: i + 1,
+        valorTotal: 300,
+        valorPago: 100,
+        valorRestante: 200,
+      }),
     );
     component.paginaTabela = 2;
 
@@ -215,9 +254,19 @@ describe('DividasPageComponent - lógica da tela', () => {
   });
 
   it('deve cobrir banco, estado vazio e mês futuro/atual', () => {
-    expect(component.bancoLabel(dividaMes({ cartaoBanco: 'Nubank', instituicao: 'Banco' }))).toBe('Nubank');
-    expect(component.bancoLabel(dividaMes({ cartaoBanco: '', instituicao: 'Banco' }))).toBe('Banco');
-    expect(component.bancoLabel(dividaMes({ cartaoBanco: '', instituicao: '' }))).toBe('Sem cartão');
+    expect(
+      component.bancoLabel(
+        dividaMes({ cartaoBanco: 'Nubank', instituicao: 'Banco' }),
+      ),
+    ).toBe('Nubank');
+    expect(
+      component.bancoLabel(
+        dividaMes({ cartaoBanco: '', instituicao: 'Banco' }),
+      ),
+    ).toBe('Banco');
+    expect(
+      component.bancoLabel(dividaMes({ cartaoBanco: '', instituicao: '' })),
+    ).toBe('Sem cartão');
     expect(component.mesAtualLabel).toContain(String(new Date().getFullYear()));
 
     component.dividas = [];
@@ -253,23 +302,56 @@ describe('DividasPageComponent - lógica da tela', () => {
   });
 
   it('deve identificar botões de pagar e desfazer', () => {
-    expect(component.podePagarParcela(dividaMes({ parcelaMesPaga: false, statusParcelaMes: 'pendente' }))).toBe(true);
-    expect(component.podePagarParcela(dividaMes({ parcelaMesPaga: false, statusParcelaMes: 'futura' }))).toBe(false);
-    expect(component.podePagarParcela(dividaMes({ parcelaMesPaga: true, statusParcelaMes: 'paga' }))).toBe(false);
-    expect(component.podeDesfazerPagamento(dividaMes({ parcelaMesPaga: true, valorPagoNoMes: 100 }))).toBe(true);
-    expect(component.podeDesfazerPagamento(dividaMes({ parcelaMesPaga: true, valorPagoNoMes: 0 }))).toBe(false);
+    expect(
+      component.podePagarParcela(
+        dividaMes({ parcelaMesPaga: false, statusParcelaMes: 'pendente' }),
+      ),
+    ).toBe(true);
+    expect(
+      component.podePagarParcela(
+        dividaMes({ parcelaMesPaga: false, statusParcelaMes: 'futura' }),
+      ),
+    ).toBe(false);
+    expect(
+      component.podePagarParcela(
+        dividaMes({ parcelaMesPaga: true, statusParcelaMes: 'paga' }),
+      ),
+    ).toBe(false);
+    expect(
+      component.podeDesfazerPagamento(
+        dividaMes({ parcelaMesPaga: true, valorPagoNoMes: 100 }),
+      ),
+    ).toBe(true);
+    expect(
+      component.podeDesfazerPagamento(
+        dividaMes({ parcelaMesPaga: true, valorPagoNoMes: 0 }),
+      ),
+    ).toBe(false);
   });
 
   it('deve pagar, desfazer e excluir dívida com confirmação', () => {
-    const d = dividaMes({ id: 10, valorTotal: 300, quantidadeParcelas: 3, dataInicio: '2026-05-01' });
+    const d = dividaMes({
+      id: 10,
+      valorTotal: 300,
+      quantidadeParcelas: 3,
+      dataInicio: '2026-05-01',
+    });
 
-    dialog.open.mockReturnValueOnce(afterClosed(true)).mockReturnValueOnce(afterClosed(undefined));
+    dialog.open
+      .mockReturnValueOnce(afterClosed(true))
+      .mockReturnValueOnce(afterClosed(undefined));
     component.confirmarPagar(d);
-    expect(dividasService.updateDivida).toHaveBeenCalledWith(10, { valorPago: 100 });
+    expect(dividasService.updateDivida).toHaveBeenCalledWith(10, {
+      valorPago: 100,
+    });
 
-    dialog.open.mockReturnValueOnce(afterClosed(true)).mockReturnValueOnce(afterClosed(undefined));
+    dialog.open
+      .mockReturnValueOnce(afterClosed(true))
+      .mockReturnValueOnce(afterClosed(undefined));
     component.confirmarDesfazerPagamento(d);
-    expect(dividasService.updateDivida).toHaveBeenCalledWith(10, { valorPago: 0 });
+    expect(dividasService.updateDivida).toHaveBeenCalledWith(10, {
+      valorPago: 0,
+    });
 
     dialog.open.mockReturnValueOnce(afterClosed(true));
     component.confirmarExcluir(d);
@@ -293,11 +375,15 @@ describe('DividasPageComponent - lógica da tela', () => {
   });
 
   it('deve abrir modal de adicionar e editar dívida', () => {
-    dialog.open.mockReturnValueOnce(afterClosed(true)).mockReturnValueOnce(afterClosed(undefined));
+    dialog.open
+      .mockReturnValueOnce(afterClosed(true))
+      .mockReturnValueOnce(afterClosed(undefined));
     component.abrirModalAdicionar();
     expect(dialog.open).toHaveBeenCalledTimes(2);
 
-    dialog.open.mockReturnValueOnce(afterClosed(true)).mockReturnValueOnce(afterClosed(undefined));
+    dialog.open
+      .mockReturnValueOnce(afterClosed(true))
+      .mockReturnValueOnce(afterClosed(undefined));
     component.editar(dividaMes({ id: 10 }));
     expect(dialog.open).toHaveBeenCalledTimes(4);
 
@@ -322,7 +408,9 @@ describe('DividasPageComponent - lógica da tela', () => {
     const pagamentos: any = component['opcaoGraficoPagamentos']();
     expect(tooltip.trigger).toBe('axis');
     expect(tooltip.valueFormatter('abc')).toContain('R$');
-    expect(component['eixoValorGrafico']().axisLabel.formatter(1200)).toContain('R$');
+    expect(component['eixoValorGrafico']().axisLabel.formatter(1200)).toContain(
+      'R$',
+    );
     expect(evolucao.series).toBeTruthy();
     expect(pagoRestante.series).toBeTruthy();
     expect(pagoRestante.tooltip.valueFormatter('abc')).toContain('R$');
@@ -331,7 +419,10 @@ describe('DividasPageComponent - lógica da tela', () => {
     expect(pagamentos.series).toBeTruthy();
 
     component['initChart'](undefined, {});
-    component['initChart']({ nativeElement: null } as unknown as ElementRef<HTMLDivElement>, {});
+    component['initChart'](
+      { nativeElement: null } as unknown as ElementRef<HTMLDivElement>,
+      {},
+    );
 
     component.dividas = [];
     component.carregando = false;
@@ -344,8 +435,27 @@ describe('DividasPageComponent - lógica da tela', () => {
     expect(component['charts']).toEqual([]);
   });
 
+  it('deve montar títulos de gráficos conforme contexto', () => {
+    component.dividas = [dividaMes({ id: 1, tipoDivida: 'financiamento' })];
+    component['dividasAno'] = [divida({ id: 1, tipoDivida: 'financiamento' })];
+
+    component.contextoDividas = 'financiamentos';
+    const pagoRestanteFinanciamento: any = component['opcaoGraficoPagoRestante']();
+    const categoriaFinanciamento: any = component['opcaoGraficoCategoria']();
+    expect(pagoRestanteFinanciamento.title.text).toContain('saldo devedor');
+    expect(categoriaFinanciamento.title.text).toContain('Financiamentos');
+
+    component.contextoDividas = 'emprestimos';
+    const pagoRestanteEmprestimo: any = component['opcaoGraficoPagoRestante']();
+    const categoriaEmprestimo: any = component['opcaoGraficoCategoria']();
+    expect(pagoRestanteEmprestimo.title.text).toContain('saldo restante');
+    expect(categoriaEmprestimo.title.text).toContain('Empréstimos');
+  });
+
   it('deve atualizar gráficos no ciclo de vida e reutilizar/criar instâncias', () => {
-    const atualizarSpy = jest.spyOn(component as any, 'atualizarGraficos').mockImplementation(() => undefined);
+    const atualizarSpy = jest
+      .spyOn(component as any, 'atualizarGraficos')
+      .mockImplementation(() => undefined);
     component.ngAfterViewInit();
     jest.runOnlyPendingTimers();
     expect(atualizarSpy).toHaveBeenCalled();
@@ -359,15 +469,23 @@ describe('DividasPageComponent - lógica da tela', () => {
     };
     jest.spyOn(echarts, 'getInstanceByDom').mockReturnValueOnce(chart as any);
     const initSpy = jest.spyOn(echarts, 'init').mockReturnValue(chart as any);
-    component.chartEvolucao = { nativeElement: el } as ElementRef<HTMLDivElement>;
-    component.chartPagoRestante = { nativeElement: el } as ElementRef<HTMLDivElement>;
-    component.chartCategoria = { nativeElement: el } as ElementRef<HTMLDivElement>;
-    component.chartPagamentos = { nativeElement: el } as ElementRef<HTMLDivElement>;
+    component.chartEvolucao = {
+      nativeElement: el,
+    } as ElementRef<HTMLDivElement>;
+    component.chartPagoRestante = {
+      nativeElement: el,
+    } as ElementRef<HTMLDivElement>;
+    component.chartCategoria = {
+      nativeElement: el,
+    } as ElementRef<HTMLDivElement>;
+    component.chartPagamentos = {
+      nativeElement: el,
+    } as ElementRef<HTMLDivElement>;
 
     component['atualizarGraficos']();
 
     expect(chart.setOption).toHaveBeenCalled();
     expect(initSpy).toHaveBeenCalled();
-    expect(component['charts']).toContain(chart);
+    expect(component['charts']).toContain(chart as any);
   });
 });

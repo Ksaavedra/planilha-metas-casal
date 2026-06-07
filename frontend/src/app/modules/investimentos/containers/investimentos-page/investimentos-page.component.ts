@@ -27,6 +27,7 @@ import {
 } from '../../components/adicionar-investimento-dialog/adicionar-investimento-dialog.component';
 import { ConfirmModalComponent } from 'shared/components/confirm-modal/confirm-modal.component';
 import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
+import { PerfilFinanceiroService } from '@app/core/services/perfis/perfil-financeiro.service';
 
 const ANO_MIN = 2020;
 const MESES = [
@@ -61,6 +62,7 @@ export class InvestimentosPageComponent
   readonly iconTipo = iconTipoInvestimento;
   readonly statusLabel = statusInvestimentoLabel;
   readonly statusClasse = statusInvestimentoClasse;
+  readonly temGrupoFamiliar$ = this.perfilService.temGrupoFamiliar$;
 
   visaoInvestimentos: 'lista' | 'exemplos' | 'usuario' = 'lista';
   investimentos: Investimento[] = [];
@@ -78,6 +80,7 @@ export class InvestimentosPageComponent
   constructor(
     private investimentosService: InvestimentosService,
     private dialog: MatDialog,
+    private perfilService: PerfilFinanceiroService,
   ) {}
 
   get resumo() {
@@ -97,9 +100,7 @@ export class InvestimentosPageComponent
   }
 
   get exibirBotaoVoltarAnoAtual(): boolean {
-    return (
-      this.exibirAvisoVazio && this.anoSelecionado !== this.anoAtual
-    );
+    return this.exibirAvisoVazio && this.anoSelecionado !== this.anoAtual;
   }
 
   get podeAnoAnterior(): boolean {
@@ -253,7 +254,9 @@ export class InvestimentosPageComponent
         this.dialog.open(SuccessModalComponent, {
           width: 'min(420px, 96vw)',
           data: {
-            title: investimento ? 'Investimento atualizado!' : 'Investimento adicionado!',
+            title: investimento
+              ? 'Investimento atualizado!'
+              : 'Investimento adicionado!',
             message: 'Os dados foram salvos com sucesso.',
             confirmText: 'OK',
           },
@@ -297,10 +300,7 @@ export class InvestimentosPageComponent
     if (this.ocultarConteudo) {
       return;
     }
-    this.initChart(
-      this.chartPatrimonio,
-      this.opcaoGraficoPatrimonio(),
-    );
+    this.initChart(this.chartPatrimonio, this.opcaoGraficoPatrimonio());
     this.initChart(this.chartRendimento, this.opcaoGraficoRendimento());
     this.initChart(this.chartPizza, this.opcaoGraficoPizza());
   }
@@ -328,12 +328,14 @@ export class InvestimentosPageComponent
       );
       total += aporteMes;
       const base = this.resumo.totalInvestido;
-      acumulado.push(
-        Math.round((base + total * ((m + 1) / 12)) * 100) / 100,
-      );
+      acumulado.push(Math.round((base + total * ((m + 1) / 12)) * 100) / 100);
     }
     return {
-      title: { text: 'Evolução do patrimônio', left: 'center', textStyle: { fontSize: 13 } },
+      title: {
+        text: 'Evolução do patrimônio',
+        left: 'center',
+        textStyle: { fontSize: 13 },
+      },
       tooltip: { trigger: 'axis' },
       grid: { left: 48, right: 16, bottom: 32, top: 48 },
       xAxis: { type: 'category', data: MESES },
@@ -361,11 +363,16 @@ export class InvestimentosPageComponent
       (s, i) => s + (i.aporteMensal || 0),
       0,
     );
-    const mensal = MESES.map(() =>
-      Math.round((aporteTotal + this.resumo.lucroAcumulado / 12) * 100) / 100,
+    const mensal = MESES.map(
+      () =>
+        Math.round((aporteTotal + this.resumo.lucroAcumulado / 12) * 100) / 100,
     );
     return {
-      title: { text: 'Rendimento mensal (estimado)', left: 'center', textStyle: { fontSize: 13 } },
+      title: {
+        text: 'Rendimento mensal (estimado)',
+        left: 'center',
+        textStyle: { fontSize: 13 },
+      },
       tooltip: { trigger: 'axis' },
       grid: { left: 48, right: 16, bottom: 32, top: 48 },
       xAxis: { type: 'category', data: MESES },
@@ -401,9 +408,16 @@ export class InvestimentosPageComponent
       const k = labelTipoInvestimento(i.tipoInvestimento);
       porTipo.set(k, (porTipo.get(k) ?? 0) + (i.valorAtual || 0));
     });
-    const data = [...porTipo.entries()].map(([name, value]) => ({ name, value }));
+    const data = [...porTipo.entries()].map(([name, value]) => ({
+      name,
+      value,
+    }));
     return {
-      title: { text: 'Patrimônio por categoria', left: 'center', textStyle: { fontSize: 13 } },
+      title: {
+        text: 'Patrimônio por categoria',
+        left: 'center',
+        textStyle: { fontSize: 13 },
+      },
       tooltip: { trigger: 'item' },
       series: [
         {

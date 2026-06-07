@@ -30,7 +30,9 @@ export class RegisterComponent {
 
   form = this.fb.group(
     {
-      nome: ['', Validators.required],
+      usuario: ['', Validators.required],
+      nomeCompleto: ['', Validators.required],
+      apelido: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       senha: ['', [Validators.required, Validators.minLength(6)]],
       confirmarSenha: ['', Validators.required],
@@ -54,12 +56,14 @@ export class RegisterComponent {
       return;
     }
 
-    const { nome, email, senha } = this.form.getRawValue();
+    const { usuario, nomeCompleto, apelido, email, senha } = this.form.getRawValue();
     this.carregando = true;
 
     this.authService
       .register({
-        nome: String(nome).trim(),
+        usuario: String(usuario).trim(),
+        nomeCompleto: String(nomeCompleto).trim(),
+        apelido: String(apelido).trim(),
         email: String(email).trim(),
         senha: String(senha),
       })

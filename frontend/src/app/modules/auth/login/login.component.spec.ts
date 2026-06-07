@@ -38,18 +38,18 @@ describe('LoginComponent', () => {
 
     component.entrar();
 
-    expect(component.erro).toBe('Informe email e senha para entrar.');
+    expect(component.erro).toBe('Informe usuário ou email e senha para entrar.');
     expect(authService.login).not.toHaveBeenCalled();
   });
 
   it('deve fazer login e navegar para dashboard por padrão', () => {
     const component = criar();
-    component.form.patchValue({ email: 'teste@email.com', senha: '123456' });
+    component.form.patchValue({ usuarioOuEmail: 'usuario1', senha: '123456' });
 
     component.entrar();
 
     expect(authService.login).toHaveBeenCalledWith({
-      email: 'teste@email.com',
+      usuarioOuEmail: 'usuario1',
       senha: '123456',
     });
     expect(router.navigateByUrl).toHaveBeenCalledWith('/dashboard');
@@ -59,7 +59,7 @@ describe('LoginComponent', () => {
   it('deve respeitar returnUrl após login', () => {
     route.snapshot.queryParamMap.get.mockReturnValue('/metas');
     const component = criar();
-    component.form.patchValue({ email: 'teste@email.com', senha: '123456' });
+    component.form.patchValue({ usuarioOuEmail: 'teste@email.com', senha: '123456' });
 
     component.entrar();
 
@@ -68,14 +68,14 @@ describe('LoginComponent', () => {
 
   it('deve alternar para recuperação de senha mantendo apenas o email', () => {
     const component = criar();
-    component.form.patchValue({ email: 'teste@email.com', senha: '123456' });
+    component.form.patchValue({ usuarioOuEmail: 'teste@email.com', senha: '123456' });
     component.erro = 'erro anterior';
     component.sucesso = 'sucesso anterior';
 
     component.iniciarRecuperacao();
 
     expect(component.modoRecuperacao).toBe(true);
-    expect(component.form.get('email')?.value).toBe('teste@email.com');
+    expect(component.form.get('usuarioOuEmail')?.value).toBe('teste@email.com');
     expect(component.form.get('senha')?.value).toBeNull();
     expect(component.erro).toBeNull();
     expect(component.sucesso).toBeNull();
@@ -105,7 +105,7 @@ describe('LoginComponent', () => {
 
   it('deve exibir aviso ao solicitar recuperação de senha', () => {
     const component = criar();
-    component.form.patchValue({ email: 'teste@email.com' });
+    component.form.patchValue({ usuarioOuEmail: 'teste@email.com' });
 
     component.recuperarSenha();
 
@@ -126,12 +126,28 @@ describe('LoginComponent', () => {
       ),
     );
     const component = criar();
-    component.form.patchValue({ email: 'teste@email.com', senha: '123456' });
+    component.form.patchValue({ usuarioOuEmail: 'teste@email.com', senha: '123456' });
 
     component.entrar();
     expect(component.erro).toBe('Email ou senha inválidos.');
 
     authService.login.mockReturnValueOnce(throwError(() => new Error('erro')));
+    component.entrar();
+    expect(component.erro).toBe(
+      'Não foi possível entrar. Verifique seus dados e tente novamente.',
+    );
+
+    authService.login.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 400, error: {} })),
+    );
+    component.entrar();
+    expect(component.erro).toBe(
+      'Não foi possível entrar. Verifique seus dados e tente novamente.',
+    );
+
+    authService.login.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 400, error: 'erro' })),
+    );
     component.entrar();
     expect(component.erro).toBe(
       'Não foi possível entrar. Verifique seus dados e tente novamente.',

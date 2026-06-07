@@ -7,6 +7,7 @@ import { Meta, StatusMeta } from '../../../../core/interfaces/metas/mes-meta';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { mesesPadraoDoAno } from '@core/utils/metas-meses.util';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 describe('MetasPageComponent', () => {
   let component: MetasPageComponent;
@@ -56,6 +57,10 @@ describe('MetasPageComponent', () => {
         {
           provide: MatDialog,
           useValue: { open: jest.fn().mockReturnValue({ afterClosed: () => of(undefined) }) },
+        },
+        {
+          provide: PerfilFinanceiroService,
+          useValue: { temGrupoFamiliar$: of(true) },
         },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -1093,6 +1098,290 @@ describe('MetasPageComponent', () => {
       component.abrirModalAdicionarMeta();
 
       expect(openSpy).not.toHaveBeenCalled();
+    });
+
+    it('não recarrega metas quando o modal é cancelado', () => {
+      const dialog = TestBed.inject(MatDialog) as jest.Mocked<MatDialog>;
+      const reloadSpy = jest.spyOn(component, 'reloadMetas').mockImplementation();
+      dialog.open = jest.fn().mockReturnValue({ afterClosed: () => of(false) });
+
+      component.abrirModalAdicionarMeta();
+
+      expect(dialog.open).toHaveBeenCalledTimes(1);
+      expect(reloadSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('cobertura de ramos auxiliares', () => {
+    it('irParaAno ignora ano inválido', () => {
+      component.anoSelecionado = 2026;
+      const getSpy = jest.spyOn(metasService, 'getMetas');
+
+      component.irParaAno(Number.NaN);
+
+      expect(component.anoSelecionado).toBe(2026);
+      expect(getSpy).not.toHaveBeenCalled();
+    });
+
+    it('atualizarAnosComparacao inclui anos extras até o ano selecionado', () => {
+      component.anoSelecionado = component.anoAtual + 3;
+      component.metas = [];
+
+      (component as any).atualizarAnosComparacao();
+
+      expect(component.anosComparacao).toContain(component.anoAtual + 3);
+    });
+
+    it('sincronizarMesesComPlanejamento regenera meses legados sem ano e preserva quando já está completo', () => {
+      const metaLegada: any = {
+        ...mockMetas[0],
+        ano: 2026,
+        valorPorMes: undefined,
+        mesesNecessarios: 2,
+        meses: [
+          { id: 1, nome: 'Janeiro', valor: 10, status: 'Pago' },
+          { id: 2, nome: 'Fevereiro', valor: 0, status: 'Vazio' },
+        ],
+      };
+      (component as any).sincronizarMesesComPlanejamento(metaLegada);
+      expect(metaLegada.meses[0].nome).toContain('/2026');
+
+      const mesesAntes = metaLegada.meses;
+      (component as any).sincronizarMesesComPlanejamento(metaLegada);
+      expect(metaLegada.meses).toBe(mesesAntes);
+    });
+
+    it('comAnoDoExercicio adiciona ano apenas quando meta não possui ano', () => {
+      const patch = { nome: 'Nova meta' };
+
+      expect((component as any).comAnoDoExercicio({ ano: null }, patch)).toEqual({
+        ...patch,
+        ano: component.anoSelecionado,
+      });
+      expect((component as any).comAnoDoExercicio({ ano: 2024 }, patch)).toBe(
+        patch,
+      );
+    });
+
+    it('reloadMetas aplica valores padrão para icon, meses e savedTickCampo', () => {
+      const apiRow = {
+        id: 50,
+        nome: 'Sem opcionais',
+        valorMeta: '1000',
+        valorAtual: undefined,
+        valorPorMes: undefined,
+        mesesNecessarios: undefined,
+        ano: 2026,
+      } as any;
+      jest.spyOn(metasService, 'getMetas').mockReturnValue(of([apiRow]));
+
+      component.reloadMetas();
+
+      expect(component.metas[0].icon).toBe('bi-bullseye');
+      expect(component.metas[0].meses.length).toBeGreaterThan(0);
+      expect(component.metas[0].savedTickCampo).toBe(false);
+    });
+
+    it('processarMetaConcluida ignora metas incompletas e atualiza meses restantes quando concluída', () => {
+      const updateSpy = jest
+        .spyOn(metasService, 'updateMeta')
+        .mockReturnValue(of({} as any));
+      const abrirSpy = jest
+        .spyOn(component as any, 'abrirParabens')
+        .mockImplementation();
+      const incompleta: any = {
+        id: 60,
+        nome: 'Incompleta',
+        valorMeta: 100,
+        valorAtual: 0,
+        valorPorMes: 0,
+        meses: [],
+      };
+      (component as any).processarMetaConcluida(incompleta, true);
+      expect(updateSpy).not.toHaveBeenCalled();
+
+      const concluidaSemMeses: any = {
+        ...incompleta,
+        valorAtual: 100,
+        meses: [],
+      };
+      (component as any).processarMetaConcluida(concluidaSemMeses, true);
+      expect(abrirSpy).toHaveBeenCalledWith(concluidaSemMeses, true);
+      expect(updateSpy).not.toHaveBeenCalled();
+
+      const concluidaComMeses: any = {
+        ...concluidaSemMeses,
+        id: 61,
+        meses: [
+          { id: 1, nome: 'Janeiro/2026', valor: 100, status: 'Pago' },
+          { id: 2, nome: 'Fevereiro/2026', valor: 0, status: 'Vazio' },
+        ],
+      };
+      (component as any).processarMetaConcluida(concluidaComMeses, false);
+      const [metaId, payload] = updateSpy.mock.calls[0];
+      expect(metaId).toBe(61);
+      expect(payload.mesesNecessarios).toBe(0);
+    });
+
+    it('métodos de valores cobrem metas sem meses e valores vazios', () => {
+      const meta: any = {
+        valorMeta: 0,
+        valorAtual: undefined,
+        meses: undefined,
+      };
+
+      expect(component.getTotalContribuicoesMeta(meta)).toBe(0);
+      expect(component.getProgressoRealMeta(meta)).toBe(0);
+      expect(component.getValorFaltanteMeta(meta)).toBe(0);
+      expect(component.getValorRealizadoMeta(meta)).toBe(0);
+    });
+
+    it('confirmarCampo valorPorMes zero não regenera meses', () => {
+      const meta: any = {
+        ...mockMetas[0],
+        id: 70,
+        valorMeta: 1000,
+        valorPorMes: 100,
+        editandoValorPorMes: true,
+        valorPorMesTemp: '0',
+      };
+      const updateSpy = jest
+        .spyOn(metasService, 'updateMeta')
+        .mockReturnValue(of({} as any));
+
+      component.confirmarCampo(meta, 'valorPorMes');
+
+      const patch = updateSpy.mock.calls[0][1];
+      expect(patch.mesesNecessarios).toBe(0);
+      expect(patch.meses).toBeUndefined();
+    });
+
+    it('parseNumeroBR trata vazio, null, moeda e milhares com pontos', () => {
+      expect((component as any).parseNumeroBR(null)).toBe(0);
+      expect((component as any).parseNumeroBR('')).toBe(0);
+      expect((component as any).parseNumeroBR('R$ 1.234,56')).toBe(1234.56);
+      expect((component as any).parseNumeroBR('1.234.567')).toBe(1234.57);
+    });
+
+    it('reloadMetas não quebra ao limpar tick de meta que já saiu da lista', () => {
+      jest.useFakeTimers();
+      const apiRow: Meta = {
+        id: 80,
+        nome: 'Tick',
+        valorMeta: 100,
+        valorAtual: 0,
+        valorPorMes: 0,
+        mesesNecessarios: 0,
+        meses: [],
+      };
+      component.metas = [{ ...apiRow, savedTickCampo: true } as any];
+      jest.spyOn(metasService, 'getMetas').mockReturnValue(of([apiRow]));
+
+      component.reloadMetas();
+      component.metas = [];
+      jest.advanceTimersByTime(5000);
+
+      expect(component.metas).toEqual([]);
+      jest.useRealTimers();
+    });
+
+    it('abrirParabens respeita guardas de meta incompleta, já exibida e dialog aberto', () => {
+      const dialog = TestBed.inject(MatDialog) as jest.Mocked<MatDialog>;
+      const openSpy = jest.spyOn(dialog, 'open');
+      const incompleta: any = {
+        id: 90,
+        nome: 'Incompleta',
+        valorMeta: 100,
+        valorAtual: 0,
+        meses: [],
+      };
+      (component as any).abrirParabens(incompleta, true);
+      expect(openSpy).not.toHaveBeenCalled();
+
+      const concluida: any = {
+        ...incompleta,
+        id: 91,
+        valorAtual: 100,
+      };
+      localStorage.setItem('metas_parabens_exibidos_v3', JSON.stringify(['91']));
+      (component as any).abrirParabens(concluida, false);
+      expect(openSpy).not.toHaveBeenCalled();
+
+      localStorage.removeItem('metas_parabens_exibidos_v3');
+      (component as any).parabensDialogAberto = true;
+      (component as any).abrirParabens({ ...concluida, id: 92 }, true);
+      expect(openSpy).not.toHaveBeenCalled();
+      (component as any).parabensDialogAberto = false;
+    });
+
+    it('normaliza cabeçalhos e meses quando dados de meses estão ausentes', () => {
+      component.metas = [{ ...mockMetas[0], meses: undefined as any } as any];
+      component.setHeaderMesesFromData();
+      expect(component.meses.length).toBe(12);
+
+      component.meses = [];
+      const meta: any = { ...mockMetas[0], meses: undefined };
+      (component as any).normalizeMeses(meta);
+      expect(meta.meses.length).toBe(12);
+      expect(meta.meses[0].valor).toBe(0);
+    });
+
+    it('cálculos de valores ignoram meses não pagos e valores inválidos', () => {
+      const meta: any = {
+        valorMeta: 100,
+        valorAtual: undefined,
+        meses: [
+          { id: 1, nome: 'Janeiro/2026', valor: undefined, status: 'Pago' },
+          { id: 2, nome: 'Fevereiro/2026', valor: 50, status: 'Vazio' },
+        ],
+      };
+
+      expect(component.getProgressoRealMeta(meta)).toBe(0);
+      expect(component.getValorFaltanteMeta(meta)).toBe(100);
+      expect(component.getValorRealizadoMeta(meta)).toBe(0);
+    });
+
+    it('onAlterarStatus cobre conclusão por pagamento e meta já concluída', () => {
+      const processarSpy = jest
+        .spyOn(component as any, 'processarMetaConcluida')
+        .mockImplementation();
+      const updateSpy = jest
+        .spyOn(metasService, 'updateMeta')
+        .mockReturnValue(of({} as any));
+      component.metas = [
+        {
+          ...mockMetas[0],
+          id: 100,
+          valorMeta: 100,
+          valorAtual: 0,
+          meses: [{ id: 1, nome: 'Janeiro/2026', valor: 100, status: 'Vazio' }],
+        } as any,
+        {
+          ...mockMetas[0],
+          id: 101,
+          valorMeta: 100,
+          valorAtual: 100,
+          meses: [{ id: 1, nome: 'Janeiro/2026', valor: 0, status: 'Vazio' }],
+        } as any,
+      ];
+
+      component.onAlterarStatus({ metaId: 100, mesId: 1, status: 'Pago' });
+      component.onAlterarStatus({ metaId: 101, mesId: 1, status: 'Vazio' });
+      component.onAlterarStatus({ metaId: 999, mesId: 1, status: 'Pago' });
+      component.onAlterarStatus({ metaId: 100, mesId: 999, status: 'Pago' });
+
+      expect(processarSpy).toHaveBeenCalledWith(component.metas[0], true);
+      expect(processarSpy).toHaveBeenCalledWith(component.metas[1], false);
+      expect(updateSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('onMetaCompleta ignora evento quando meta não existe', () => {
+      const processarSpy = jest.spyOn(component as any, 'processarMetaConcluida');
+      component.metas = [];
+
+      component.onMetaCompleta({ metaId: 'nao-existe', metaNome: 'X', valorMeta: 100 });
+
+      expect(processarSpy).not.toHaveBeenCalled();
     });
   });
 });

@@ -96,6 +96,7 @@ export function calcularResumoCartoes(lista: Cartao[]): ResumoCartoesView {
   return {
     limiteTotal: Math.round(limiteTotal * 100) / 100,
     utilizado: Math.round(utilizado * 100) / 100,
+    totalAPagarMes: Math.round(utilizado * 100) / 100,
     disponivel: Math.round(disponivel * 100) / 100,
     percentualUtilizado,
     proximoVencimentoLabel: proximoVencimentoLabel(lista),

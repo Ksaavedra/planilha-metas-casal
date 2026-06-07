@@ -155,7 +155,7 @@ export class AdicionarInvestimentoDialogComponent implements OnInit, OnDestroy {
     this.pessoasApiSub = this.usuariosService.getUsuarios().subscribe({
       next: (usuarios) => {
         this.pessoasAutocompleteOptions = this.normalizarListaNomes(
-          usuarios.map((u) => u.nome),
+          usuarios.map((u) => u.nomeExibicao || u.apelido || u.nome),
         );
         this.pessoasOpcoesAtualizadas$.next();
         this.cdr.markForCheck();

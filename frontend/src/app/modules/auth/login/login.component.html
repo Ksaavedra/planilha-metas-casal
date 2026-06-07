@@ -17,10 +17,11 @@
 
     <form [formGroup]="form" (ngSubmit)="modoRecuperacao ? recuperarSenha() : entrar()" class="auth-form">
       <label>
-        <span>Email</span>
-        <input type="email" formControlName="email" placeholder="voce@email.com" autocomplete="email" />
-        <small *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
-          Informe um email válido.
+        <span>Usuário ou Email</span>
+        <input type="text" formControlName="usuarioOuEmail" placeholder="usuario1 ou voce@email.com"
+          autocomplete="username" />
+        <small *ngIf="form.get('usuarioOuEmail')?.touched && form.get('usuarioOuEmail')?.invalid">
+          Informe seu usuário ou email.
         </small>
       </label>
 

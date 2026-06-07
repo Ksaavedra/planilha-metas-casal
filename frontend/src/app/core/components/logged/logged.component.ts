@@ -33,4 +33,10 @@ export class LoggedComponent implements OnInit {
       this.sidebar.changeStatus();
     }
   }
+
+  fecharSidebarAoClicarConteudo(): void {
+    if (this.sidebarStatus) {
+      this.sidebar.close();
+    }
+  }
 }

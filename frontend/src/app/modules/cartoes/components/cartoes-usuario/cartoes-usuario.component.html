@@ -70,7 +70,7 @@
                   <tr class="cartoes-usuario-table__linha" [class.is-expanded]="cartaoExpandido(c)">
                     <td>{{ c.banco }}</td>
                     <td class="num">{{ c.limite | currency : 'BRL' }}</td>
-                    <td class="num">{{ valorUtilizadoFatura(c) | currency : 'BRL' }}</td>
+                    <td class="num">{{ valorUtilizadoLimite(c) | currency : 'BRL' }}</td>
                     <td class="num num--positivo">{{ valorDisponivelFatura(c) | currency : 'BRL' }}</td>
                     <td class="col-centro">{{ c.diaFechamento ? 'Dia ' + c.diaFechamento : '-' }}</td>
                     <td class="col-centro">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '-' }}</td>
@@ -108,6 +108,7 @@
                             <tr>
                               <th>Compra</th>
                               <th class="col-centro">Parcela</th>
+                              <th class="col-centro">Valor da Parcela</th>
                               <th class="col-centro">Total</th>
                               <th class="col-centro">Restante</th>
                             </tr>
@@ -118,6 +119,7 @@
                               <td class="col-centro">
                                 <span class="parcelas-chip">{{ parcelasLabel(p) }}</span>
                               </td>
+                              <td class="num">{{ valorParcela(p) | currency : 'BRL' }}</td>
                               <td class="num">{{ p.valorTotal | currency : 'BRL' }}</td>
                               <td class="num">{{ p.valorRestante | currency : 'BRL' }}</td>
                             </tr>

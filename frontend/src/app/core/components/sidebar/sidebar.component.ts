@@ -28,8 +28,6 @@ export class SidebarComponent implements OnInit {
   }
 
   onNavigationClick(): void {
-    if (this.isMobile) {
-      this.sidebar.changeStatus();
-    }
+    this.sidebar.close();
   }
 }

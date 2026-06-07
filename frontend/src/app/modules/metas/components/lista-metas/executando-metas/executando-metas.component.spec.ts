@@ -220,6 +220,45 @@ describe('ExecutandoMetasComponent', () => {
       expect(component.metas[0].meses[2].status).toBe('Vazio');
     });
 
+    it('deve ignorar edição quando mês estiver desabilitado ou não existir', () => {
+      const meta = component.metas[0];
+      dialogMock.open.mockClear();
+      jest.spyOn(component, 'mesEstaDesabilitado').mockReturnValueOnce(true);
+
+      component.abrirModalEdicao(meta, 3, 2);
+      component.abrirModalEdicao(meta, 999, 2);
+
+      expect(dialogMock.open).not.toHaveBeenCalled();
+    });
+
+    it('deve usar nomes dos meses da meta quando cabeçalho estiver vazio', () => {
+      const meta = component.metas[0];
+      dialogMock.open.mockClear();
+      component.meses = [];
+
+      component.abrirModalEdicao(meta, 3, 2);
+
+      const [, dialogConfig] = dialogMock.open.mock.calls[0];
+      expect(dialogConfig.data.meses).toEqual(meta.meses.map((mes) => mes.nome));
+    });
+
+    it('deve ignorar valor salvo quando meta ou mês não existir', () => {
+      const spy = jest.spyOn(component.salvarValor, 'emit');
+
+      (component as any).aplicarValorSalvo({
+        metaId: 999,
+        mesId: 3,
+        valor: 100,
+      });
+      (component as any).aplicarValorSalvo({
+        metaId: 1,
+        mesId: 999,
+        valor: 100,
+      });
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
     it('não deve emitir quando dialog for cancelado', () => {
       const spy = jest.spyOn(component.salvarValor, 'emit');
       component.abrirModalEdicao(component.metas[0], 3, 2);

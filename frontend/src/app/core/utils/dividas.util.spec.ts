@@ -222,4 +222,67 @@ describe('dividas.util', () => {
     expect(projetarParcelaMensalAno(lista, 2026)[4]).toBe(200);
     expect(projetarSaldoRestanteAno(lista, 2026)[4]).toBeGreaterThan(0);
   });
+
+  it('cobre fallbacks de valores vazios, datas ausentes e cartões sem limite', () => {
+    expect(calcularResumoDividas([]).percentualQuitado).toBe(0);
+    expect(
+      calcularResumoDividas([
+        {
+          ...divida(),
+          valorTotal: undefined as any,
+          valorPago: undefined as any,
+          valorRestante: undefined as any,
+        },
+      ]),
+    ).toEqual({
+      totalDividas: 0,
+      totalPago: 0,
+      valorRestante: 0,
+      parcelasAtivas: 1,
+      percentualQuitado: 0,
+    });
+
+    expect(
+      dividaVisivelNoMesReferencia(
+        {
+          ...divida({ statusDivida: 'quitada', quantidadeParcelas: 0, parcelasRestantes: 2 }),
+          dataInicio: undefined,
+        },
+        2026,
+        2,
+      ),
+    ).toBe(true);
+    expect(parcelasRestantesLabel({
+      ...divida({ quantidadeParcelas: 0 }),
+      parcelasRestantes: undefined,
+    } as any)).toBe('0');
+    expect(parcelasPagasDivida({
+      ...divida({ quantidadeParcelas: 0, valorPago: 200, parcelaMensal: 50 }),
+      valorTotal: 0,
+    })).toBe(4);
+    expect(indiceParcelaNoMes({
+      ...divida({ quantidadeParcelas: 0 }),
+      dataInicio: undefined,
+    }, 2026, 12)).toBe(12);
+
+    expect(parcelaAtrasadaNoMes(divida({ percentualQuitado: 100, valorRestante: 100 }), 2026, 5)).toBe(false);
+    expect(parcelaAtrasadaNoMes(divida({ valorRestante: 0.001 }), 2026, 5)).toBe(false);
+
+    const cartoesSemLimite = [
+      divida({ instituicao: 'Sem limite', limiteCartao: undefined, valorRestante: -10, statusDivida: 'pagando' }),
+      divida({ instituicao: 'Sem limite', limiteCartao: -100, valorRestante: 50, diaVencimento: 15 }),
+    ];
+    const agrupado = agruparResumoCartoes(cartoesSemLimite);
+    expect(agrupado[0].limite).toBe(0);
+    expect(agrupado[0].utilizado).toBe(50);
+    expect(agrupado[0].percentualUtilizado).toBe(0);
+    expect(calcularResumoLimiteCartoes(cartoesSemLimite).proximoVencimentoLabel).toContain('Dia 15');
+
+    expect(calcularValorPagoAcumulado(300, 3, undefined, 5, 100)).toBe(100);
+    expect(projetarDividaNoMes(divida({ dataInicio: '2026-01-01', quantidadeParcelas: 1 }), 2026, 3)).toBeNull();
+    expect(projetarSaldoRestanteAno([{
+      ...divida({ quantidadeParcelas: 0 }),
+      dataInicio: undefined,
+    }], 2026)[0]).toBeGreaterThan(0);
+  });
 });

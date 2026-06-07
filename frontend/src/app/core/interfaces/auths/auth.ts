@@ -1,17 +1,22 @@
 export interface Usuario {
   id: number;
-  nome: string;
+  usuario?: string;
+  nomeCompleto: string;
+  apelido?: string | null;
   email: string;
+  tipoUso?: 'individual' | 'familia';
   dataCriacao?: string;
 }
 
 export interface LoginRequest {
-  email: string;
+  usuarioOuEmail: string;
   senha: string;
 }
 
 export interface RegisterRequest {
-  nome: string;
+  usuario: string;
+  nomeCompleto: string;
+  apelido: string;
   email: string;
   senha: string;
 }

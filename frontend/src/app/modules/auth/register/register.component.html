@@ -18,10 +18,26 @@
 
     <form [formGroup]="form" (ngSubmit)="criarConta()" class="auth-form">
       <label>
-        <span>Nome</span>
-        <input type="text" formControlName="nome" placeholder="Seu nome" autocomplete="name" />
-        <small *ngIf="form.get('nome')?.touched && form.get('nome')?.invalid">
-          O nome é obrigatório.
+        <span>Usuário</span>
+        <input type="text" formControlName="usuario" placeholder="usuario1" autocomplete="username" />
+        <small *ngIf="form.get('usuario')?.touched && form.get('usuario')?.invalid">
+          O usuário é obrigatório.
+        </small>
+      </label>
+
+      <label>
+        <span>Nome completo</span>
+        <input type="text" formControlName="nomeCompleto" placeholder="Kelly Michele Saavedra" autocomplete="name" />
+        <small *ngIf="form.get('nomeCompleto')?.touched && form.get('nomeCompleto')?.invalid">
+          O nome completo é obrigatório.
+        </small>
+      </label>
+
+      <label>
+        <span>Apelido</span>
+        <input type="text" formControlName="apelido" placeholder="Kelly" autocomplete="nickname" />
+        <small *ngIf="form.get('apelido')?.touched && form.get('apelido')?.invalid">
+          O apelido é obrigatório.
         </small>
       </label>
 

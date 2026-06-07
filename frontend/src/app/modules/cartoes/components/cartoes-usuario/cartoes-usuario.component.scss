@@ -1,6 +1,26 @@
+:host {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  contain: inline-size;
+}
+
+:host *,
+:host *::before,
+:host *::after {
+  box-sizing: inherit;
+}
+
 .cartoes-usuario {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin-bottom: 2rem;
   animation: cartoes-usuario-fade 0.25s ease;
+  contain: inline-size;
 }
 
 @keyframes cartoes-usuario-fade {
@@ -72,6 +92,8 @@
 }
 
 .cartoes-usuario__conteudo {
+  min-width: 0;
+  max-width: 100%;
   animation: cartoes-usuario-fade 0.35s ease;
 }
 
@@ -111,14 +133,19 @@
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .bloco-tabela {
+  min-width: 0;
+  max-width: 100%;
   background: #fff;
   border-radius: 12px;
   padding: 1.25rem 1.5rem 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border: 1px solid #e2e8f0;
+  contain: inline-size;
 }
 
 .bloco-titulo {
@@ -144,7 +171,14 @@
 }
 
 .table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  contain: inline-size;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   background: #fff;
@@ -153,6 +187,7 @@
 
 .cartoes-usuario-table {
   width: 100%;
+  min-width: 1080px;
   border-collapse: collapse;
   font-size: 0.88rem;
 }
@@ -258,6 +293,11 @@
   border-radius: 14px;
   background: #fff;
   box-shadow: inset 3px 0 0 #8b5cf6;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .compras-inline__header {
@@ -297,6 +337,7 @@
 
 .compras-mini-table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
   overflow: hidden;
   border: 1px solid #eef2ff;

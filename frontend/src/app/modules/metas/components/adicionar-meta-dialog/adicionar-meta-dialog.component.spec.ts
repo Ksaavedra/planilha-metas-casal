@@ -279,6 +279,87 @@ describe('AdicionarMetaDialogComponent', () => {
       expect(result).toBeNull();
       expect(component.erro).toBe('Preencha o valor já guardado.');
     });
+
+    it('salvar retorna quando build interno falha mesmo com form válido', () => {
+      component.form.patchValue({
+        nome: '   ',
+        valorMeta: '1000,00',
+        valorPorMes: '100,00',
+      });
+      component.form.get('nome')?.setErrors(null);
+
+      component.salvar();
+
+      expect(component.erro).toBe('Por favor, preencha o nome da meta.');
+      expect(metasServiceMock.createMeta).not.toHaveBeenCalled();
+    });
+
+    it('cobre erros de valor meta, valor por mês e valor atual negativo', () => {
+      component.form.patchValue({
+        nome: 'Meta',
+        valorMeta: '0',
+        valorPorMes: '100,00',
+      });
+      component.form.get('valorMeta')?.setErrors(null);
+      expect((component as any).buildDadosMetaParaEnviar()).toBeNull();
+      expect(component.erro).toBe('O valor da meta deve ser maior que zero.');
+
+      component.form.patchValue({
+        valorMeta: '1000,00',
+        valorPorMes: '0',
+      });
+      component.form.get('valorPorMes')?.setErrors(null);
+      expect((component as any).buildDadosMetaParaEnviar()).toBeNull();
+      expect(component.erro).toBe('O valor por mês deve ser maior que zero.');
+
+      component.form.patchValue({
+        valorPorMes: '100,00',
+        temValorAtual: true,
+        valorAtual: '-1',
+      });
+      component.form.get('valorAtual')?.enable();
+      component.form.get('valorAtual')?.setErrors(null);
+      expect((component as any).buildDadosMetaParaEnviar()).toBeNull();
+      expect(component.erro).toBe(
+        'O valor já guardado deve ser maior ou igual a zero.',
+      );
+    });
+
+    it('cobre fallbacks de controles ausentes, ícone e buildMeses', () => {
+      component.form.removeControl('icon');
+      expect(component.iconSelecionado).toBe('bi-bullseye');
+
+      component.form.removeControl('valorAtual');
+      (component as any).onTemValorAtualChange(true);
+
+      expect((component as any).buildMeses(100, 0).length).toBe(12);
+    });
+
+    it('usa string vazia quando controles numéricos não existem', () => {
+      component.form.removeControl('nome');
+      component.form.removeControl('valorMeta');
+      component.form.removeControl('valorPorMes');
+
+      const result = (component as any).buildDadosMetaParaEnviar();
+
+      expect(result).toBeNull();
+      expect(component.erro).toBe('Por favor, preencha o nome da meta.');
+    });
+
+    it('usa string vazia quando valorAtual não existe e checkbox está marcado', () => {
+      component.form.patchValue({
+        nome: 'Meta',
+        valorMeta: '1000,00',
+        valorPorMes: '100,00',
+        temValorAtual: true,
+      });
+      component.form.removeControl('valorAtual');
+
+      const result = (component as any).buildDadosMetaParaEnviar();
+
+      expect(result).toBeNull();
+      expect(component.erro).toBe('Preencha o valor já guardado.');
+    });
   });
 
   describe('Validators', () => {

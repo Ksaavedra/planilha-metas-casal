@@ -7,6 +7,7 @@ import {
   statusCartaoLabel,
 } from '@core/utils/cartoes.util';
 import {
+  parcelaMensalDivida,
   parcelasRestantesLabel,
   statusParcelaMesClasse,
   statusParcelaMesLabel,
@@ -30,6 +31,7 @@ export class CartoesUsuarioComponent implements OnChanges {
   readonly statusLabel = statusCartaoLabel;
   readonly statusClasse = statusCartaoClasse;
   readonly parcelasLabel = parcelasRestantesLabel;
+  readonly valorParcela = parcelaMensalDivida;
   readonly statusParcelaLabel = statusParcelaMesLabel;
   readonly statusParcelaClasse = statusParcelaMesClasse;
 
@@ -78,7 +80,7 @@ export class CartoesUsuarioComponent implements OnChanges {
 
       const atual = map.get(usuario)!;
       atual.limite += Math.max(0, cartao.limite || 0);
-      atual.utilizado += this.valorUtilizadoFatura(cartao);
+      atual.utilizado += this.valorUtilizadoLimite(cartao);
       atual.totalCartoes += 1;
     }
 
@@ -155,16 +157,21 @@ export class CartoesUsuarioComponent implements OnChanges {
   }
 
   valorUtilizadoFatura(cartao: Cartao): number {
+    if (cartao.totalAPagarMes != null) {
+      const totalAPagarMes = Number(cartao.totalAPagarMes);
+      return Math.max(0, Math.round(totalAPagarMes * 100) / 100);
+    }
+
     const parcelamentos = this.parcelamentos.filter(
       (p) => p.cartaoId === cartao.id,
     );
 
     if (parcelamentos.length > 0) {
-      const restante = parcelamentos.reduce(
-        (s, p) => s + Math.max(0, p.valorRestante || 0),
+      const totalParcelasMes = parcelamentos.reduce(
+        (s, p) => s + parcelaMensalDivida(p),
         0,
       );
-      return Math.round(restante * 100) / 100;
+      return Math.round(totalParcelasMes * 100) / 100;
     }
 
     return Math.max(0, cartao.valorUtilizado || 0);
@@ -172,8 +179,21 @@ export class CartoesUsuarioComponent implements OnChanges {
 
   valorDisponivelFatura(cartao: Cartao): number {
     const disponivel =
-      Math.max(0, cartao.limite || 0) - this.valorUtilizadoFatura(cartao);
+      Math.max(0, cartao.limite || 0) - this.valorUtilizadoLimite(cartao);
     return Math.max(0, Math.round(disponivel * 100) / 100);
+  }
+
+  valorUtilizadoLimite(cartao: Cartao): number {
+    const parcelamentos = this.parcelamentosDoCartao(cartao);
+    if (parcelamentos.length > 0) {
+      const totalRestante = parcelamentos.reduce(
+        (s, p) => s + Math.max(0, p.valorRestante || 0),
+        0,
+      );
+      return Math.round(totalRestante * 100) / 100;
+    }
+
+    return Math.max(0, cartao.valorUtilizado || 0);
   }
 
   statusDoCartao(cartao: Cartao) {

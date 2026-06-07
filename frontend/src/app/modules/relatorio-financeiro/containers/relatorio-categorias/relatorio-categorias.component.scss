@@ -3,6 +3,9 @@
 }
 
 .relatorio-categorias {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
   margin-bottom: 2.5rem;
   animation: relatorio-cat-fade 0.25s ease;
 }
@@ -17,22 +20,98 @@
   }
 }
 
+.relatorio-categorias__bloco {
+  position: relative;
+  overflow: hidden;
+  padding: 1.25rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.06),
+    0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.relatorio-categorias__bloco::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+}
+
+.relatorio-categorias__bloco--receitas::before {
+  background: linear-gradient(90deg, #22c55e 0%, #8b5cf6 100%);
+}
+
+.relatorio-categorias__bloco--despesas::before {
+  background: linear-gradient(90deg, #ef4444 0%, #f97316 100%);
+}
+
+.relatorio-categorias__bloco-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+  padding: 0.25rem 0 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.relatorio-categorias__bloco-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 14px;
+  font-size: 1.35rem;
+}
+
+.relatorio-categorias__bloco--receitas .relatorio-categorias__bloco-icon {
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.relatorio-categorias__bloco--despesas .relatorio-categorias__bloco-icon {
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.relatorio-categorias__bloco-kicker {
+  margin: 0 0 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
 .relatorio-categorias__intro {
-  margin: 0 0 1.5rem;
+  margin: 0;
   font-size: 0.9rem;
   line-height: 1.5;
   color: #64748b;
+}
 
-  &--bloco-despesas {
-    margin-top: 2.25rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e2e8f0;
-  }
+.relatorio-categorias__subbloco {
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+}
+
+.relatorio-categorias__subbloco+.relatorio-categorias__subbloco {
+  margin-top: 1rem;
 }
 
 .relatorio-categorias__h2 {
-  margin: 0 0 0.6rem;
-  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.98rem;
   font-weight: 700;
   color: #0f172a;
   letter-spacing: -0.02em;
@@ -41,19 +120,32 @@
     margin-top: 0;
   }
 
-  & + .data-table {
-    margin-bottom: 2rem;
+  &+.data-table {
+    margin-bottom: 0;
   }
 }
 
 .relatorio-categorias__vazio {
-  margin: 0 0 1.5rem;
+  margin: 0;
   padding: 1rem 1.25rem;
   font-size: 0.9rem;
-  color: #64748b;
-  background: #f8fafc;
-  border: 1px dashed #e2e8f0;
-  border-radius: 10px;
+  line-height: 1.45;
+  color: #475569;
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+}
+
+.relatorio-categorias__vazio--receitas {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.relatorio-categorias__vazio--despesas {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
 .data-table--categorias {
@@ -67,73 +159,92 @@
   }
 }
 
-tr.natureza-receita--fixa {
-  background: rgba(34, 197, 94, 0.08);
-  color: #15803d;
-  font-weight: 500;
-}
-
-tr.natureza-receita--variavel {
-  background: rgba(245, 158, 11, 0.1);
-  color: #b45309;
-  font-weight: 500;
-}
-
-tr.natureza-despesa--fixa {
-  background: rgba(220, 38, 38, 0.07);
-  color: #991b1b;
-  font-weight: 500;
-}
-
+tr.natureza-receita--fixa,
+tr.natureza-receita--variavel,
+tr.natureza-despesa--fixa,
 tr.natureza-despesa--variavel {
-  background: rgba(234, 88, 12, 0.1);
-  color: #9a3412;
+  background: #fff;
+  color: #334155;
   font-weight: 500;
 }
 
-tr.tipo-receita-linha:nth-child(odd) {
-  background: rgba(139, 92, 246, 0.05);
-}
-
+tr.tipo-receita-linha:nth-child(odd),
 tr.tipo-despesa-linha:nth-child(odd) {
-  background: rgba(220, 38, 38, 0.04);
+  background: #f8fafc;
 }
 
 .data-table {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   overflow-x: auto;
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.2);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
   width: 100%;
   max-width: 100%;
+  background: #fff;
 }
 
 table {
   width: 100%;
   min-width: 500px;
   border-collapse: collapse;
-  background: #f9fafb;
-  border-radius: 6px;
+  background: #fff;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.1);
   font-size: 0.7rem;
-  border: 1px solid #e5e7eb;
 }
 
 th,
 td {
-  padding: 0.3rem;
+  padding: 0.45rem 0.5rem;
   text-align: center;
-  border: 1px solid #d1d5db;
-  color: #374151;
+  color: #334155;
   white-space: nowrap;
   font-size: 0.7rem;
 }
 
 th {
-  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
   font-weight: 700;
   color: #ffffff;
   font-size: 0.8rem;
-  text-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+  text-shadow: none;
+}
+
+tbody tr {
+  background: #fff;
+}
+
+tbody tr:hover {
+  background: #faf5ff;
+}
+
+@media (max-width: 768px) {
+  .relatorio-categorias {
+    gap: 1rem;
+  }
+
+  .relatorio-categorias__bloco {
+    padding: 1rem;
+    border-radius: 14px;
+  }
+
+  .relatorio-categorias__bloco-header {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .relatorio-categorias__bloco-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 1.2rem;
+  }
+
+  .relatorio-categorias__subbloco {
+    padding: 0.85rem;
+  }
+
+  .relatorio-categorias__vazio {
+    padding: 0.9rem 1rem;
+  }
 }
