@@ -43,6 +43,28 @@ export interface CreateCartaoRequest {
 
 export type UpdateCartaoRequest = Partial<CreateCartaoRequest>;
 
+export interface RegistrarPagamentoFaturaRequest {
+  ano: number;
+  mes: number;
+  valorFatura: number;
+  valorPago: number;
+  dataPagamento?: string | null;
+  observacaoAtraso?: string | null;
+  previsaoPagamento?: string | null;
+}
+
+export interface PagamentoFaturaCartao {
+  cartaoId: number;
+  ano: number;
+  mes: number;
+  valorFatura: number;
+  valorPago: number;
+  dataPagamento?: string | null;
+  faturaPaga: boolean;
+  observacaoAtraso?: string | null;
+  previsaoPagamento?: string | null;
+}
+
 export interface ResumoCartoesView {
   limiteTotal: number;
   utilizado: number;

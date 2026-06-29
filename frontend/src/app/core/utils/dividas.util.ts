@@ -7,6 +7,11 @@ import {
   StatusDivida,
   StatusParcelaMes,
 } from '../interfaces/dividas/dividas';
+import {
+  diaFechamentoEfetivo,
+  diaMelhorCompraEfetivo,
+  mesVencimentoDaCompra,
+} from './fatura-cartao.util';
 import { NOMES_MESES } from './metas-meses.util';
 
 /** Rótulos dos 12 meses para gráficos (nomes completos em português). */
@@ -172,30 +177,100 @@ export function mesDataInicioDivida(dataInicio?: string | null): number | null {
   return m >= 1 && m <= 12 ? m : null;
 }
 
+function parseDataIsoDivida(valor?: string | null): Date | null {
+  if (!valor || valor.length < 10) return null;
+  const [ano, mes, dia] = valor.slice(0, 10).split('-').map(Number);
+  if (!ano || !mes || !dia) return null;
+  return new Date(ano, mes - 1, dia);
+}
+
+/** Mês/ano da 1ª parcela: prioriza dataInicio quando a compra cai em fatura posterior (ex.: encargos). */
+function isPrimeiroDiaMes(dataInicio?: string | null): boolean {
+  return !!dataInicio && dataInicio.length >= 10 && dataInicio.slice(8, 10) === '01';
+}
+
+function mesAnoFromDataInicio(d: Divida): { ano: number; mes: number } | null {
+  const mes = mesDataInicioDivida(d.dataInicio);
+  if (mes == null) return null;
+  const ano =
+    d.dataInicio && d.dataInicio.length >= 4
+      ? parseInt(d.dataInicio.slice(0, 4), 10)
+      : d.ano;
+  if (!ano) return null;
+  return { ano, mes };
+}
+
+function inicioParcelaDivida(d: Divida): { ano: number; mes: number } {
+  const fromDataInicio = mesAnoFromDataInicio(d);
+
+  if (d.cartaoId && d.dataCompra) {
+    const compra = parseDataIsoDivida(d.dataCompra);
+    const cartao = {
+      diaMelhorCompra: d.diaMelhorCompra,
+      diaVencimento: d.diaVencimento,
+      diaFechamento: diaFechamentoEfetivo({
+        diaFechamento: null,
+        diaMelhorCompra: d.diaMelhorCompra ?? null,
+        diaVencimento: d.diaVencimento ?? null,
+      }),
+    };
+
+    if (compra && diaMelhorCompraEfetivo(cartao) != null) {
+      const venc = mesVencimentoDaCompra(compra, cartao);
+
+      if (fromDataInicio && isPrimeiroDiaMes(d.dataInicio)) {
+        const dataInicioAntesDoVencCompra =
+          fromDataInicio.ano < venc.ano ||
+          (fromDataInicio.ano === venc.ano && fromDataInicio.mes < venc.mes);
+        if (dataInicioAntesDoVencCompra) {
+          return fromDataInicio;
+        }
+      }
+
+      return venc;
+    }
+  }
+
+  if (fromDataInicio) return fromDataInicio;
+
+  const mes = mesDataInicioDivida(d.dataInicio) ?? 1;
+  const ano =
+    d.dataInicio && d.dataInicio.length >= 4
+      ? parseInt(d.dataInicio.slice(0, 4), 10)
+      : d.ano;
+  return { ano, mes };
+}
+
+function mesAbsoluto(ano: number, mes: number): number {
+  return ano * 12 + (mes - 1);
+}
+
+function duracaoParcelasDivida(d: Divida): number {
+  return Math.max(1, d.quantidadeParcelas || d.parcelasRestantes || 1);
+}
+
+function parcelaVisivelNoMesReferencia(
+  d: Divida,
+  ano: number,
+  mes: number,
+): boolean {
+  const inicio = inicioParcelaDivida(d);
+  const refAbs = mesAbsoluto(ano, mes);
+  const inicioAbs = mesAbsoluto(inicio.ano, inicio.mes);
+  if (refAbs < inicioAbs) return false;
+  const fimAbs = inicioAbs + duracaoParcelasDivida(d) - 1;
+  return refAbs <= fimAbs;
+}
+
 /**
- * Dívida visível no mês de referência:
- * - ainda não começou (antes de dataInicio) → oculta;
- * - pagando/atrasada → visível do mês de início até dezembro do ano;
- * - quitada → visível apenas nos meses da duração das parcelas.
+ * Dívida visível no mês de referência da fatura (suporta parcelas que cruzam anos).
  */
 export function dividaVisivelNoMesReferencia(
   d: Divida,
   ano: number,
   mes: number,
 ): boolean {
-  if (d.ano !== ano) return false;
-
-  const mesInicio = mesDataInicioDivida(d.dataInicio);
-  if (mesInicio != null && mes < mesInicio) return false;
-
-  if (d.statusDivida === 'pagando' || d.statusDivida === 'atrasada') {
-    return true;
-  }
-
-  const inicio = mesInicio ?? 1;
-  const duracao = Math.max(1, d.quantidadeParcelas || d.parcelasRestantes || 1);
-  const mesFim = Math.min(12, inicio + duracao - 1);
-  return mes >= inicio && mes <= mesFim;
+  return parcelaVisivelNoMesReferencia(d, ano, mes);
 }
 
 export function filtrarDividasPorMesReferencia(
@@ -232,13 +307,77 @@ export function indiceParcelaNoMes(
   ano: number,
   mes: number,
 ): number | null {
-  if (d.ano !== ano) return null;
-  const mesInicio = mesDataInicioDivida(d.dataInicio) ?? 1;
-  if (mes < mesInicio) return null;
-  const idx = mes - mesInicio + 1;
+  if (!parcelaVisivelNoMesReferencia(d, ano, mes)) return null;
+
+  const inicio = inicioParcelaDivida(d);
+  const refAbs = mesAbsoluto(ano, mes);
+  const inicioAbs = mesAbsoluto(inicio.ano, inicio.mes);
+  const idx = refAbs - inicioAbs + 1;
   const qtd = d.quantidadeParcelas || 0;
   if (qtd > 0 && idx > qtd) return null;
   return idx;
+}
+
+export function formatarDataIsoPtBr(valor?: string | null): string | null {
+  if (!valor || valor.length < 10) return null;
+  const [ano, mes, dia] = valor.slice(0, 10).split('-');
+  if (!ano || !mes || !dia) return null;
+  return `${dia}/${mes}/${ano}`;
+}
+
+/** ISO (aaaa-mm-dd) para ordenar compras da fatura: data da compra, senão data de início. */
+export function dataIsoOrdenacaoLancamentoFatura(
+  d: Pick<Divida, 'dataCompra' | 'dataInicio'>,
+): string {
+  return d.dataCompra?.slice(0, 10) ?? d.dataInicio?.slice(0, 10) ?? '';
+}
+
+/** Ordem por data da compra: mais recente primeiro (ex.: março → janeiro). */
+export function compararLancamentosFaturaPorData(
+  a: Pick<Divida, 'id' | 'objetivo' | 'dataCompra' | 'dataInicio'>,
+  b: Pick<Divida, 'id' | 'objetivo' | 'dataCompra' | 'dataInicio'>,
+): number {
+  const diff = dataIsoOrdenacaoLancamentoFatura(b).localeCompare(
+    dataIsoOrdenacaoLancamentoFatura(a),
+  );
+  if (diff !== 0) return diff;
+  const nome = (a.objetivo ?? '').localeCompare(b.objetivo ?? '', 'pt-BR');
+  if (nome !== 0) return nome;
+  return (a.id ?? 0) - (b.id ?? 0);
+}
+
+/** Data exibida no tooltip de parcela paga (campo salvo ou data de início). */
+export function resolverDataPagamentoParcela(d: DividaNoMes): string | null {
+  const paga =
+    d.parcelaMesPaga ||
+    d.statusParcelaMes === 'paga' ||
+    d.statusParcelaMes === 'quitada';
+  if (!paga) return null;
+
+  return (
+    formatarDataIsoPtBr(d.dataPagamento) ?? formatarDataIsoPtBr(d.dataInicio)
+  );
+}
+
+/** Uma data de pagamento para exibição (a mais antiga registrada quando houver várias). */
+export function resolverDataPagamentoCartao(
+  parcelas: DividaNoMes[],
+): string | null {
+  const isos = parcelas
+    .filter(
+      (p) =>
+        p.parcelaMesPaga ||
+        p.statusParcelaMes === 'paga' ||
+        p.statusParcelaMes === 'quitada',
+    )
+    .map((p) => p.dataPagamento || '')
+    .filter((iso) => iso.length >= 10)
+    .map((iso) => iso.slice(0, 10));
+
+  if (!isos.length) return null;
+
+  const maisAntiga = [...new Set(isos)].sort((a, b) => a.localeCompare(b))[0];
+  return formatarDataIsoPtBr(maisAntiga);
 }
 
 export function statusParcelaMesLabel(status: StatusParcelaMes): string {
@@ -269,11 +408,20 @@ function chaveInstituicao(nome?: string | null): string {
 }
 
 function dividaQuitada(d: Divida): boolean {
-  return (
-    d.statusDivida === 'quitada' ||
-    (d.valorRestante ?? 0) <= 0.009 ||
-    (d.percentualQuitado ?? 0) >= 99.99
-  );
+  const restante = Math.max(0, d.valorRestante ?? 0);
+  const pct = d.percentualQuitado ?? 0;
+  return restante <= 0.009 || pct >= 99.99;
+}
+
+/** Mês de referência já encerrado em relação à data atual. */
+export function mesReferenciaAnteriorAoAtual(
+  ano: number,
+  mes: number,
+  hoje: Date = new Date(),
+): boolean {
+  const anoHoje = hoje.getFullYear();
+  const mesHoje = hoje.getMonth() + 1;
+  return ano < anoHoje || (ano === anoHoje && mes < mesHoje);
 }
 
 /** Verifica atraso pela data de vencimento do cartão ou pelo mês calendário. */
@@ -375,6 +523,11 @@ export function calcularResumoLimiteCartoes(
   };
 }
 
+export type ContextoMesReferenciaPagamento = Pick<
+  Divida,
+  'ano' | 'dataCompra' | 'dataInicio' | 'valorTotal' | 'quantidadeParcelas'
+>;
+
 /** Atualiza valor pago acumulado ao registrar pagamento só do mês de referência. */
 export function calcularValorPagoAcumulado(
   valorTotal: number,
@@ -382,13 +535,36 @@ export function calcularValorPagoAcumulado(
   dataInicio: string | undefined,
   mesReferencia: number,
   valorPagoNoMes: number,
+  anoReferencia?: number,
+  divida?: ContextoMesReferenciaPagamento,
 ): number {
   const parcela = calcularParcelaMensal(valorTotal, quantidadeParcelas);
   if (parcela <= 0) return Math.min(valorTotal, Math.max(0, valorPagoNoMes));
 
-  const mesInicio = mesDataInicioDivida(dataInicio) ?? mesReferencia;
-  const indice = mesReferencia - mesInicio + 1;
-  if (indice < 1) return 0;
+  let indice: number | null;
+  if (anoReferencia != null && divida != null) {
+    indice = indiceParcelaNoMes(
+      {
+        ...divida,
+        valorTotal,
+        quantidadeParcelas,
+        dataInicio: dataInicio ?? divida.dataInicio,
+      } as Divida,
+      anoReferencia,
+      mesReferencia,
+    );
+  } else {
+    indice = null;
+  }
+
+  if (indice == null) {
+    const mesInicio =
+      mesDataInicioDivida(dataInicio ?? divida?.dataInicio ?? undefined) ??
+      mesReferencia;
+    indice = mesReferencia - mesInicio + 1;
+  }
+
+  if (indice == null || indice < 1) return 0;
 
   const pagasAntes = Math.max(0, indice - 1);
   const pagoMes = Math.min(parcela, Math.max(0, valorPagoNoMes));
@@ -401,6 +577,7 @@ export function projetarDividaNoMes(
   ano: number,
   mes: number,
   hoje: Date = new Date(),
+  preservarPendenteEmMesPassado = false,
 ): DividaNoMes | null {
   if (!dividaVisivelNoMesReferencia(d, ano, mes)) return null;
 
@@ -417,7 +594,13 @@ export function projetarDividaNoMes(
     statusParcelaMes = 'quitada';
   } else if (parcelaMesPaga || valorPagoNoMes > 0) {
     statusParcelaMes = 'paga';
-  } else if (parcelaAtrasadaNoMes(d, ano, mes, hoje)) {
+  } else if (
+    !(
+      preservarPendenteEmMesPassado &&
+      mesReferenciaAnteriorAoAtual(ano, mes, hoje)
+    ) &&
+    parcelaAtrasadaNoMes(d, ano, mes, hoje)
+  ) {
     statusParcelaMes = 'atrasada';
   } else {
     const anoHoje = hoje.getFullYear();
@@ -442,9 +625,13 @@ export function projetarDividasNoMes(
   lista: Divida[],
   ano: number,
   mes: number,
+  hoje: Date = new Date(),
+  preservarPendenteEmMesPassado = false,
 ): DividaNoMes[] {
   return lista
-    .map((d) => projetarDividaNoMes(d, ano, mes))
+    .map((d) =>
+      projetarDividaNoMes(d, ano, mes, hoje, preservarPendenteEmMesPassado),
+    )
     .filter((d): d is DividaNoMes => d != null);
 }
 

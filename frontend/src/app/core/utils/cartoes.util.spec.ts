@@ -60,6 +60,18 @@ describe('cartoes.util', () => {
     expect(statusCartao(cartao({ limite: 1000, valorUtilizado: 100 }), new Date(2026, 4, 5), competencia)).toBe('em_dia');
   });
 
+  it('marca fatura atrasada ao consultar mês passado com saldo em aberto', () => {
+    const competencia = new Date(2023, 9, 1);
+
+    expect(
+      statusCartao(
+        cartao({ valorUtilizado: 130, diaVencimento: 6 }),
+        new Date(2026, 5, 1),
+        competencia,
+      ),
+    ).toBe('atrasado');
+  });
+
   it('respeita o último dia do mês ao comparar vencimento e fechamento', () => {
     const competenciaFevereiro = new Date(2026, 1, 1);
     const base = cartao({ valorUtilizado: 100, diaFechamento: 31, diaVencimento: 31 });

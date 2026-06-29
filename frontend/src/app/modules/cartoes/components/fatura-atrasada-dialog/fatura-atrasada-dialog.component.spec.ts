@@ -70,7 +70,11 @@ describe('FaturaAtrasadaDialogComponent', () => {
 
     component.pagarAgora();
 
-    expect(dialogRef.close).toHaveBeenCalledWith({ acao: 'pagar', valorPago: 300 });
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      acao: 'pagar',
+      valorPago: 300,
+      previsaoPagamento: '2026-05-30',
+    });
   });
 
   it('deve bloquear pagar depois sem previsão', () => {

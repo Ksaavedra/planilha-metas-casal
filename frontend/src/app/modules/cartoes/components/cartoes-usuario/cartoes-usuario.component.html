@@ -59,7 +59,7 @@
                   <th class="col-centro">Limite</th>
                   <th class="col-centro">Utilizado</th>
                   <th class="col-centro">Disponível</th>
-                  <th class="col-centro">Fechamento</th>
+                  <th class="col-centro">Melhor compra</th>
                   <th class="col-centro">Vencimento</th>
                   <th class="col-centro">Status</th>
                   <th class="col-centro">Ações</th>
@@ -72,7 +72,7 @@
                     <td class="num">{{ c.limite | currency : 'BRL' }}</td>
                     <td class="num">{{ valorUtilizadoLimite(c) | currency : 'BRL' }}</td>
                     <td class="num num--positivo">{{ valorDisponivelFatura(c) | currency : 'BRL' }}</td>
-                    <td class="col-centro">{{ c.diaFechamento ? 'Dia ' + c.diaFechamento : '-' }}</td>
+                    <td class="col-centro">{{ melhorDiaCompraLabel(c) }}</td>
                     <td class="col-centro">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '-' }}</td>
                     <td class="col-centro">
                     <span class="badge-status" [ngClass]="statusLinhaClasse(c)">
@@ -93,6 +93,14 @@
                   <tr class="cartoes-usuario-table__detalhes-row" *ngIf="cartaoExpandido(c)">
                     <td colspan="8">
                       <div class="compras-inline">
+                        <div class="fatura-periodo" *ngIf="periodoFatura(c) as periodo">
+                          <div class="fatura-periodo__titulo">{{ periodo.titulo }}</div>
+                          <p class="fatura-periodo__texto">{{ periodo.textoAmigavel }}</p>
+                          <div class="fatura-periodo__detalhes">
+                            <span><strong>Período:</strong> {{ periodo.periodoLabel }}</span>
+                            <span><strong>Vencimento:</strong> {{ periodo.vencimentoLabel }}</span>
+                          </div>
+                        </div>
                         <div class="compras-inline__header">
                           <strong>Compras parceladas</strong>
                           <span>{{ nomeMesReferencia }}</span>
@@ -107,6 +115,7 @@
                           <thead>
                             <tr>
                               <th>Compra</th>
+                              <th class="col-centro">Data</th>
                               <th class="col-centro">Parcela</th>
                               <th class="col-centro">Valor da Parcela</th>
                               <th class="col-centro">Total</th>
@@ -116,6 +125,7 @@
                           <tbody>
                             <tr *ngFor="let p of parcelamentosDoCartao(c)">
                               <td>{{ p.objetivo }}</td>
+                              <td class="col-centro">{{ dataCompraExibicao(p) }}</td>
                               <td class="col-centro">
                                 <span class="parcelas-chip">{{ parcelasLabel(p) }}</span>
                               </td>
@@ -136,7 +146,7 @@
                   <td class="num">{{ totalLimiteUsuario | currency : 'BRL' }}</td>
                   <td class="num">{{ totalUtilizadoUsuario | currency : 'BRL' }}</td>
                   <td class="num">{{ totalDisponivelUsuario | currency : 'BRL' }}</td>
-                  <td colspan="4"></td>
+                  <td colspan="5"></td>
                 </tr>
               </tfoot>
             </table>

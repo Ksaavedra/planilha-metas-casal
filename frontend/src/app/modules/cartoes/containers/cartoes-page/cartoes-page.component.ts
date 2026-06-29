@@ -16,16 +16,34 @@ import { DividasService } from '@core/services/dividas/dividas.service';
 import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 import {
   calcularResumoCartoes,
+  mesReferenciaAnteriorAoAtual,
   percentualUtilizadoCartao,
   statusCartao,
   statusCartaoClasse,
   statusCartaoLabel,
 } from '@core/utils/cartoes.util';
 import {
+  diaMelhorCompraEfetivo,
+  periodoFaturaCartao,
+  PeriodoFaturaCartao,
+} from '@core/utils/fatura-cartao.util';
+import {
+  calcularResumoFaturaCartao,
+  arredondarMoeda,
+  isAjusteFatura,
+  isCompraFatura,
+  labelCategoriaAjuste,
+  ResumoFaturaCartao,
+} from '@core/utils/fatura-resumo.util';
+import {
   calcularValorPagoAcumulado,
+  compararLancamentosFaturaPorData,
+  dividaVisivelNoMesReferencia,
+  formatarDataIsoPtBr,
   parcelaMensalDivida,
   parcelasRestantesLabel,
   projetarDividasNoMes,
+  resolverDataPagamentoCartao,
   statusParcelaMesClasse,
   statusParcelaMesLabel,
 } from '@core/utils/dividas.util';
@@ -33,6 +51,10 @@ import {
   AdicionarCartaoDialogComponent,
   AdicionarCartaoDialogData,
 } from '../../components/adicionar-cartao-dialog/adicionar-cartao-dialog.component';
+import {
+  AdicionarAjusteFaturaDialogComponent,
+  AdicionarAjusteFaturaDialogData,
+} from '../../components/adicionar-ajuste-fatura-dialog/adicionar-ajuste-fatura-dialog.component';
 import {
   AdicionarParcelamentoDialogComponent,
   AdicionarParcelamentoDialogData,
@@ -44,7 +66,7 @@ import {
 } from '../../components/fatura-atrasada-dialog/fatura-atrasada-dialog.component';
 import { ConfirmModalComponent } from 'shared/components/confirm-modal/confirm-modal.component';
 import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
-import { forkJoin } from 'rxjs';
+import { forkJoin, map, Observable, tap, finalize, catchError } from 'rxjs';
 
 @Component({
   selector: 'app-cartoes-page',
@@ -70,9 +92,13 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   cartoes: Cartao[] = [];
   parcelamentos: DividaNoMes[] = [];
   private parcelamentosAno: Divida[] = [];
+  ajustes: Divida[] = [];
+  private ajustesAno: Divida[] = [];
   cartaoExpandidoId: number | null = null;
   carregando = false;
   erroCarregar: string | null = null;
+  acaoFaturaProcessando: { cartaoId: number; tipo: 'pagar' | 'desfazer' } | null =
+    null;
   visaoFaturas: 'lista' | 'usuario' | 'exemplos' = 'lista';
   mesAtual: Date = new Date();
 
@@ -118,6 +144,10 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
       (s, c) => s + this.valorPagarFatura(c),
       0,
     );
+    const totalValorFaturas = cartoesResumo.reduce(
+      (s, c) => s + this.resumoFatura(c).valorFatura,
+      0,
+    );
     const disponivel = Math.max(0, limiteTotal - utilizado);
     const percentualUtilizado =
       limiteTotal > 0 ? Math.min(100, (utilizado / limiteTotal) * 100) : 0;
@@ -125,6 +155,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return {
       limiteTotal: Math.round(limiteTotal * 100) / 100,
       utilizado: Math.round(utilizado * 100) / 100,
+      totalValorFaturas: Math.round(totalValorFaturas * 100) / 100,
       totalAPagarMes: Math.round(totalAPagarMes * 100) / 100,
       disponivel: Math.round(disponivel * 100) / 100,
       percentualUtilizado,
@@ -138,7 +169,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get cartoesComFaturaMes(): Cartao[] {
-    return this.cartoes.filter((c) => this.valorPagarFatura(c) > 0);
+    return this.cartoes;
   }
 
   get cartoesPaginados(): Cartao[] {
@@ -208,42 +239,68 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   carregar(): void {
+    this.carregarObservable().subscribe({
+      error: (err: unknown) => {
+        this.erroCarregar = this.mensagemErroHttp(err);
+      },
+    });
+  }
+
+  private carregarObservable(): Observable<void> {
     this.carregando = true;
     this.erroCarregar = null;
-    forkJoin({
+    const anosDividas = [...new Set([this.anoRef - 1, this.anoRef])].filter(
+      (a) => a > 0,
+    );
+
+    return forkJoin({
       cartoes: this.cartoesService.getCartoes({
         ano: this.anoRef,
         mes: this.mesRef,
       }),
-      dividas: this.dividasService.getDividas(this.anoRef),
-    }).subscribe({
-      next: ({ cartoes, dividas }) => {
+      dividas: forkJoin(
+        anosDividas.map((ano) => this.dividasService.getDividas(ano)),
+      ).pipe(map((listas) => listas.flat())),
+    }).pipe(
+      tap(({ cartoes, dividas }) => {
         this.cartoes = cartoes;
-        this.parcelamentosAno = dividas.filter(
-          (d) =>
-            d.cartaoId != null &&
-            [
-              'parcelamento',
-              'cartao_credito',
-              'crediario',
-              'pix_parcelado',
-            ].includes(d.tipoDivida),
-        );
+        this.parcelamentosAno = dividas
+          .filter((d) => d.cartaoId != null && isCompraFatura(d))
+          .map((d) => this.enriquecerParcelamentoComCartao(d, cartoes));
+        this.ajustesAno = dividas
+          .filter((d) => d.cartaoId != null && isAjusteFatura(d))
+          .map((d) => this.enriquecerParcelamentoComCartao(d, cartoes));
         this.aplicarParcelamentosMes();
+        this.aplicarAjustesMes();
         this.paginaTabela = 1;
         this.normalizarIndicePagina();
-        this.carregando = false;
         setTimeout(() => this.atualizarGraficos(), 0);
-      },
-      error: (err: unknown) => {
-        this.carregando = false;
-        this.erroCarregar = this.mensagemErroHttp(err);
+      }),
+      map(() => void 0),
+      catchError((err: unknown) => {
         this.cartoes = [];
         this.parcelamentos = [];
         this.parcelamentosAno = [];
+        this.ajustes = [];
+        this.ajustesAno = [];
         this.paginaTabela = 1;
-      },
-    });
+        throw err;
+      }),
+      finalize(() => {
+        this.carregando = false;
+      }),
+    );
+  }
+
+  private cartaoAtual(c: Cartao): Cartao {
+    return this.cartoes.find((item) => item.id === c.id) ?? c;
+  }
+
+  private valorPagoTotalFatura(resumo: ResumoFaturaCartao): number {
+    return Math.min(
+      resumo.valorFatura,
+      arredondarMoeda(resumo.pagamentosRealizados + resumo.valorAPagar),
+    );
   }
 
   paginaAnteriorTabela(): void {
@@ -255,22 +312,27 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   mesAnterior(): void {
-    const data = new Date(this.mesAtual);
-    data.setMonth(data.getMonth() - 1);
-    this.mesAtual = data;
+    this.mesAtual = new Date(
+      this.mesAtual.getFullYear(),
+      this.mesAtual.getMonth() - 1,
+      1,
+    );
     this.carregar();
   }
 
   proximoMes(): void {
-    const data = new Date(this.mesAtual);
-    data.setMonth(data.getMonth() + 1);
-    this.mesAtual = data;
+    this.mesAtual = new Date(
+      this.mesAtual.getFullYear(),
+      this.mesAtual.getMonth() + 1,
+      1,
+    );
     this.carregar();
   }
 
   voltarParaMesAtual(): void {
     if (!this.estaForaDoMesAtual) return;
-    this.mesAtual = new Date();
+    const hoje = new Date();
+    this.mesAtual = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     this.carregar();
   }
 
@@ -286,34 +348,62 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     this.abrirDialog(c);
   }
 
-  podeParcelarCompra(c: Cartao): boolean {
-    if (c.diaFechamento == null) return true;
+  /** Fatura do mês quitada: pagamento registrado e sem saldo em aberto. */
+  isFaturaPaga(c: Cartao): boolean {
+    if (this.valorUtilizadoFatura(c) > 0) return false;
 
-    const hoje = new Date();
-    const anoHoje = hoje.getFullYear();
-    const mesHoje = hoje.getMonth();
-    const anoSelecionado = this.mesAtual.getFullYear();
-    const mesSelecionado = this.mesAtual.getMonth();
+    const temLancamentos =
+      this.parcelamentosDoCartao(c).length > 0 ||
+      this.ajustesDoCartao(c).length > 0;
 
-    if (
-      anoSelecionado > anoHoje ||
-      (anoSelecionado === anoHoje && mesSelecionado > mesHoje)
-    ) {
-      return true;
+    if (temLancamentos) {
+      return this.podeDesfazerPagamento(c);
     }
 
+    return Boolean(c.faturaPaga) && (c.valorFaturaPaga || 0) > 0;
+  }
+
+  podeEditarLancamentosFatura(c: Cartao): boolean {
+    return !this.isFaturaPaga(c);
+  }
+
+  estaProcessandoAcaoFatura(
+    c: Cartao,
+    tipo?: 'pagar' | 'desfazer',
+  ): boolean {
     if (
-      anoSelecionado < anoHoje ||
-      (anoSelecionado === anoHoje && mesSelecionado < mesHoje)
+      !this.acaoFaturaProcessando ||
+      this.acaoFaturaProcessando.cartaoId !== c.id
     ) {
       return false;
     }
 
-    return hoje.getDate() < c.diaFechamento;
+    return tipo ? this.acaoFaturaProcessando.tipo === tipo : true;
+  }
+
+  podeParcelarCompra(c: Cartao): boolean {
+    return !this.isFaturaPaga(c);
+  }
+
+  melhorDiaCompraLabel(c: Cartao): string {
+    const dia = diaMelhorCompraEfetivo(c);
+    return dia != null ? `Dia ${dia}` : '-';
+  }
+
+  periodoFatura(c: Cartao): PeriodoFaturaCartao | null {
+    return periodoFaturaCartao(c, this.anoRef, this.mesRef);
+  }
+
+  dataCompraExibicao(p: DividaNoMes): string {
+    return (
+      formatarDataIsoPtBr(p.dataCompra) ??
+      formatarDataIsoPtBr(p.dataInicio) ??
+      '-'
+    );
   }
 
   parcelar(c: Cartao): void {
-    if (!this.podeParcelarCompra(c)) return;
+    if (this.isFaturaPaga(c)) return;
 
     const data: AdicionarParcelamentoDialogData = {
       cartao: c,
@@ -337,6 +427,96 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
           message: 'A compra será acompanhada mês a mês na fatura.',
           confirmText: 'OK',
         },
+      });
+    });
+  }
+
+  adicionarAjuste(c: Cartao): void {
+    if (this.isFaturaPaga(c)) return;
+
+    const data: AdicionarAjusteFaturaDialogData = {
+      cartao: c,
+      ano: this.anoRef,
+      mes: this.mesRef,
+    };
+    const ref = this.dialog.open(AdicionarAjusteFaturaDialogComponent, {
+      width: 'min(560px, 96vw)',
+      maxHeight: '90vh',
+      data,
+      autoFocus: 'dialog',
+    });
+
+    ref.afterClosed().subscribe((saved) => {
+      if (!saved) return;
+      this.carregar();
+      this.dialog.open(SuccessModalComponent, {
+        width: 'min(420px, 96vw)',
+        data: {
+          title: 'Ajuste adicionado!',
+          message: 'O lançamento foi aplicado ao cálculo da fatura.',
+          confirmText: 'OK',
+        },
+      });
+    });
+  }
+
+  editarAjuste(c: Cartao, ajuste: Divida): void {
+    const data: AdicionarAjusteFaturaDialogData = {
+      cartao: c,
+      ano: this.anoRef,
+      mes: this.mesRef,
+      ajuste,
+    };
+    const ref = this.dialog.open(AdicionarAjusteFaturaDialogComponent, {
+      width: 'min(560px, 96vw)',
+      maxHeight: '90vh',
+      data,
+      autoFocus: 'dialog',
+    });
+
+    ref.afterClosed().subscribe((saved) => {
+      if (!saved) return;
+      this.carregar();
+    });
+  }
+
+  editarAjusteResumo(c: Cartao): void {
+    if (this.isFaturaPaga(c)) return;
+
+    const itens = this.ajustesDoCartao(c);
+    if (itens.length >= 1) {
+      this.editarAjuste(c, itens[0]);
+      return;
+    }
+
+    this.adicionarAjuste(c);
+  }
+
+  tituloEditarAjusteResumo(c: Cartao): string {
+    if (this.isFaturaPaga(c)) {
+      return this.motivoEdicaoLancamentosDesabilitada();
+    }
+
+    const qtd = this.ajustesDoCartao(c).length;
+    if (qtd === 0) return 'Adicionar crédito ou ajuste';
+    if (qtd === 1) return 'Editar crédito ou ajuste';
+    return 'Editar ajuste (use a tabela para os demais)';
+  }
+
+  confirmarExcluirAjuste(ajuste: Divida): void {
+    const ref = this.dialog.open(ConfirmModalComponent, {
+      width: 'min(420px, 96vw)',
+      data: {
+        title: 'Excluir ajuste',
+        message: `Deseja excluir "${this.labelAjuste(ajuste)}"?`,
+        confirmText: 'Excluir',
+        cancelText: 'Cancelar',
+      },
+    });
+    ref.afterClosed().subscribe((ok) => {
+      if (!ok) return;
+      this.dividasService.deleteDivida(ajuste.id).subscribe({
+        next: () => this.carregar(),
       });
     });
   }
@@ -407,22 +587,40 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   parcelamentosDoCartao(c: Cartao): DividaNoMes[] {
-    return this.parcelamentos.filter((p) => p.cartaoId === c.id);
+    return this.parcelamentos
+      .filter((p) => p.cartaoId === c.id)
+      .sort(compararLancamentosFaturaPorData);
+  }
+
+  ajustesDoCartao(c: Cartao): Divida[] {
+    return this.ajustes
+      .filter((a) => a.cartaoId === c.id)
+      .sort(compararLancamentosFaturaPorData);
+  }
+
+  resumoFatura(c: Cartao): ResumoFaturaCartao {
+    return calcularResumoFaturaCartao(
+      this.parcelamentosDoCartao(c),
+      this.ajustesDoCartao(c),
+      c,
+    );
+  }
+
+  labelAjuste(a: Divida): string {
+    return labelCategoriaAjuste(a.objetivo);
   }
 
   valorUtilizadoFatura(c: Cartao): number {
-    if (c.totalAPagarMes != null) {
-      const totalAPagarMes = Number(c.totalAPagarMes);
-      return Math.max(0, Math.round(totalAPagarMes * 100) / 100);
+    const temLancamentos =
+      this.parcelamentosDoCartao(c).length > 0 ||
+      this.ajustesDoCartao(c).length > 0;
+
+    if (temLancamentos) {
+      return this.resumoFatura(c).valorAPagar;
     }
 
-    const parcelamentos = this.parcelamentosDoCartao(c);
-    if (parcelamentos.length > 0) {
-      const totalParcelasMes = parcelamentos.reduce(
-        (s, p) => s + parcelaMensalDivida(p),
-        0,
-      );
-      return Math.round(totalParcelasMes * 100) / 100;
+    if (c.totalAPagarMes != null) {
+      return Math.max(0, Math.round(Number(c.totalAPagarMes) * 100) / 100);
     }
 
     return Math.max(0, c.valorUtilizado || 0);
@@ -430,6 +628,10 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   valorPagarFatura(c: Cartao): number {
     return this.valorUtilizadoFatura(c);
+  }
+
+  valorFaturaCartao(c: Cartao): number {
+    return this.resumoFatura(c).valorFatura;
   }
 
   valorUtilizadoLimite(c: Cartao): number {
@@ -483,15 +685,71 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   faturaAtrasada(c: Cartao): boolean {
     const statusParcelas = this.statusResumoParcelasCartao(c);
     if (statusParcelas) {
+      if (statusParcelas === 'atrasada') {
+        return true;
+      }
+
       return (
-        statusParcelas === 'atrasada' ||
-        (statusParcelas !== 'paga' &&
-          statusParcelas !== 'quitada' &&
-          this.statusDoCartao(c) === 'atrasado')
+        statusParcelas !== 'paga' &&
+        statusParcelas !== 'quitada' &&
+        this.statusDoCartao(c) === 'atrasado'
       );
     }
 
     return this.statusDoCartao(c) === 'atrasado';
+  }
+
+  statusFaturaClicavel(c: Cartao): boolean {
+    if (this.carregando || this.estaProcessandoAcaoFatura(c)) return false;
+    if (this.valorUtilizadoFatura(c) <= 0) return false;
+
+    if (this.faturaAtrasada(c)) return true;
+
+    if (this.podeDesfazerPagamento(c)) return false;
+
+    const status = this.statusDoCartao(c);
+    return status === 'fatura_fechada';
+  }
+
+  tituloAcaoPagamentoFatura(c: Cartao): string {
+    return this.faturaAtrasada(c)
+      ? 'Resolver fatura atrasada'
+      : 'Pagar fatura';
+  }
+
+  motivoParcelarCompraDesabilitado(): string {
+    return 'Fatura paga: não é possível parcelar compra';
+  }
+
+  tituloParcelarCompra(c: Cartao): string {
+    if (this.isFaturaPaga(c)) {
+      return this.motivoParcelarCompraDesabilitado();
+    }
+
+    return 'Parcelar compra';
+  }
+
+  motivoEdicaoLancamentosDesabilitada(): string {
+    return 'Fatura paga: não é possível editar lançamentos';
+  }
+
+  tituloJurosAjuste(c: Cartao): string {
+    if (this.isFaturaPaga(c)) {
+      return 'Fatura paga: não é possível adicionar ajuste';
+    }
+
+    return 'Juros, crédito ou ajuste';
+  }
+
+  abrirAcaoPagamentoFatura(c: Cartao): void {
+    if (this.estaProcessandoAcaoFatura(c)) return;
+
+    if (this.faturaAtrasada(c)) {
+      this.abrirAcaoFaturaAtrasada(c);
+      return;
+    }
+
+    this.confirmarPagarFatura(c);
   }
 
   previsaoPagamentoVencida(c: Cartao): boolean {
@@ -506,7 +764,30 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   mostrarAlertaPrevisao(c: Cartao): boolean {
+    if (mesReferenciaAnteriorAoAtual(this.mesAtual)) {
+      return false;
+    }
+
     return this.faturaAtrasada(c) && this.valorUtilizadoFatura(c) > 0;
+  }
+
+  mostrarAlertaPagamento(c: Cartao): boolean {
+    if (this.faturaAtrasada(c) && this.valorUtilizadoFatura(c) > 0) return false;
+    return !!this.dataPagamentoExibicao(c);
+  }
+
+  textoAlertaPagamento(c: Cartao): string {
+    const data = this.dataPagamentoExibicao(c);
+    return data ? `${data} foi pago` : '';
+  }
+
+  mostrarIconePagoStatus(c: Cartao): boolean {
+    const classe = this.statusLinhaClasse(c);
+    return (
+      classe === 'status--parcela-paga' ||
+      classe === 'status--quitada' ||
+      classe === 'status--fatura-paga'
+    );
   }
 
   textoAlertaPrevisao(c: Cartao): string {
@@ -522,49 +803,94 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   statusLinhaLabel(c: Cartao): string {
-    if (c.faturaPaga) {
-      return this.statusLabel(this.statusDoCartao(c));
-    }
-
     const statusParcelas = this.statusResumoParcelasCartao(c);
     if (statusParcelas) {
       return this.statusParcelaLabel(statusParcelas);
+    }
+
+    if (c.faturaPaga) {
+      return this.statusLabel(this.statusDoCartao(c));
     }
 
     return this.statusLabel(this.statusDoCartao(c));
   }
 
   statusLinhaClasse(c: Cartao): string {
-    if (c.faturaPaga) {
-      return this.statusClasse(this.statusDoCartao(c));
-    }
-
     const statusParcelas = this.statusResumoParcelasCartao(c);
     if (statusParcelas) {
       return this.statusParcelaClasse(statusParcelas);
+    }
+
+    if (c.faturaPaga) {
+      return this.statusClasse(this.statusDoCartao(c));
     }
 
     return this.statusClasse(this.statusDoCartao(c));
   }
 
   podePagarFatura(c: Cartao): boolean {
+    if (this.parcelamentosDoCartao(c).length > 0) {
+      return this.valorUtilizadoFatura(c) > 0;
+    }
+
     return !c.faturaPaga && this.valorUtilizadoFatura(c) > 0;
   }
 
   podeDesfazerPagamento(c: Cartao): boolean {
-    return (
-      (Boolean(c.faturaPaga) && (c.valorFaturaPaga || 0) > 0) ||
-      this.parcelamentosDoCartao(c).some((p) => p.parcelaMesPaga)
+    if (Boolean(c.faturaPaga) && (c.valorFaturaPaga || 0) > 0) {
+      return true;
+    }
+
+    return this.parcelamentosDoCartao(c).some(
+      (p) =>
+        p.parcelaMesPaga ||
+        p.statusParcelaMes === 'paga' ||
+        p.statusParcelaMes === 'quitada',
     );
+  }
+
+  /** Desfazer só quando a fatura do mês está quitada; com saldo atrasado, use o badge Atrasada. */
+  mostrarBotaoDesfazer(c: Cartao): boolean {
+    if (!this.podeDesfazerPagamento(c)) return false;
+    if (this.faturaAtrasada(c) && this.valorUtilizadoFatura(c) > 0) return false;
+    return true;
   }
 
   mostrarBotaoPagar(c: Cartao): boolean {
     return !this.podeDesfazerPagamento(c);
   }
 
+  tituloDesfazerPagamento(c: Cartao): string {
+    if (!this.podeDesfazerPagamento(c)) {
+      return '';
+    }
+
+    const data = this.dataPagamentoExibicao(c);
+    if (data) {
+      return `Pagamento de ${data}. Clique para desfazer.`;
+    }
+
+    if (Boolean(c.faturaPaga) && (c.valorFaturaPaga || 0) > 0) {
+      return 'Fatura paga. Clique para desfazer.';
+    }
+
+    return 'Desfazer pagamento';
+  }
+
+  mensagemConfirmarDesfazerPagamento(c: Cartao): string {
+    const data = this.dataPagamentoExibicao(c);
+    if (data) {
+      return `Deseja desfazer o pagamento de ${data}?`;
+    }
+
+    return 'Deseja desfazer este pagamento?';
+  }
+
   abrirAcaoFaturaAtrasada(c: Cartao): void {
+    const resumo = this.resumoFatura(c);
     const data: FaturaAtrasadaDialogData = {
       cartao: this.cartaoComValorUtilizadoAtual(c),
+      valorEmAberto: resumo.valorAPagar,
     };
     const ref = this.dialog.open(FaturaAtrasadaDialogComponent, {
       width: 'min(520px, 96vw)',
@@ -577,7 +903,11 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
       if (!result) return;
 
       if (result.acao === 'pagar') {
-        this.registrarPagamentoAtrasado(c, result.valorPago);
+        this.registrarPagamentoAtrasado(
+          c,
+          result.valorPago,
+          result.previsaoPagamento,
+        );
         return;
       }
 
@@ -605,7 +935,10 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   confirmarPagarFatura(c: Cartao): void {
-    const valor = this.valorUtilizadoFatura(c);
+    if (this.estaProcessandoAcaoFatura(c)) return;
+
+    const resumo = this.resumoFatura(c);
+    const valor = resumo.valorAPagar;
     const ref = this.dialog.open(ConfirmModalComponent, {
       width: 'min(420px, 96vw)',
       data: {
@@ -619,75 +952,106 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     ref.afterClosed().subscribe((ok) => {
       if (!ok) return;
 
-      const atualizacoes = [
-        this.cartoesService.updateCartao(c.id, {
-          valorUtilizado: 0,
-          faturaPaga: this.parcelamentosDoCartao(c).length === 0,
-          valorFaturaPaga: valor,
-        }),
-        ...this.atualizacoesParcelasPagas(c),
-      ];
-
-      forkJoin(atualizacoes).subscribe({
-        next: () => {
-          this.carregar();
-          this.dialog.open(SuccessModalComponent, {
-            width: 'min(420px, 96vw)',
-            data: {
-              title: 'Fatura paga!',
-              message: 'O pagamento da fatura foi registrado com sucesso.',
-              confirmText: 'OK',
-            },
-          });
-        },
+      const cartaoAtual = this.cartaoAtual(c);
+      const resumo = this.resumoFatura(cartaoAtual);
+      this.executarPagamentoFatura(cartaoAtual, {
+        valorFatura: resumo.valorFatura,
+        valorPago: this.valorPagoTotalFatura(resumo),
+        tituloSucesso: 'Fatura paga!',
+        mensagemSucesso: 'O pagamento da fatura foi registrado com sucesso.',
       });
     });
   }
 
-  private registrarPagamentoAtrasado(c: Cartao, valorPago: number): void {
-    const valorEmAberto = this.valorUtilizadoFatura(c);
+  private registrarPagamentoAtrasado(
+    c: Cartao,
+    valorPago: number,
+    dataPagamentoRef?: string,
+  ): void {
+    if (this.estaProcessandoAcaoFatura(c)) return;
+
+    const cartaoAtual = this.cartaoAtual(c);
+    const resumo = this.resumoFatura(cartaoAtual);
+    const valorEmAberto = resumo.valorAPagar;
     const valorPagoNormalizado = Math.min(
       Math.max(0, valorPago),
       valorEmAberto,
     );
-    const novoValorUtilizado = Math.max(
-      0,
-      valorEmAberto - valorPagoNormalizado,
+    const valorPagoAcumulado = Math.min(
+      resumo.valorFatura,
+      arredondarMoeda(resumo.pagamentosRealizados + valorPagoNormalizado),
+    );
+    const quitada = valorPagoAcumulado >= resumo.valorFatura - 0.01;
+
+    this.executarPagamentoFatura(cartaoAtual, {
+      valorFatura: resumo.valorFatura,
+      valorPago: valorPagoAcumulado,
+      dataPagamento: dataPagamentoRef,
+      observacaoAtraso: quitada ? null : (cartaoAtual.observacaoAtraso ?? null),
+      previsaoPagamento: quitada
+        ? null
+        : (cartaoAtual.previsaoPagamento ?? null),
+      tituloSucesso: 'Fatura regularizada!',
+      mensagemSucesso: 'O pagamento foi registrado com sucesso.',
+    });
+  }
+
+  private executarPagamentoFatura(
+    c: Cartao,
+    opcoes: {
+      valorFatura: number;
+      valorPago: number;
+      dataPagamento?: string;
+      observacaoAtraso?: string | null;
+      previsaoPagamento?: string | null;
+      tituloSucesso: string;
+      mensagemSucesso: string;
+    },
+  ): void {
+    if (this.estaProcessandoAcaoFatura(c) || this.carregando) return;
+
+    this.acaoFaturaProcessando = { cartaoId: c.id, tipo: 'pagar' };
+
+    const valorFatura = arredondarMoeda(opcoes.valorFatura);
+    const valorPago = Math.min(
+      valorFatura,
+      arredondarMoeda(Math.max(0, opcoes.valorPago)),
+    );
+    const dataPagamento = this.dataPagamentoAoRegistrarCartao(
+      c,
+      opcoes.dataPagamento,
     );
 
-    const temParcelamentos = this.parcelamentosDoCartao(c).length > 0;
     const atualizacoes = [
-      this.cartoesService.updateCartao(c.id, {
-        valorUtilizado: novoValorUtilizado,
-        faturaPaga: !temParcelamentos && novoValorUtilizado <= 0,
-        valorFaturaPaga: (c.valorFaturaPaga || 0) + valorPagoNormalizado,
-        observacaoAtraso: null,
-        previsaoPagamento: null,
+      this.cartoesService.registrarPagamentoFatura(c.id, {
+        ano: this.anoRef,
+        mes: this.mesRef,
+        valorFatura,
+        valorPago,
+        dataPagamento,
+        observacaoAtraso: opcoes.observacaoAtraso ?? null,
+        previsaoPagamento: opcoes.previsaoPagamento ?? null,
       }),
-      ...this.atualizacoesParcelasPagas(c),
+      ...this.atualizacoesParcelasPagas(c, dataPagamento),
     ];
 
     forkJoin(atualizacoes).subscribe({
-      next: () => {
-        this.carregar();
-        this.dialog.open(SuccessModalComponent, {
-          width: 'min(420px, 96vw)',
-          data: {
-            title: 'Fatura regularizada!',
-            message: 'O pagamento foi registrado e o limite foi atualizado.',
-            confirmText: 'OK',
-          },
-        });
+      next: () =>
+        this.finalizarAcaoFatura(opcoes.tituloSucesso, opcoes.mensagemSucesso),
+      error: () => {
+        this.acaoFaturaProcessando = null;
       },
     });
   }
 
   confirmarDesfazerPagamento(c: Cartao): void {
+    if (this.estaProcessandoAcaoFatura(c)) return;
+
     const ref = this.dialog.open(ConfirmModalComponent, {
       width: 'min(420px, 96vw)',
       data: {
         title: 'Desfazer pagamento',
-        message: 'Deseja desfazer este pagamento?',
+        message: this.mensagemConfirmarDesfazerPagamento(c),
         confirmText: 'Sim, desfazer',
         cancelText: 'Não',
       },
@@ -695,29 +1059,91 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
     ref.afterClosed().subscribe((ok) => {
       if (!ok) return;
+      this.executarDesfazerPagamentoFatura(c);
+    });
+  }
 
-      const atualizacoes = [
-        this.cartoesService.updateCartao(c.id, {
-          valorUtilizado: c.valorFaturaPaga || 0,
-          faturaPaga: false,
-          valorFaturaPaga: 0,
-        }),
-        ...this.atualizacoesParcelasDesfeitas(c),
-      ];
+  private executarDesfazerPagamentoFatura(c: Cartao): void {
+    if (this.estaProcessandoAcaoFatura(c)) return;
 
-      forkJoin(atualizacoes).subscribe({
-        next: () => {
-          this.carregar();
-          this.dialog.open(SuccessModalComponent, {
-            width: 'min(420px, 96vw)',
-            data: {
-              title: 'Pagamento desfeito!',
-              message: 'A fatura voltou para em aberto.',
-              confirmText: 'OK',
-            },
-          });
-        },
-      });
+    this.acaoFaturaProcessando = { cartaoId: c.id, tipo: 'desfazer' };
+
+    forkJoin([
+      this.cartoesService.desfazerPagamentoFatura(
+        c.id,
+        this.anoRef,
+        this.mesRef,
+      ),
+      ...this.atualizacoesParcelasDesfeitas(c),
+    ]).subscribe({
+      next: () => {
+        this.sincronizarEstadoLocalAposDesfazer(c);
+        this.finalizarAcaoFatura(
+          'Pagamento desfeito!',
+          'A fatura deste mês voltou para em aberto.',
+        );
+      },
+      error: () => {
+        this.acaoFaturaProcessando = null;
+      },
+    });
+  }
+
+  private sincronizarEstadoLocalAposDesfazer(c: Cartao): void {
+    const idx = this.cartoes.findIndex((item) => item.id === c.id);
+    if (idx >= 0) {
+      this.cartoes[idx] = {
+        ...this.cartoes[idx],
+        faturaPaga: false,
+        valorFaturaPaga: 0,
+        observacaoAtraso: null,
+        previsaoPagamento: null,
+      };
+    }
+
+    const parcelasDesfeitas = this.parcelamentosDoCartao(c).filter(
+      (p) =>
+        p.parcelaMesPaga ||
+        p.statusParcelaMes === 'paga' ||
+        p.statusParcelaMes === 'quitada',
+    );
+
+    for (const parcela of parcelasDesfeitas) {
+      const divida = this.parcelamentosAno.find((d) => d.id === parcela.id);
+      if (!divida) continue;
+
+      divida.valorPago = calcularValorPagoAcumulado(
+        divida.valorTotal,
+        divida.quantidadeParcelas,
+        divida.dataInicio || undefined,
+        this.mesRef,
+        0,
+        this.anoRef,
+        divida,
+      );
+      divida.dataPagamento = null;
+      divida.statusDivida = 'pagando';
+    }
+
+    this.aplicarParcelamentosMes();
+  }
+
+  private finalizarAcaoFatura(titulo: string, mensagem: string): void {
+    this.carregarObservable().subscribe({
+      next: () => {
+        this.acaoFaturaProcessando = null;
+        this.dialog.open(SuccessModalComponent, {
+          width: 'min(420px, 96vw)',
+          data: {
+            title: titulo,
+            message: mensagem,
+            confirmText: 'OK',
+          },
+        });
+      },
+      error: () => {
+        this.acaoFaturaProcessando = null;
+      },
     });
   }
 
@@ -756,6 +1182,30 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
       this.anoRef,
       this.mesRef,
     );
+  }
+
+  private aplicarAjustesMes(): void {
+    this.ajustes = this.ajustesAno.filter((d) =>
+      dividaVisivelNoMesReferencia(d, this.anoRef, this.mesRef),
+    );
+  }
+
+  private enriquecerParcelamentoComCartao(
+    divida: Divida,
+    cartoes: Cartao[],
+  ): Divida {
+    if (divida.diaMelhorCompra != null && divida.diaVencimento != null) {
+      return divida;
+    }
+
+    const cartao = cartoes.find((c) => c.id === divida.cartaoId);
+    if (!cartao) return divida;
+
+    return {
+      ...divida,
+      diaMelhorCompra: divida.diaMelhorCompra ?? cartao.diaMelhorCompra ?? null,
+      diaVencimento: divida.diaVencimento ?? cartao.diaVencimento ?? null,
+    };
   }
 
   private statusResumoParcelasCartao(
@@ -813,7 +1263,12 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     };
   }
 
-  private atualizacoesParcelasPagas(c: Cartao) {
+  private atualizacoesParcelasPagas(c: Cartao, dataPagamentoRef?: string) {
+    const dataPagamento = this.dataPagamentoAoRegistrarCartao(
+      c,
+      dataPagamentoRef,
+    );
+
     return this.parcelamentosDoCartao(c)
       .filter(
         (p) =>
@@ -826,15 +1281,25 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
           p.dataInicio || undefined,
           this.mesRef,
           parcelaMensalDivida(p),
+          this.anoRef,
+          p,
         );
 
-        return this.dividasService.updateDivida(p.id, { valorPago });
+        return this.dividasService.updateDivida(p.id, {
+          valorPago,
+          dataPagamento,
+        });
       });
   }
 
   private atualizacoesParcelasDesfeitas(c: Cartao) {
     return this.parcelamentosDoCartao(c)
-      .filter((p) => p.parcelaMesPaga || p.statusParcelaMes === 'quitada')
+      .filter(
+        (p) =>
+          p.parcelaMesPaga ||
+          p.statusParcelaMes === 'paga' ||
+          p.statusParcelaMes === 'quitada',
+      )
       .map((p) => {
         const valorPago = calcularValorPagoAcumulado(
           p.valorTotal,
@@ -842,10 +1307,48 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
           p.dataInicio || undefined,
           this.mesRef,
           0,
+          this.anoRef,
+          p,
         );
 
-        return this.dividasService.updateDivida(p.id, { valorPago });
+        return this.dividasService.updateDivida(p.id, {
+          valorPago,
+          dataPagamento: null,
+          statusDivida: 'pagando',
+        });
       });
+  }
+
+  private dataPagamentoAoRegistrarCartao(
+    c: Cartao,
+    dataPagamentoRef?: string,
+  ): string {
+    if (dataPagamentoRef && dataPagamentoRef.length >= 10) {
+      return dataPagamentoRef.slice(0, 10);
+    }
+
+    if (c.previsaoPagamento && c.previsaoPagamento.length >= 10) {
+      return c.previsaoPagamento.slice(0, 10);
+    }
+
+    if (!mesReferenciaAnteriorAoAtual(this.mesAtual)) {
+      return this.formatarDataIso(new Date());
+    }
+
+    const ultimoDia = new Date(this.anoRef, this.mesRef, 0).getDate();
+    const dia = Math.min(c.diaVencimento ?? ultimoDia, ultimoDia);
+    return `${this.anoRef}-${String(this.mesRef).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+  }
+
+  private formatarDataIso(data: Date): string {
+    const ano = data.getFullYear();
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const dia = String(data.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  }
+
+  private dataPagamentoExibicao(c: Cartao): string | null {
+    return resolverDataPagamentoCartao(this.parcelamentosDoCartao(c));
   }
 
   private atualizarGraficos(): void {

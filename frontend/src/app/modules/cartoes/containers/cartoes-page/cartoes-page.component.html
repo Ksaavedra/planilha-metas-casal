@@ -77,11 +77,11 @@
   </div>
 
   <ng-container *ngIf="visaoFaturas === 'lista' && !exibirAvisoVazio && !carregando">
-    <section class="cartoes-resumo" aria-label="Resumo das faturas">
+    <section class="cartoes-resumo" aria-label="Resumo geral das faturas do mês">
       <article class="resumo-card">
         <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">savings</span></span>
         <div class="resumo-card__body">
-          <span class="resumo-card__label">Limite disponível</span>
+          <span class="resumo-card__label">Limite disponível total</span>
           <span class="resumo-card__valor">{{ resumo.disponivel | currency:'BRL' }}</span>
         </div>
       </article>
@@ -90,6 +90,13 @@
         <div class="resumo-card__body">
           <span class="resumo-card__label">Limite total</span>
           <span class="resumo-card__valor">{{ resumo.limiteTotal | currency:'BRL' }}</span>
+        </div>
+      </article>
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">request_quote</span></span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Valor total das faturas</span>
+          <span class="resumo-card__valor">{{ resumo.totalValorFaturas | currency:'BRL' }}</span>
         </div>
       </article>
       <article class="resumo-card resumo-card--destaque">
@@ -103,7 +110,7 @@
       <article class="resumo-card">
         <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">receipt_long</span></span>
         <div class="resumo-card__body">
-          <span class="resumo-card__label">Limite utilizado</span>
+          <span class="resumo-card__label">Limite utilizado total</span>
           <span class="resumo-card__valor">{{ resumo.utilizado | currency:'BRL' }}</span>
         </div>
       </article>
@@ -129,7 +136,6 @@
         <span class="material-icons">table_chart</span>
         Controle das faturas
       </h2>
-      <ng-container *ngIf="cartoesComFaturaMes.length > 0; else semFaturasMes">
       <div class="table-wrap">
         <table class="cartoes-table">
           <thead>
@@ -138,9 +144,8 @@
               <th class="col-centro">Limite</th>
               <th class="col-centro">Utilizado</th>
               <th class="col-centro">Disponível</th>
+              <th class="col-centro">Valor da fatura</th>
               <th class="col-centro">Pagar</th>
-              <th class="col-centro">Fechamento</th>
-              <th class="col-centro">Vencimento</th>
               <th class="col-centro">Status</th>
               <th class="col-centro">Ações</th>
             </tr>
@@ -152,28 +157,29 @@
                 <td class="num">{{ c.limite | currency:'BRL' }}</td>
                 <td class="num">{{ valorUtilizadoLimite(c) | currency:'BRL' }}</td>
                 <td class="num num--positivo">{{ valorDisponivelFatura(c) | currency:'BRL' }}</td>
+                <td class="num">{{ valorFaturaCartao(c) | currency:'BRL' }}</td>
                 <td class="num">{{ valorPagarFatura(c) | currency:'BRL' }}</td>
-                <td class="col-centro">{{ c.diaFechamento ? 'Dia ' + c.diaFechamento : '-' }}</td>
-                <td class="col-centro">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '-' }}</td>
                 <td class="col-centro">
                   <div class="status-badges">
-                    <button *ngIf="faturaAtrasada(c); else statusNaoAtrasado" type="button"
-                      class="badge-status badge-status--acao" [ngClass]="statusClasse(statusDoCartao(c))"
-                      (click)="abrirAcaoFaturaAtrasada(c)" title="Resolver fatura atrasada">
-                      {{ statusLabel(statusDoCartao(c)) }}
+                    <button *ngIf="statusFaturaClicavel(c); else statusSomenteLeitura" type="button"
+                      class="badge-status badge-status--acao" [ngClass]="statusLinhaClasse(c)"
+                      (click)="abrirAcaoPagamentoFatura(c)" [title]="tituloAcaoPagamentoFatura(c)"
+                      [disabled]="estaProcessandoAcaoFatura(c, 'pagar')">
+                      <span class="material-icons badge-status__loading" *ngIf="estaProcessandoAcaoFatura(c, 'pagar')"
+                        aria-hidden="true">autorenew</span>
+                      <ng-container *ngIf="!estaProcessandoAcaoFatura(c, 'pagar')">{{ statusLinhaLabel(c) }}</ng-container>
                     </button>
-                    <ng-template #statusNaoAtrasado>
-                      <button *ngIf="podeDesfazerPagamento(c); else statusFaturaSomenteLeitura" type="button"
-                        class="badge-status badge-status--acao" [ngClass]="statusLinhaClasse(c)"
-                        (click)="confirmarDesfazerPagamento(c)" title="Desfazer pagamento">
+                    <ng-template #statusSomenteLeitura>
+                      <span class="badge-status" [ngClass]="statusLinhaClasse(c)">
                         {{ statusLinhaLabel(c) }}
-                      </button>
-                      <ng-template #statusFaturaSomenteLeitura>
-                        <span class="badge-status" [ngClass]="statusLinhaClasse(c)">
-                          {{ statusLinhaLabel(c) }}
-                        </span>
-                      </ng-template>
+                        <span class="material-icons badge-status__icone" *ngIf="mostrarIconePagoStatus(c)"
+                          aria-hidden="true">check</span>
+                      </span>
                     </ng-template>
+                    <div class="alerta-previsao alerta-previsao--pago" *ngIf="mostrarAlertaPagamento(c)">
+                      <span class="material-icons" aria-hidden="true">check_circle</span>
+                      {{ textoAlertaPagamento(c) }}
+                    </div>
                     <div class="alerta-previsao" *ngIf="mostrarAlertaPrevisao(c)">
                       <span class="material-icons" aria-hidden="true">notification_important</span>
                       {{ textoAlertaPrevisao(c) }}
@@ -182,10 +188,14 @@
                 </td>
                 <td class="acoes col-centro">
                   <div class="acoes__grupo">
-                    <button *ngIf="podeDesfazerPagamento(c)" type="button" class="btn-desfazer"
-                      (click)="confirmarDesfazerPagamento(c)" title="Desfazer pagamento"
+                    <button *ngIf="mostrarBotaoDesfazer(c)" type="button" class="btn-desfazer"
+                      (click)="confirmarDesfazerPagamento(c)" [title]="tituloDesfazerPagamento(c)"
+                      [disabled]="estaProcessandoAcaoFatura(c)"
+                      [class.is-loading]="estaProcessandoAcaoFatura(c, 'desfazer')"
                       aria-label="Desfazer pagamento">
-                      <span class="material-icons" aria-hidden="true">undo</span>
+                      <span class="material-icons" aria-hidden="true">
+                        {{ estaProcessandoAcaoFatura(c, 'desfazer') ? 'autorenew' : 'undo' }}
+                      </span>
                     </button>
                     <button type="button" class="btn-icone" (click)="editar(c)" title="Editar">
                       <span class="material-icons">edit</span>
@@ -206,29 +216,90 @@
                 </td>
               </tr>
               <tr class="cartoes-table__detalhes-row" *ngIf="cartaoExpandido(c)">
-                <td colspan="9">
+                <td colspan="8">
                   <div class="parcelamentos-inline">
+                    <div class="fatura-periodo" *ngIf="periodoFatura(c) as periodo">
+                      <div class="fatura-periodo__titulo">{{ periodo.titulo }}</div>
+                      <dl class="fatura-periodo__grid">
+                        <div class="fatura-periodo__item">
+                          <dt>Período</dt>
+                          <dd>{{ periodo.periodoInicioLabel }} até {{ periodo.periodoFimLabel }}</dd>
+                        </div>
+                        <div class="fatura-periodo__item">
+                          <dt>Fechamento</dt>
+                          <dd>{{ periodo.periodoFimLabel }}</dd>
+                        </div>
+                        <div class="fatura-periodo__item">
+                          <dt>Vencimento</dt>
+                          <dd>{{ periodo.vencimentoLabel }}</dd>
+                        </div>
+                      </dl>
+                    </div>
                     <div class="parcelamentos-inline__header">
                       <div>
                         <strong>Compras parceladas</strong>
                         <span>{{ nomeMesAtual }}</span>
                       </div>
-                      <button type="button" class="parcelamentos-inline__btn" (click)="parcelar(c)"
-                        [disabled]="!podeParcelarCompra(c)"
-                        [title]="podeParcelarCompra(c) ? 'Parcelar compra' : 'Fatura fechada: não é possível parcelar compra'"
-                        [attr.aria-label]="podeParcelarCompra(c) ? 'Parcelar compra' : 'Fatura fechada: não é possível parcelar compra'">
-                        <span class="material-icons" aria-hidden="true">add</span>
-                        Parcelar compra
-                      </button>
+                      <div class="parcelamentos-inline__acoes">
+                        <button type="button" class="parcelamentos-inline__btn parcelamentos-inline__btn--secundario"
+                          (click)="adicionarAjuste(c)" [disabled]="isFaturaPaga(c)" [title]="tituloJurosAjuste(c)">
+                          <span class="material-icons" aria-hidden="true">tune</span>
+                          Juros / ajuste
+                        </button>
+                        <button type="button" class="parcelamentos-inline__btn" (click)="parcelar(c)"
+                          [disabled]="isFaturaPaga(c)"
+                          [title]="tituloParcelarCompra(c)"
+                          [attr.aria-label]="tituloParcelarCompra(c)">
+                          <span class="material-icons" aria-hidden="true">add</span>
+                          Parcelar compra
+                        </button>
+                      </div>
+                    </div>
+
+                    <div class="fatura-resumo"
+                      *ngIf="parcelamentosDoCartao(c).length > 0 || ajustesDoCartao(c).length > 0">
+                      <div class="fatura-resumo__linha">
+                        <span>Total das compras</span>
+                        <strong>{{ resumoFatura(c).totalCompras | currency:'BRL' }}</strong>
+                      </div>
+                      <div class="fatura-resumo__linha fatura-resumo__linha--ajustes">
+                        <span>Créditos / ajustes</span>
+                        <span class="fatura-resumo__valor">
+                          <strong [class.num--negativo]="resumoFatura(c).totalAjustes < 0">
+                            {{ resumoFatura(c).totalAjustes | currency:'BRL' }}
+                          </strong>
+                        </span>
+                      </div>
+                      <div class="fatura-resumo__linha fatura-resumo__linha--destaque">
+                        <span>Valor da fatura</span>
+                        <strong>{{ resumoFatura(c).valorFatura | currency:'BRL' }}</strong>
+                      </div>
+                      <div class="fatura-resumo__linha" *ngIf="resumoFatura(c).pagamentosRealizados > 0">
+                        <span>Pagamentos realizados</span>
+                        <strong
+                          class="num--negativo">{{ (0 - resumoFatura(c).pagamentosRealizados) | currency:'BRL' }}</strong>
+                      </div>
+                      <div class="fatura-resumo__linha fatura-resumo__linha--pagar">
+                        <span>Valor a pagar</span>
+                        <strong>{{ resumoFatura(c).valorAPagar | currency:'BRL' }}</strong>
+                      </div>
+                    </div>
+
+                    <div class="alerta-previsao alerta-previsao--pago alerta-previsao--detalhe"
+                      *ngIf="mostrarAlertaPagamento(c)">
+                      <span class="material-icons" aria-hidden="true">check_circle</span>
+                      <strong>{{ textoAlertaPagamento(c) }}</strong>
+                      <small>Use o ícone desfazer ao lado para reverter o pagamento.</small>
                     </div>
 
                     <div class="alerta-previsao alerta-previsao--detalhe" *ngIf="mostrarAlertaPrevisao(c)">
                       <span class="material-icons" aria-hidden="true">notification_important</span>
                       <strong>{{ textoAlertaPrevisao(c) }}</strong>
-                      <small>Clique em "Fatura atrasada" para pagar ou alterar a previsão.</small>
+                      <small>Clique no status da fatura para pagar ou alterar a previsão.</small>
                     </div>
 
-                    <div class="parcelamentos-vazio" *ngIf="parcelamentosDoCartao(c).length === 0">
+                    <div class="parcelamentos-vazio"
+                      *ngIf="parcelamentosDoCartao(c).length === 0 && ajustesDoCartao(c).length === 0">
                       <span class="material-icons" aria-hidden="true">info</span>
                       Nenhuma compra parcelada neste mês.
                     </div>
@@ -237,6 +308,7 @@
                       <thead>
                         <tr>
                           <th>Compra</th>
+                          <th class="col-centro">Data</th>
                           <th class="col-centro">Parcela</th>
                           <th class="col-centro">Valor da Parcela</th>
                           <th class="col-centro">Total</th>
@@ -247,6 +319,7 @@
                       <tbody>
                         <tr *ngFor="let p of parcelamentosDoCartao(c)">
                           <td>{{ p.objetivo }}</td>
+                          <td class="col-centro">{{ dataCompraExibicao(p) }}</td>
                           <td class="col-centro">
                             <span class="parcelas-chip">{{ parcelasLabel(p) }}</span>
                           </td>
@@ -256,12 +329,15 @@
                           <td class="col-centro">
                             <div class="parcelamentos-mini-acoes">
                               <button type="button" class="btn-mini-acao" (click)="editarParcelamento(c, p)"
-                                [disabled]="!podeParcelarCompra(c)" title="Editar compra" aria-label="Editar compra">
+                                [disabled]="isFaturaPaga(c)"
+                                [title]="podeEditarLancamentosFatura(c) ? 'Editar compra' : motivoEdicaoLancamentosDesabilitada()"
+                                aria-label="Editar compra">
                                 <span class="material-icons" aria-hidden="true">edit</span>
                               </button>
                               <button type="button" class="btn-mini-acao btn-mini-acao--excluir"
-                                [disabled]="!podeParcelarCompra(c)" (click)="confirmarExcluirParcelamento(p)"
-                                title="Excluir compra" aria-label="Excluir compra">
+                                [disabled]="isFaturaPaga(c)" (click)="confirmarExcluirParcelamento(p)"
+                                [title]="podeEditarLancamentosFatura(c) ? 'Excluir compra' : motivoEdicaoLancamentosDesabilitada()"
+                                aria-label="Excluir compra">
                                 <span class="material-icons" aria-hidden="true">delete</span>
                               </button>
                             </div>
@@ -269,6 +345,43 @@
                         </tr>
                       </tbody>
                     </table>
+
+                    <div class="ajustes-inline" *ngIf="ajustesDoCartao(c).length > 0">
+                      <strong class="ajustes-inline__titulo">Créditos, juros e ajustes</strong>
+                      <table class="parcelamentos-mini-table ajustes-mini-table">
+                        <thead>
+                          <tr>
+                            <th>Lançamento</th>
+                            <th class="col-centro">Valor</th>
+                            <th class="col-centro">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let a of ajustesDoCartao(c)">
+                            <td>{{ labelAjuste(a) }}</td>
+                            <td class="num" [class.num--negativo]="(a.valorTotal || 0) < 0">
+                              {{ a.valorTotal | currency:'BRL' }}
+                            </td>
+                            <td class="col-centro">
+                              <div class="parcelamentos-mini-acoes">
+                                <button type="button" class="btn-mini-acao" (click)="editarAjuste(c, a)"
+                                  [disabled]="isFaturaPaga(c)"
+                                  [title]="podeEditarLancamentosFatura(c) ? 'Editar ajuste' : motivoEdicaoLancamentosDesabilitada()"
+                                  aria-label="Editar ajuste">
+                                  <span class="material-icons" aria-hidden="true">edit</span>
+                                </button>
+                                <button type="button" class="btn-mini-acao btn-mini-acao--excluir"
+                                  [disabled]="isFaturaPaga(c)" (click)="confirmarExcluirAjuste(a)"
+                                  [title]="podeEditarLancamentosFatura(c) ? 'Excluir ajuste' : motivoEdicaoLancamentosDesabilitada()"
+                                  aria-label="Excluir ajuste">
+                                  <span class="material-icons" aria-hidden="true">delete</span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </td>
               </tr>
@@ -280,8 +393,9 @@
               <td class="num">{{ resumo.limiteTotal | currency:'BRL' }}</td>
               <td class="num">{{ resumo.utilizado | currency:'BRL' }}</td>
               <td class="num">{{ resumo.disponivel | currency:'BRL' }}</td>
+              <td class="num">{{ resumo.totalValorFaturas | currency:'BRL' }}</td>
               <td class="num">{{ resumo.totalAPagarMes | currency:'BRL' }}</td>
-              <td colspan="4"></td>
+              <td colspan="2"></td>
             </tr>
           </tfoot>
         </table>
@@ -304,16 +418,6 @@
           </button>
         </nav>
       </div>
-      </ng-container>
-
-      <ng-template #semFaturasMes>
-        <div class="cartoes-vazio" role="status">
-          <span class="material-icons cartoes-vazio__icon">info</span>
-          <div>
-            <p>Nenhuma fatura com valor a pagar em {{ nomeMesAtual }}.</p>
-          </div>
-        </div>
-      </ng-template>
     </section>
   </ng-container>
 

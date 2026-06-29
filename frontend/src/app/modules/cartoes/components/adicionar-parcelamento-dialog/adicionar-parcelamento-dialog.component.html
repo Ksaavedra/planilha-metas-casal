@@ -13,7 +13,8 @@
       novalidate
     >
       <p class="parcelamento-contexto">
-        Cartão: <strong>{{ data.cartao.nome }}</strong> · {{ data.cartao.banco }}
+        Cartão: <strong>{{ data.cartao.nome }}</strong> · {{ data.cartao.banco }} ·
+        Fatura de <strong>{{ faturaLabel }}</strong>
       </p>
 
       <div class="form-grid">
@@ -47,17 +48,35 @@
             type="number"
             formControlName="quantidadeParcelas"
             class="input-text"
-            min="2"
+            min="1"
             step="1"
-            placeholder="Ex.: 2 ou 3"
+            placeholder="Ex.: 1, 2 ou 3"
           />
-          <small class="field-help">Exemplo: 250 em 2x = 125 por mês.</small>
+          <small class="field-help">Use 1 para compra à vista no cartão.</small>
         </label>
 
         <label class="field">
-          <span class="field-label">Primeira parcela</span>
-          <input type="date" formControlName="dataInicio" class="input-text" />
+          <span class="field-label">{{ editando ? 'Primeira parcela' : 'Data da compra' }}</span>
+          <input
+            type="date"
+            formControlName="dataCompra"
+            class="input-text"
+            [min]="dataCompraMin ?? undefined"
+            [max]="dataCompraMax ?? undefined"
+          />
+          <small class="field-help" *ngIf="!editando && periodoCompraCompleto">
+            Compras desta fatura: <strong>{{ periodoCompraCompleto }}</strong>.
+            A data da compra precisa estar nesse intervalo.
+          </small>
         </label>
+
+        <div class="field field-wide parcela-preview" *ngIf="!editando && primeiraParcelaLabel" role="status">
+          <span class="material-icons parcela-preview__icon" aria-hidden="true">event</span>
+          <span>
+            1ª parcela na fatura de
+            <strong>{{ primeiraParcelaLabel }}</strong>
+          </span>
+        </div>
 
         <div class="field field-wide parcela-preview" *ngIf="parcelaCalculada > 0" role="status">
           <span class="material-icons parcela-preview__icon" aria-hidden="true">calculate</span>

@@ -8,8 +8,10 @@ import {
   calcularTotaisTabelaDividas,
   calcularTotaisTabelaDividasNoMes,
   calcularValorPagoAcumulado,
+  compararLancamentosFaturaPorData,
   dividaVisivelNoMesReferencia,
   filtrarDividasPorMesReferencia,
+  formatarDataIsoPtBr,
   formatarMoedaGrafico,
   indiceParcelaNoMes,
   mesDataInicioDivida,
@@ -24,6 +26,8 @@ import {
   projetarPagamentosMensais,
   projetarParcelaMensalAno,
   projetarSaldoRestanteAno,
+  resolverDataPagamentoCartao,
+  resolverDataPagamentoParcela,
   statusDividaClasse,
   statusDividaLabel,
   statusParcelaMesClasse,
@@ -54,6 +58,8 @@ describe('dividas.util', () => {
     cartaoBanco: partial.cartaoBanco,
     ano: partial.ano ?? 2026,
     dataInicio: partial.dataInicio ?? '2026-05-01',
+    dataCompra: partial.dataCompra,
+    dataPagamento: partial.dataPagamento,
     observacoes: partial.observacoes,
     cartao: partial.cartao,
   });
@@ -127,6 +133,78 @@ describe('dividas.util', () => {
     expect(statusParcelaMesClasse('outro' as StatusParcelaMes)).toBe('');
   });
 
+  it('formata e resolve data de pagamento da parcela', () => {
+    expect(formatarDataIsoPtBr('2023-10-04')).toBe('04/10/2023');
+    expect(formatarDataIsoPtBr(null)).toBeNull();
+    expect(
+      resolverDataPagamentoParcela(
+        dividaNoMes({
+          statusParcelaMes: 'paga',
+          parcelaMesPaga: true,
+          dataPagamento: '2023-10-04',
+          dataInicio: '2023-10-01',
+        }),
+      ),
+    ).toBe('04/10/2023');
+    expect(
+      resolverDataPagamentoParcela(
+        dividaNoMes({
+          statusParcelaMes: 'paga',
+          parcelaMesPaga: true,
+          dataInicio: '2023-10-04',
+        }),
+      ),
+    ).toBe('04/10/2023');
+  });
+
+  it('usa a data mais antiga entre parcelas pagas com dataPagamento', () => {
+    expect(
+      resolverDataPagamentoCartao([
+        dividaNoMes({
+          statusParcelaMes: 'paga',
+          parcelaMesPaga: true,
+          dataPagamento: '2023-10-24',
+        }),
+        dividaNoMes({
+          statusParcelaMes: 'paga',
+          parcelaMesPaga: true,
+          dataPagamento: '2023-10-04',
+        }),
+      ]),
+    ).toBe('04/10/2023');
+  });
+
+  it('ignora dataInicio ao resolver data do cartão', () => {
+    expect(
+      resolverDataPagamentoCartao([
+        dividaNoMes({
+          statusParcelaMes: 'paga',
+          parcelaMesPaga: true,
+          dataInicio: '2023-10-24',
+        }),
+      ]),
+    ).toBeNull();
+  });
+
+  it('não considera quitada só pelo status quando ainda há saldo', () => {
+    expect(
+      projetarDividaNoMes(
+        divida({
+          statusDivida: 'quitada',
+          valorRestante: 45,
+          valorPago: 0,
+          valorTotal: 45,
+          quantidadeParcelas: 1,
+          dataInicio: '2023-10-01',
+          ano: 2023,
+        }),
+        2023,
+        10,
+        new Date(2026, 5, 1),
+      )?.statusParcelaMes,
+    ).toBe('atrasada');
+  });
+
   it('projeta pagamentos e saldos para gráficos', () => {
     expect(projetarEvolucaoRestante(300, 100).slice(0, 4)).toEqual([300, 200, 100, 0]);
     expect(projetarEvolucaoRestante(-1, -1)).toEqual(Array(12).fill(0));
@@ -140,11 +218,105 @@ describe('dividas.util', () => {
     expect(mesDataInicioDivida('2026-99-10')).toBeNull();
 
     expect(dividaVisivelNoMesReferencia(divida({ ano: 2026, dataInicio: '2026-05-01' }), 2026, 4)).toBe(false);
-    expect(dividaVisivelNoMesReferencia(divida({ ano: 2025 }), 2026, 5)).toBe(false);
-    expect(dividaVisivelNoMesReferencia(divida({ statusDivida: 'pagando' }), 2026, 12)).toBe(true);
+    expect(
+      dividaVisivelNoMesReferencia(
+        divida({ ano: 2025, dataInicio: '2026-05-01', quantidadeParcelas: 3 }),
+        2026,
+        5,
+      ),
+    ).toBe(true);
+    expect(
+      dividaVisivelNoMesReferencia(
+        divida({ statusDivida: 'pagando', dataInicio: '2026-05-01', quantidadeParcelas: 3 }),
+        2026,
+        12,
+      ),
+    ).toBe(false);
     expect(dividaVisivelNoMesReferencia(divida({ statusDivida: 'quitada', dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 7)).toBe(true);
     expect(dividaVisivelNoMesReferencia(divida({ statusDivida: 'quitada', dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 8)).toBe(false);
-    expect(filtrarDividasPorMesReferencia([divida({ id: 1 }), divida({ id: 2, ano: 2025 })], 2026, 5).map((d) => d.id)).toEqual([1]);
+    expect(
+      filtrarDividasPorMesReferencia(
+        [
+          divida({ id: 1 }),
+          divida({ id: 2, ano: 2025, dataInicio: '2025-01-01', quantidadeParcelas: 3 }),
+        ],
+        2026,
+        5,
+      ).map((d) => d.id),
+    ).toEqual([1]);
+  });
+
+  it('usa dataCompra do cartão para posicionar parcela no mês da fatura', () => {
+    const compraCartao = divida({
+      ano: 2023,
+      cartaoId: 1,
+      dataCompra: '2023-09-27',
+      dataInicio: '2023-11-01',
+      diaMelhorCompra: 28,
+      diaVencimento: 6,
+      quantidadeParcelas: 2,
+      valorPago: 0,
+    });
+
+    expect(dividaVisivelNoMesReferencia(compraCartao, 2023, 10)).toBe(true);
+    expect(indiceParcelaNoMes(compraCartao, 2023, 10)).toBe(1);
+    expect(projetarDividaNoMes(compraCartao, 2023, 10)?.objetivo).toBeTruthy();
+  });
+
+  it('exibe parcelas seguintes em janeiro e fevereiro quando cadastro foi no ano anterior', () => {
+    const lucetima = divida({
+      ano: 2024,
+      cartaoId: 6,
+      objetivo: 'Lucetima',
+      valorTotal: 409.65,
+      quantidadeParcelas: 3,
+      parcelaMensal: 136.55,
+      valorPago: 136.55,
+      dataInicio: '2024-12-01',
+      dataCompra: '2024-11-24',
+      statusDivida: 'pagando',
+      diaMelhorCompra: 27,
+      diaVencimento: 6,
+    });
+
+    expect(dividaVisivelNoMesReferencia(lucetima, 2024, 12)).toBe(true);
+    expect(indiceParcelaNoMes(lucetima, 2024, 12)).toBe(1);
+    expect(dividaVisivelNoMesReferencia(lucetima, 2025, 1)).toBe(true);
+    expect(indiceParcelaNoMes(lucetima, 2025, 1)).toBe(2);
+    expect(dividaVisivelNoMesReferencia(lucetima, 2025, 2)).toBe(true);
+    expect(indiceParcelaNoMes(lucetima, 2025, 2)).toBe(3);
+    expect(dividaVisivelNoMesReferencia(lucetima, 2025, 3)).toBe(false);
+  });
+
+  it('ordena lançamentos da fatura por data da compra (mais recente primeiro)', () => {
+    const itens = [
+      divida({ id: 3, objetivo: 'Março', dataCompra: '2024-03-20' }),
+      divida({ id: 1, objetivo: 'Janeiro', dataCompra: '2024-01-21' }),
+      divida({ id: 2, objetivo: 'Fevereiro', dataCompra: '2024-02-17' }),
+    ];
+
+    const ordenados = [...itens].sort(compararLancamentosFaturaPorData);
+    expect(ordenados.map((d) => d.id)).toEqual([3, 2, 1]);
+  });
+
+  it('mantém encargos na fatura de dataInicio quando a data da compra cai no ciclo seguinte', () => {
+    const encargo = divida({
+      ano: 2024,
+      cartaoId: 6,
+      objetivo: 'Juros de Mora',
+      dataCompra: '2024-01-29',
+      dataInicio: '2024-02-01',
+      diaMelhorCompra: 28,
+      diaVencimento: 6,
+      quantidadeParcelas: 1,
+      valorTotal: 0.04,
+      parcelaMensal: 0.04,
+      statusDivida: 'quitada',
+    });
+
+    expect(dividaVisivelNoMesReferencia(encargo, 2024, 2)).toBe(true);
+    expect(dividaVisivelNoMesReferencia(encargo, 2024, 3)).toBe(false);
+    expect(indiceParcelaNoMes(encargo, 2024, 2)).toBe(1);
   });
 
   it('calcula labels, parcelas pagas e índice da parcela no mês', () => {
@@ -157,7 +329,7 @@ describe('dividas.util', () => {
     expect(indiceParcelaNoMes(divida({ ano: 2026, dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 5)).toBe(1);
     expect(indiceParcelaNoMes(divida({ ano: 2026, dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 7)).toBe(3);
     expect(indiceParcelaNoMes(divida({ ano: 2026, dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 8)).toBeNull();
-    expect(indiceParcelaNoMes(divida({ ano: 2025 }), 2026, 5)).toBeNull();
+    expect(indiceParcelaNoMes(divida({ ano: 2025, dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 5)).toBe(1);
   });
 
   it('detecta atraso considerando mês, vencimento e quitação', () => {
@@ -183,7 +355,7 @@ describe('dividas.util', () => {
 
     const resumo = calcularResumoLimiteCartoes(lista, new Date(2026, 4, 1));
     expect(resumo.limiteTotal).toBe(1500);
-    expect(resumo.utilizado).toBe(300);
+    expect(resumo.utilizado).toBe(350);
     expect(resumo.proximoVencimentoLabel).toContain('Dia 10');
     expect(calcularResumoLimiteCartoes([], new Date(2026, 4, 1)).proximoVencimentoLabel).toBe('—');
   });
@@ -195,6 +367,82 @@ describe('dividas.util', () => {
     expect(calcularValorPagoAcumulado(300, 0, undefined, 5, 500)).toBe(300);
   });
 
+  it('calcula pagamento acumulado atravessando anos sem zerar parcelas anteriores', () => {
+    const parcelamento12x = divida({
+      valorTotal: 1200,
+      quantidadeParcelas: 12,
+      dataInicio: '2024-04-01',
+      dataCompra: '2024-03-28',
+      ano: 2024,
+    });
+    const parcela = 100;
+
+    expect(
+      calcularValorPagoAcumulado(
+        1200,
+        12,
+        '2024-04-01',
+        4,
+        parcela,
+        2024,
+        parcelamento12x,
+      ),
+    ).toBe(100);
+    expect(
+      calcularValorPagoAcumulado(
+        1200,
+        12,
+        '2024-04-01',
+        12,
+        parcela,
+        2024,
+        parcelamento12x,
+      ),
+    ).toBe(900);
+    expect(
+      calcularValorPagoAcumulado(
+        1200,
+        12,
+        '2024-04-01',
+        1,
+        parcela,
+        2025,
+        parcelamento12x,
+      ),
+    ).toBe(1000);
+    expect(
+      calcularValorPagoAcumulado(
+        1200,
+        12,
+        '2024-04-01',
+        1,
+        0,
+        2025,
+        parcelamento12x,
+      ),
+    ).toBe(900);
+
+    const dPagoAteJan = {
+      ...parcelamento12x,
+      valorPago: calcularValorPagoAcumulado(
+        1200,
+        12,
+        '2024-04-01',
+        1,
+        parcela,
+        2025,
+        parcelamento12x,
+      ),
+    };
+    expect(projetarDividaNoMes(dPagoAteJan, 2024, 4)?.parcelaMesPaga).toBe(true);
+    expect(projetarDividaNoMes(dPagoAteJan, 2024, 12)?.parcelaMesPaga).toBe(
+      true,
+    );
+    expect(projetarDividaNoMes(dPagoAteJan, 2025, 1)?.parcelaMesPaga).toBe(
+      true,
+    );
+  });
+
   it('projeta dívida para o mês e classifica status da parcela', () => {
     expect(projetarDividaNoMes(divida({ dataInicio: '2026-06-01' }), 2026, 5, new Date(2026, 4, 1))).toBeNull();
 
@@ -204,6 +452,24 @@ describe('dividas.util', () => {
     expect(projetarDividaNoMes(divida({ valorPago: 0, dataInicio: '2026-05-01' }), 2026, 5, new Date(2026, 4, 1))?.statusParcelaMes).toBe('pendente');
     expect(projetarDividaNoMes(divida({ statusDivida: 'quitada', valorRestante: 0, dataInicio: '2026-05-01' }), 2026, 5)?.statusParcelaMes).toBe('quitada');
     expect(projetarDividasNoMes([divida({ id: 1 }), divida({ id: 2, dataInicio: '2026-06-01' })], 2026, 5).map((d) => d.id)).toEqual([1]);
+
+    expect(
+      projetarDividaNoMes(
+        divida({ valorPago: 0, dataInicio: '2023-10-01', ano: 2023 }),
+        2023,
+        10,
+        new Date(2026, 5, 1),
+        true,
+      )?.statusParcelaMes,
+    ).toBe('pendente');
+    expect(
+      projetarDividaNoMes(
+        divida({ valorPago: 0, dataInicio: '2023-10-01', ano: 2023 }),
+        2023,
+        10,
+        new Date(2026, 5, 1),
+      )?.statusParcelaMes,
+    ).toBe('atrasada');
   });
 
   it('soma parcelas ativas, pendentes e projeções anuais', () => {
@@ -263,7 +529,7 @@ describe('dividas.util', () => {
     expect(indiceParcelaNoMes({
       ...divida({ quantidadeParcelas: 0 }),
       dataInicio: undefined,
-    }, 2026, 12)).toBe(12);
+    }, 2026, 12)).toBeNull();
 
     expect(parcelaAtrasadaNoMes(divida({ percentualQuitado: 100, valorRestante: 100 }), 2026, 5)).toBe(false);
     expect(parcelaAtrasadaNoMes(divida({ valorRestante: 0.001 }), 2026, 5)).toBe(false);

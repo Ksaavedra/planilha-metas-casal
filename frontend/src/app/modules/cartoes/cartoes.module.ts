@@ -8,6 +8,7 @@ import { DSModule } from 'app/@ds';
 import { SharedModule } from 'shared/shared.module';
 import { CartoesRoutingModule } from './cartoes.routing';
 import { CartoesPageComponent } from './containers/cartoes-page/cartoes-page.component';
+import { AdicionarAjusteFaturaDialogComponent } from './components/adicionar-ajuste-fatura-dialog/adicionar-ajuste-fatura-dialog.component';
 import { AdicionarCartaoDialogComponent } from './components/adicionar-cartao-dialog/adicionar-cartao-dialog.component';
 import { AdicionarParcelamentoDialogComponent } from './components/adicionar-parcelamento-dialog/adicionar-parcelamento-dialog.component';
 import { FaturaAtrasadaDialogComponent } from './components/fatura-atrasada-dialog/fatura-atrasada-dialog.component';
@@ -19,6 +20,7 @@ import { CartoesUsuarioComponent } from './components/cartoes-usuario/cartoes-us
     CartoesPageComponent,
     AdicionarCartaoDialogComponent,
     AdicionarParcelamentoDialogComponent,
+    AdicionarAjusteFaturaDialogComponent,
     FaturaAtrasadaDialogComponent,
     FaturasExemplosComponent,
     CartoesUsuarioComponent,

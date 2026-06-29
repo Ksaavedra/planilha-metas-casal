@@ -16,6 +16,10 @@ import { Usuario } from '@core/interfaces/usuarios/usuarios';
 import { CartoesService } from '@core/services/cartoes/cartoes.service';
 import { UsuariosService } from '@core/services/usuarios/usuarios.service';
 import { INSTITUICOES_DIVIDA_OPCOES } from '@core/constants/dividas-instituicoes.constant';
+import {
+  diaFechamentoAPartirDoMelhorDia,
+  montarDiasCicloFatura,
+} from '@core/utils/fatura-cartao.util';
 
 export interface AdicionarCartaoDialogData {
   cartao: Cartao | null;
@@ -44,6 +48,12 @@ export class AdicionarCartaoDialogComponent implements OnInit {
     return this.isEdicao ? 'Editar cartão' : 'Adicionar cartão';
   }
 
+  get diaFechamentoCalculado(): number | null {
+    const melhor = Number(this.form.get('diaMelhorCompra')?.value);
+    if (!melhor || melhor < 1 || melhor > 31) return null;
+    return diaFechamentoAPartirDoMelhorDia(melhor);
+  }
+
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: AdicionarCartaoDialogData,
     private dialogRef: MatDialogRef<
@@ -60,9 +70,14 @@ export class AdicionarCartaoDialogComponent implements OnInit {
       banco: ['', Validators.required],
       pessoa: [''],
       limite: [null, [Validators.required, Validators.min(0.01)]],
-      diaFechamento: [null, [Validators.min(1), Validators.max(31)]],
-      diaVencimento: [null, [Validators.min(1), Validators.max(31)]],
-      diaMelhorCompra: [null, [Validators.min(1), Validators.max(31)]],
+      diaVencimento: [
+        null,
+        [Validators.required, Validators.min(1), Validators.max(31)],
+      ],
+      diaMelhorCompra: [
+        null,
+        [Validators.required, Validators.min(1), Validators.max(31)],
+      ],
     });
   }
 
@@ -75,7 +90,6 @@ export class AdicionarCartaoDialogComponent implements OnInit {
         banco: c.banco,
         pessoa: c.pessoa ?? '',
         limite: c.limite,
-        diaFechamento: c.diaFechamento ?? null,
         diaVencimento: c.diaVencimento ?? null,
         diaMelhorCompra: c.diaMelhorCompra ?? null,
       });
@@ -91,12 +105,17 @@ export class AdicionarCartaoDialogComponent implements OnInit {
     this.erro = null;
     if (this.form.invalid || this.saving) {
       this.form.markAllAsTouched();
-      this.erro = 'Preencha nome, banco e limite do cartão.';
+      this.erro =
+        'Preencha nome, banco, limite, melhor dia de compra e vencimento.';
       this.cdr.markForCheck();
       return;
     }
 
     const v = this.form.getRawValue();
+    const dias = montarDiasCicloFatura(
+      Number(v.diaMelhorCompra),
+      Number(v.diaVencimento),
+    );
     const payload: CreateCartaoRequest = {
       nome: String(v.nome).trim(),
       banco: String(v.banco).trim(),
@@ -109,9 +128,9 @@ export class AdicionarCartaoDialogComponent implements OnInit {
         Number(v.valorUtilizado) > 0
           ? 0
           : (this.data.cartao?.valorFaturaPaga ?? 0),
-      diaFechamento: Number(v.diaFechamento) || undefined,
-      diaVencimento: Number(v.diaVencimento) || undefined,
-      diaMelhorCompra: Number(v.diaMelhorCompra) || undefined,
+      diaFechamento: dias.diaFechamento ?? undefined,
+      diaVencimento: dias.diaVencimento ?? undefined,
+      diaMelhorCompra: dias.diaMelhorCompra ?? undefined,
       pessoa: v.pessoa ? String(v.pessoa).trim() : null,
     };
 

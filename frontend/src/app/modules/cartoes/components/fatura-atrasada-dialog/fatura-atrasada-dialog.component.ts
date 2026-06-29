@@ -8,10 +8,11 @@ import { Cartao } from '@core/interfaces/cartoes/cartoes';
 
 export interface FaturaAtrasadaDialogData {
   cartao: Cartao;
+  valorEmAberto?: number;
 }
 
 export type FaturaAtrasadaDialogResult =
-  | { acao: 'pagar'; valorPago: number }
+  | { acao: 'pagar'; valorPago: number; previsaoPagamento: string }
   | { acao: 'depois'; observacaoAtraso?: string; previsaoPagamento?: string };
 
 @Component({
@@ -25,7 +26,11 @@ export class FaturaAtrasadaDialogComponent {
   erro: string | null = null;
 
   get valorEmAberto(): number {
-    return Math.max(0, this.data.cartao.valorUtilizado || 0);
+    const informado = this.data.valorEmAberto;
+    if (informado != null && Number.isFinite(informado)) {
+      return Math.max(0, Math.round(informado * 100) / 100);
+    }
+    return Math.max(0, Math.round((this.data.cartao.valorUtilizado || 0) * 100) / 100);
   }
 
   get podePagarDepois(): boolean {
@@ -52,7 +57,7 @@ export class FaturaAtrasadaDialogComponent {
     this.form = this.fb.group({
       valorPago: [
         this.valorEmAberto,
-        [Validators.required, Validators.min(this.valorEmAberto || 0.01)],
+        [Validators.required, Validators.min(0.01)],
       ],
       observacaoAtraso: [data.cartao.observacaoAtraso ?? ''],
       previsaoPagamento: [data.cartao.previsaoPagamento ?? '', Validators.required],
@@ -79,7 +84,13 @@ export class FaturaAtrasadaDialogComponent {
       return;
     }
 
-    this.dialogRef.close({ acao: 'pagar', valorPago });
+    this.dialogRef.close({
+      acao: 'pagar',
+      valorPago,
+      previsaoPagamento: String(
+        this.form.get('previsaoPagamento')?.value || '',
+      ).slice(0, 10),
+    });
   }
 
   pagarDepois(): void {

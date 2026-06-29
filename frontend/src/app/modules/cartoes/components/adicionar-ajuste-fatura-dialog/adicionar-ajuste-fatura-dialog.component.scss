@@ -1,0 +1,59 @@
+@import '../adicionar-parcelamento-dialog/adicionar-parcelamento-dialog.component.scss';
+
+.adicionar-ajuste-fatura-dialog {
+  margin: 0.5rem;
+}
+
+.ajuste-contexto {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.75rem;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  color: #1e3a8a;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.ajuste-form .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem 0.9rem;
+}
+
+.ajuste-preview {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+
+  strong {
+    color: #1d4ed8;
+    font-weight: 700;
+  }
+}
+
+.ajuste-preview__icon {
+  color: #2563eb;
+  font-size: 1.25rem;
+}
+
+select.input-text {
+  appearance: auto;
+}
+
+.dialog-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.dialog-acoes__spacer {
+  flex: 1 1 auto;
+}

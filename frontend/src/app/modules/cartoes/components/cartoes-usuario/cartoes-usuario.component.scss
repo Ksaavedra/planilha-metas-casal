@@ -300,6 +300,40 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.fatura-periodo {
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+}
+
+.fatura-periodo__titulo {
+  color: #5b21b6;
+  font-size: 0.92rem;
+  font-weight: 800;
+  margin-bottom: 0.25rem;
+}
+
+.fatura-periodo__texto {
+  margin: 0 0 0.35rem;
+  color: #334155;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.fatura-periodo__detalhes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  color: #475569;
+  font-size: 0.78rem;
+
+  strong {
+    color: #1e293b;
+  }
+}
+
 .compras-inline__header {
   display: flex;
   flex-direction: column;

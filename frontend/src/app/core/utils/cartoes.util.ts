@@ -3,6 +3,7 @@ import {
   ResumoCartoesView,
   StatusCartao,
 } from '../interfaces/cartoes/cartoes';
+import { diaFechamentoEfetivo } from './fatura-cartao.util';
 
 export function valorDisponivelCartao(cartao: Cartao): number {
   const limite = Math.max(0, cartao.limite || 0);
@@ -21,6 +22,17 @@ function dataNoMes(competencia: Date, dia: number): Date {
   const mes = competencia.getMonth();
   const ultimoDiaMes = new Date(ano, mes + 1, 0).getDate();
   return new Date(ano, mes, Math.min(dia, ultimoDiaMes));
+}
+
+export function mesReferenciaAnteriorAoAtual(
+  competencia: Date,
+  hoje = new Date(),
+): boolean {
+  const anoRef = competencia.getFullYear();
+  const mesRef = competencia.getMonth();
+  const anoHoje = hoje.getFullYear();
+  const mesHoje = hoje.getMonth();
+  return anoRef < anoHoje || (anoRef === anoHoje && mesRef < mesHoje);
 }
 
 export function statusCartao(
@@ -45,11 +57,12 @@ export function statusCartao(
     return 'atrasado';
   }
 
+  const fechamento = diaFechamentoEfetivo(cartao);
+
   if (
-    cartao.diaFechamento != null &&
+    fechamento != null &&
     cartao.valorUtilizado > 0 &&
-    hojeNormalizado.getTime() >=
-      dataNoMes(competencia, cartao.diaFechamento).getTime()
+    hojeNormalizado.getTime() >= dataNoMes(competencia, fechamento).getTime()
   ) {
     return 'fatura_fechada';
   }

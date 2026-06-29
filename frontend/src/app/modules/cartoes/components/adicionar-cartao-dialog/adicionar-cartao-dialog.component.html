@@ -9,8 +9,8 @@
       <div class="cartao-exemplo" aria-label="Exemplo de preenchimento">
         <span class="material-icons cartao-exemplo__icon" aria-hidden="true">tips_and_updates</span>
         <div>
-          <strong>Exemplo:</strong> Nubank · Limite R$ 5.000 · Fatura R$ 550 ·
-          fechamento dia 25 · vencimento dia 10 · melhor compra dia 26
+          <strong>Exemplo:</strong> C6 Bank · Limite R$ 21.000 · melhor compra dia 28 ·
+          vencimento dia 6 · fechamento automático dia 27
         </div>
       </div>
 
@@ -46,22 +46,27 @@
         </label>
 
         <label class="field">
-          <span class="field-label">Fechamento</span>
-          <input type="number" formControlName="diaFechamento" class="input-text" min="1" max="31" step="1"
-            placeholder="Ex.: 25" />
+          <span class="field-label">Melhor dia de compra</span>
+          <input type="number" formControlName="diaMelhorCompra" class="input-text" min="1" max="31" step="1"
+            placeholder="Ex.: 28" />
+          <small class="field-help">Compras a partir deste dia entram na fatura seguinte.</small>
         </label>
 
         <label class="field">
           <span class="field-label">Vencimento</span>
           <input type="number" formControlName="diaVencimento" class="input-text" min="1" max="31" step="1"
-            placeholder="Ex.: 10" />
+            placeholder="Ex.: 6" />
+          <small class="field-help">Dia de pagamento da fatura no mês de vencimento.</small>
         </label>
 
-        <label class="field">
-          <span class="field-label">Melhor dia de compra</span>
-          <input type="number" formControlName="diaMelhorCompra" class="input-text" min="1" max="31" step="1"
-            placeholder="Ex.: 26" />
-        </label>
+        <div class="field field-wide ciclo-preview" *ngIf="diaFechamentoCalculado as fechamento" role="status">
+          <span class="material-icons ciclo-preview__icon" aria-hidden="true">event</span>
+          <span>
+            Fechamento calculado automaticamente:
+            <strong>dia {{ fechamento }}</strong>
+            (8 dias antes do vencimento)
+          </span>
+        </div>
       </div>
 
       <p class="erro-form" *ngIf="erro" role="alert">{{ erro }}</p>
