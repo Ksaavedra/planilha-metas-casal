@@ -37,7 +37,9 @@ import {
 } from '@core/utils/fatura-resumo.util';
 import {
   calcularValorPagoAcumulado,
+  calcularValorPagoAposDesfazerMes,
   compararLancamentosFaturaPorData,
+  dataPagamentoAposDesfazerMes,
   dividaVisivelNoMesReferencia,
   formatarDataIsoPtBr,
   parcelaMensalDivida,
@@ -64,7 +66,10 @@ import {
   FaturaAtrasadaDialogData,
   FaturaAtrasadaDialogResult,
 } from '../../components/fatura-atrasada-dialog/fatura-atrasada-dialog.component';
-import { ConfirmModalComponent } from 'shared/components/confirm-modal/confirm-modal.component';
+import {
+  ConfirmModalComponent,
+  ConfirmModalPaymentDetails,
+} from 'shared/components/confirm-modal/confirm-modal.component';
 import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
 import { forkJoin, map, Observable, tap, finalize, catchError } from 'rxjs';
 
@@ -97,8 +102,10 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   cartaoExpandidoId: number | null = null;
   carregando = false;
   erroCarregar: string | null = null;
-  acaoFaturaProcessando: { cartaoId: number; tipo: 'pagar' | 'desfazer' } | null =
-    null;
+  acaoFaturaProcessando: {
+    cartaoId: number;
+    tipo: 'pagar' | 'desfazer';
+  } | null = null;
   visaoFaturas: 'lista' | 'usuario' | 'exemplos' = 'lista';
   mesAtual: Date = new Date();
 
@@ -159,8 +166,8 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
       totalAPagarMes: Math.round(totalAPagarMes * 100) / 100,
       disponivel: Math.round(disponivel * 100) / 100,
       percentualUtilizado,
-      proximoVencimentoLabel: calcularResumoCartoes(cartoesResumo)
-        .proximoVencimentoLabel,
+      proximoVencimentoLabel:
+        calcularResumoCartoes(cartoesResumo).proximoVencimentoLabel,
     };
   }
 
@@ -367,10 +374,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     return !this.isFaturaPaga(c);
   }
 
-  estaProcessandoAcaoFatura(
-    c: Cartao,
-    tipo?: 'pagar' | 'desfazer',
-  ): boolean {
+  estaProcessandoAcaoFatura(c: Cartao, tipo?: 'pagar' | 'desfazer'): boolean {
     if (
       !this.acaoFaturaProcessando ||
       this.acaoFaturaProcessando.cartaoId !== c.id
@@ -700,10 +704,17 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   statusFaturaClicavel(c: Cartao): boolean {
-    if (this.carregando || this.estaProcessandoAcaoFatura(c)) return false;
+    if (this.carregando) return false;
+    if (this.estaProcessandoAcaoFatura(c, 'pagar')) return true;
+    if (this.estaProcessandoAcaoFatura(c)) return false;
     if (this.valorUtilizadoFatura(c) <= 0) return false;
 
     if (this.faturaAtrasada(c)) return true;
+
+    const statusParcelas = this.statusResumoParcelasCartao(c);
+    if (statusParcelas === 'pendente' || statusParcelas === 'atrasada') {
+      return true;
+    }
 
     if (this.podeDesfazerPagamento(c)) return false;
 
@@ -712,13 +723,15 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   tituloAcaoPagamentoFatura(c: Cartao): string {
-    return this.faturaAtrasada(c)
-      ? 'Resolver fatura atrasada'
-      : 'Pagar fatura';
+    if (this.estaProcessandoAcaoFatura(c, 'pagar')) {
+      return 'Processando pagamento...';
+    }
+
+    return this.faturaAtrasada(c) ? 'Resolver fatura atrasada' : 'Pagar fatura';
   }
 
   motivoParcelarCompraDesabilitado(): string {
-    return 'Fatura paga: não é possível parcelar compra';
+    return 'Disponível somente para faturas não pagas.';
   }
 
   tituloParcelarCompra(c: Cartao): string {
@@ -730,15 +743,63 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   motivoEdicaoLancamentosDesabilitada(): string {
-    return 'Fatura paga: não é possível editar lançamentos';
+    return 'Não é possível editar uma fatura já paga.';
+  }
+
+  motivoExclusaoLancamentosDesabilitada(): string {
+    return 'Não é possível excluir uma fatura já paga.';
+  }
+
+  motivoJurosAjusteDesabilitado(): string {
+    return 'Disponível somente para faturas não pagas.';
   }
 
   tituloJurosAjuste(c: Cartao): string {
     if (this.isFaturaPaga(c)) {
-      return 'Fatura paga: não é possível adicionar ajuste';
+      return this.motivoJurosAjusteDesabilitado();
     }
 
     return 'Juros, crédito ou ajuste';
+  }
+
+  tooltipDesfazerPagamento(_c: Cartao): string {
+    return 'Desfazer pagamento';
+  }
+
+  tooltipEditarFatura(_c: Cartao): string {
+    return 'Editar fatura';
+  }
+
+  tooltipExcluirFatura(_c: Cartao): string {
+    return 'Excluir fatura';
+  }
+
+  tooltipExpandirDetalhes(c: Cartao): string {
+    return this.cartaoExpandido(c) ? 'Recolher detalhes' : 'Expandir detalhes';
+  }
+
+  tooltipEditarCompra(c: Cartao): string {
+    return this.podeEditarLancamentosFatura(c)
+      ? 'Editar compra'
+      : this.motivoEdicaoLancamentosDesabilitada();
+  }
+
+  tooltipExcluirCompra(c: Cartao): string {
+    return this.podeEditarLancamentosFatura(c)
+      ? 'Excluir compra'
+      : this.motivoExclusaoLancamentosDesabilitada();
+  }
+
+  tooltipEditarAjuste(c: Cartao): string {
+    return this.podeEditarLancamentosFatura(c)
+      ? 'Editar ajuste'
+      : this.motivoEdicaoLancamentosDesabilitada();
+  }
+
+  tooltipExcluirAjuste(c: Cartao): string {
+    return this.podeEditarLancamentosFatura(c)
+      ? 'Excluir ajuste'
+      : this.motivoExclusaoLancamentosDesabilitada();
   }
 
   abrirAcaoPagamentoFatura(c: Cartao): void {
@@ -772,7 +833,8 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   mostrarAlertaPagamento(c: Cartao): boolean {
-    if (this.faturaAtrasada(c) && this.valorUtilizadoFatura(c) > 0) return false;
+    if (this.faturaAtrasada(c) && this.valorUtilizadoFatura(c) > 0)
+      return false;
     return !!this.dataPagamentoExibicao(c);
   }
 
@@ -852,7 +914,8 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   /** Desfazer só quando a fatura do mês está quitada; com saldo atrasado, use o badge Atrasada. */
   mostrarBotaoDesfazer(c: Cartao): boolean {
     if (!this.podeDesfazerPagamento(c)) return false;
-    if (this.faturaAtrasada(c) && this.valorUtilizadoFatura(c) > 0) return false;
+    if (this.faturaAtrasada(c) && this.valorUtilizadoFatura(c) > 0)
+      return false;
     return true;
   }
 
@@ -939,13 +1002,16 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
     const resumo = this.resumoFatura(c);
     const valor = resumo.valorAPagar;
+    const paymentDetails = this.dadosConfirmarPagarFatura(c, valor);
     const ref = this.dialog.open(ConfirmModalComponent, {
       width: 'min(420px, 96vw)',
       data: {
-        title: 'Pagar fatura?',
-        message: `Deseja marcar a fatura de "${c.nome}" como paga (${this.formatarMoeda(valor)})?`,
-        confirmText: 'Sim, pagar',
-        cancelText: 'Não',
+        title: 'Confirmar pagamento da fatura',
+        message: `Deseja confirmar o pagamento da fatura do cartão ${paymentDetails.nomeCartao}?`,
+        paymentDetails,
+        confirmText: 'Pagar fatura',
+        cancelText: 'Cancelar',
+        variant: 'payment',
       },
     });
 
@@ -1112,16 +1178,15 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
       const divida = this.parcelamentosAno.find((d) => d.id === parcela.id);
       if (!divida) continue;
 
-      divida.valorPago = calcularValorPagoAcumulado(
-        divida.valorTotal,
-        divida.quantidadeParcelas,
-        divida.dataInicio || undefined,
-        this.mesRef,
-        0,
-        this.anoRef,
+      const valorPago = calcularValorPagoAposDesfazerMes(
         divida,
+        this.anoRef,
+        this.mesRef,
       );
-      divida.dataPagamento = null;
+      if (valorPago == null) continue;
+
+      divida.valorPago = valorPago;
+      divida.dataPagamento = dataPagamentoAposDesfazerMes(divida, valorPago);
       divida.statusDivida = 'pagando';
     }
 
@@ -1300,22 +1365,22 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
           p.statusParcelaMes === 'paga' ||
           p.statusParcelaMes === 'quitada',
       )
-      .map((p) => {
-        const valorPago = calcularValorPagoAcumulado(
-          p.valorTotal,
-          p.quantidadeParcelas,
-          p.dataInicio || undefined,
-          this.mesRef,
-          0,
+      .flatMap((p) => {
+        const divida = this.parcelamentosAno.find((d) => d.id === p.id) ?? p;
+        const valorPago = calcularValorPagoAposDesfazerMes(
+          divida,
           this.anoRef,
-          p,
+          this.mesRef,
         );
+        if (valorPago == null) return [];
 
-        return this.dividasService.updateDivida(p.id, {
-          valorPago,
-          dataPagamento: null,
-          statusDivida: 'pagando',
-        });
+        return [
+          this.dividasService.updateDivida(p.id, {
+            valorPago,
+            dataPagamento: dataPagamentoAposDesfazerMes(divida, valorPago),
+            statusDivida: 'pagando',
+          }),
+        ];
       });
   }
 
@@ -1345,6 +1410,36 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
     const mes = String(data.getMonth() + 1).padStart(2, '0');
     const dia = String(data.getDate()).padStart(2, '0');
     return `${ano}-${mes}-${dia}`;
+  }
+
+  private dadosConfirmarPagarFatura(
+    c: Cartao,
+    valor: number,
+  ): ConfirmModalPaymentDetails {
+    const dataIso = this.dataPagamentoAoRegistrarCartao(c);
+    const dataLabel = formatarDataIsoPtBr(dataIso) ?? dataIso;
+    const vencimentoLabel =
+      this.periodoFatura(c)?.vencimentoLabel ?? this.vencimentoFaturaLabel(c);
+    const valorLabel = valor.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+    return {
+      nomeCartao: c.nome,
+      dataPagamento: dataLabel,
+      vencimento: vencimentoLabel,
+      valor: valorLabel,
+    };
+  }
+
+  private vencimentoFaturaLabel(c: Cartao): string {
+    const ultimoDia = new Date(this.anoRef, this.mesRef, 0).getDate();
+    const dia = Math.min(c.diaVencimento ?? ultimoDia, ultimoDia);
+    const iso = `${this.anoRef}-${String(this.mesRef).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    return formatarDataIsoPtBr(iso) ?? iso;
   }
 
   private dataPagamentoExibicao(c: Cartao): string | null {

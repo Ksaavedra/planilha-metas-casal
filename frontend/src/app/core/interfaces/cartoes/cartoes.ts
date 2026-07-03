@@ -5,6 +5,13 @@ export type StatusCartao =
   | 'atrasado'
   | 'fatura_paga';
 
+export interface CicloFaturaCartao {
+  ano: number;
+  mes: number;
+  inicio: string;
+  fim: string;
+}
+
 export interface Cartao {
   id: number;
   nome: string;
@@ -19,6 +26,8 @@ export interface Cartao {
   diaFechamento?: number | null;
   diaVencimento?: number | null;
   diaMelhorCompra?: number | null;
+  ciclosFatura?: CicloFaturaCartao[];
+  feriadosBancariosExtras?: string[];
   pessoa?: string | null;
   observacoes?: string | null;
   observacaoAtraso?: string | null;
@@ -35,6 +44,8 @@ export interface CreateCartaoRequest {
   diaFechamento?: number;
   diaVencimento?: number;
   diaMelhorCompra?: number;
+  ciclosFatura?: CicloFaturaCartao[];
+  feriadosBancariosExtras?: string[];
   pessoa?: string | null;
   observacoes?: string;
   observacaoAtraso?: string | null;

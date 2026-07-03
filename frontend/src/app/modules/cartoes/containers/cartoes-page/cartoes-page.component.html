@@ -161,14 +161,22 @@
                 <td class="num">{{ valorPagarFatura(c) | currency:'BRL' }}</td>
                 <td class="col-centro">
                   <div class="status-badges">
-                    <button *ngIf="statusFaturaClicavel(c); else statusSomenteLeitura" type="button"
-                      class="badge-status badge-status--acao" [ngClass]="statusLinhaClasse(c)"
-                      (click)="abrirAcaoPagamentoFatura(c)" [title]="tituloAcaoPagamentoFatura(c)"
-                      [disabled]="estaProcessandoAcaoFatura(c, 'pagar')">
-                      <span class="material-icons badge-status__loading" *ngIf="estaProcessandoAcaoFatura(c, 'pagar')"
-                        aria-hidden="true">autorenew</span>
-                      <ng-container *ngIf="!estaProcessandoAcaoFatura(c, 'pagar')">{{ statusLinhaLabel(c) }}</ng-container>
-                    </button>
+                    <ng-container *ngIf="statusFaturaClicavel(c); else statusSomenteLeitura">
+                      <span class="acao-tooltip-host" [matTooltip]="tituloAcaoPagamentoFatura(c)"
+                        matTooltipPosition="above">
+                        <button type="button" class="badge-status badge-status--acao" [ngClass]="statusLinhaClasse(c)"
+                          [class.is-loading]="estaProcessandoAcaoFatura(c, 'pagar')"
+                          (click)="abrirAcaoPagamentoFatura(c)"
+                          [attr.aria-busy]="estaProcessandoAcaoFatura(c, 'pagar')"
+                          [attr.aria-label]="tituloAcaoPagamentoFatura(c)"
+                          [disabled]="estaProcessandoAcaoFatura(c, 'pagar')">
+                          <span class="material-icons badge-status__loading"
+                            *ngIf="estaProcessandoAcaoFatura(c, 'pagar')" aria-hidden="true">autorenew</span>
+                          <ng-container *ngIf="!estaProcessandoAcaoFatura(c, 'pagar')">{{ statusLinhaLabel(c) }}
+                          </ng-container>
+                        </button>
+                      </span>
+                    </ng-container>
                     <ng-template #statusSomenteLeitura>
                       <span class="badge-status" [ngClass]="statusLinhaClasse(c)">
                         {{ statusLinhaLabel(c) }}
@@ -188,26 +196,27 @@
                 </td>
                 <td class="acoes col-centro">
                   <div class="acoes__grupo">
-                    <button *ngIf="mostrarBotaoDesfazer(c)" type="button" class="btn-desfazer"
-                      (click)="confirmarDesfazerPagamento(c)" [title]="tituloDesfazerPagamento(c)"
-                      [disabled]="estaProcessandoAcaoFatura(c)"
-                      [class.is-loading]="estaProcessandoAcaoFatura(c, 'desfazer')"
-                      aria-label="Desfazer pagamento">
-                      <span class="material-icons" aria-hidden="true">
-                        {{ estaProcessandoAcaoFatura(c, 'desfazer') ? 'autorenew' : 'undo' }}
-                      </span>
-                    </button>
-                    <button type="button" class="btn-icone" (click)="editar(c)" title="Editar">
+                    <span *ngIf="mostrarBotaoDesfazer(c)" class="acao-tooltip-host"
+                      [matTooltip]="tooltipDesfazerPagamento(c)" matTooltipPosition="above">
+                      <button type="button" class="btn-desfazer" (click)="confirmarDesfazerPagamento(c)"
+                        [disabled]="estaProcessandoAcaoFatura(c)"
+                        [class.is-loading]="estaProcessandoAcaoFatura(c, 'desfazer')" aria-label="Desfazer pagamento">
+                        <span class="material-icons" aria-hidden="true">
+                          {{ estaProcessandoAcaoFatura(c, 'desfazer') ? 'autorenew' : 'undo' }}
+                        </span>
+                      </button>
+                    </span>
+                    <button type="button" class="btn-icone" (click)="editar(c)" [matTooltip]="tooltipEditarFatura(c)"
+                      matTooltipPosition="above" aria-label="Editar fatura">
                       <span class="material-icons">edit</span>
                     </button>
                     <button type="button" class="btn-icone btn-icone-excluir" (click)="confirmarExcluir(c)"
-                      title="Excluir">
+                      [matTooltip]="tooltipExcluirFatura(c)" matTooltipPosition="above" aria-label="Excluir fatura">
                       <span class="material-icons">delete</span>
                     </button>
                     <button type="button" class="btn-expandir" (click)="alternarCartao(c)"
-                      [attr.aria-expanded]="cartaoExpandido(c)"
-                      [title]="cartaoExpandido(c) ? 'Recolher compras' : 'Expandir compras'"
-                      [attr.aria-label]="cartaoExpandido(c) ? 'Recolher compras' : 'Expandir compras'">
+                      [attr.aria-expanded]="cartaoExpandido(c)" [matTooltip]="tooltipExpandirDetalhes(c)"
+                      matTooltipPosition="above" [attr.aria-label]="tooltipExpandirDetalhes(c)">
                       <span class="material-icons" aria-hidden="true">
                         {{ cartaoExpandido(c) ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
                       </span>
@@ -241,18 +250,22 @@
                         <span>{{ nomeMesAtual }}</span>
                       </div>
                       <div class="parcelamentos-inline__acoes">
-                        <button type="button" class="parcelamentos-inline__btn parcelamentos-inline__btn--secundario"
-                          (click)="adicionarAjuste(c)" [disabled]="isFaturaPaga(c)" [title]="tituloJurosAjuste(c)">
-                          <span class="material-icons" aria-hidden="true">tune</span>
-                          Juros / ajuste
-                        </button>
-                        <button type="button" class="parcelamentos-inline__btn" (click)="parcelar(c)"
-                          [disabled]="isFaturaPaga(c)"
-                          [title]="tituloParcelarCompra(c)"
-                          [attr.aria-label]="tituloParcelarCompra(c)">
-                          <span class="material-icons" aria-hidden="true">add</span>
-                          Parcelar compra
-                        </button>
+                        <span class="acao-tooltip-host" [matTooltip]="tituloJurosAjuste(c)" matTooltipPosition="above">
+                          <button type="button" class="parcelamentos-inline__btn parcelamentos-inline__btn--secundario"
+                            (click)="adicionarAjuste(c)" [disabled]="isFaturaPaga(c)"
+                            [attr.aria-label]="tituloJurosAjuste(c)">
+                            <span class="material-icons" aria-hidden="true">tune</span>
+                            Juros / ajuste
+                          </button>
+                        </span>
+                        <span class="acao-tooltip-host" [matTooltip]="tituloParcelarCompra(c)"
+                          matTooltipPosition="above">
+                          <button type="button" class="parcelamentos-inline__btn" (click)="parcelar(c)"
+                            [disabled]="isFaturaPaga(c)" [attr.aria-label]="tituloParcelarCompra(c)">
+                            <span class="material-icons" aria-hidden="true">add</span>
+                            Parcelar compra
+                          </button>
+                        </span>
                       </div>
                     </div>
 
@@ -328,18 +341,21 @@
                           <td class="num">{{ p.valorRestante | currency:'BRL' }}</td>
                           <td class="col-centro">
                             <div class="parcelamentos-mini-acoes">
-                              <button type="button" class="btn-mini-acao" (click)="editarParcelamento(c, p)"
-                                [disabled]="isFaturaPaga(c)"
-                                [title]="podeEditarLancamentosFatura(c) ? 'Editar compra' : motivoEdicaoLancamentosDesabilitada()"
-                                aria-label="Editar compra">
-                                <span class="material-icons" aria-hidden="true">edit</span>
-                              </button>
-                              <button type="button" class="btn-mini-acao btn-mini-acao--excluir"
-                                [disabled]="isFaturaPaga(c)" (click)="confirmarExcluirParcelamento(p)"
-                                [title]="podeEditarLancamentosFatura(c) ? 'Excluir compra' : motivoEdicaoLancamentosDesabilitada()"
-                                aria-label="Excluir compra">
-                                <span class="material-icons" aria-hidden="true">delete</span>
-                              </button>
+                              <span class="acao-tooltip-host" [matTooltip]="tooltipEditarCompra(c)"
+                                matTooltipPosition="above">
+                                <button type="button" class="btn-mini-acao" (click)="editarParcelamento(c, p)"
+                                  [disabled]="isFaturaPaga(c)" [attr.aria-label]="tooltipEditarCompra(c)">
+                                  <span class="material-icons" aria-hidden="true">edit</span>
+                                </button>
+                              </span>
+                              <span class="acao-tooltip-host" [matTooltip]="tooltipExcluirCompra(c)"
+                                matTooltipPosition="above">
+                                <button type="button" class="btn-mini-acao btn-mini-acao--excluir"
+                                  [disabled]="isFaturaPaga(c)" (click)="confirmarExcluirParcelamento(p)"
+                                  [attr.aria-label]="tooltipExcluirCompra(c)">
+                                  <span class="material-icons" aria-hidden="true">delete</span>
+                                </button>
+                              </span>
                             </div>
                           </td>
                         </tr>
@@ -364,18 +380,21 @@
                             </td>
                             <td class="col-centro">
                               <div class="parcelamentos-mini-acoes">
-                                <button type="button" class="btn-mini-acao" (click)="editarAjuste(c, a)"
-                                  [disabled]="isFaturaPaga(c)"
-                                  [title]="podeEditarLancamentosFatura(c) ? 'Editar ajuste' : motivoEdicaoLancamentosDesabilitada()"
-                                  aria-label="Editar ajuste">
-                                  <span class="material-icons" aria-hidden="true">edit</span>
-                                </button>
-                                <button type="button" class="btn-mini-acao btn-mini-acao--excluir"
-                                  [disabled]="isFaturaPaga(c)" (click)="confirmarExcluirAjuste(a)"
-                                  [title]="podeEditarLancamentosFatura(c) ? 'Excluir ajuste' : motivoEdicaoLancamentosDesabilitada()"
-                                  aria-label="Excluir ajuste">
-                                  <span class="material-icons" aria-hidden="true">delete</span>
-                                </button>
+                                <span class="acao-tooltip-host" [matTooltip]="tooltipEditarAjuste(c)"
+                                  matTooltipPosition="above">
+                                  <button type="button" class="btn-mini-acao" (click)="editarAjuste(c, a)"
+                                    [disabled]="isFaturaPaga(c)" [attr.aria-label]="tooltipEditarAjuste(c)">
+                                    <span class="material-icons" aria-hidden="true">edit</span>
+                                  </button>
+                                </span>
+                                <span class="acao-tooltip-host" [matTooltip]="tooltipExcluirAjuste(c)"
+                                  matTooltipPosition="above">
+                                  <button type="button" class="btn-mini-acao btn-mini-acao--excluir"
+                                    [disabled]="isFaturaPaga(c)" (click)="confirmarExcluirAjuste(a)"
+                                    [attr.aria-label]="tooltipExcluirAjuste(c)">
+                                    <span class="material-icons" aria-hidden="true">delete</span>
+                                  </button>
+                                </span>
                               </div>
                             </td>
                           </tr>

@@ -27,6 +27,7 @@ for (const sql of [
   'ALTER TABLE cartoes ADD COLUMN observacaoAtraso TEXT',
   'ALTER TABLE cartoes ADD COLUMN previsaoPagamento TEXT',
   'ALTER TABLE cartoes ADD COLUMN pessoa TEXT',
+  'ALTER TABLE cartoes ADD COLUMN ciclosFatura TEXT',
 ]) {
   try {
     db.exec(sql);
@@ -87,6 +88,37 @@ function resolverDiasCicloFatura(diaFechamento, diaVencimento, diaMelhorCompra) 
     fech = diaFechamentoFromMelhor(melhor);
   }
   return { fech, venc, melhor };
+}
+
+function parseCiclosFatura(valor) {
+  if (valor == null || valor === '') return null;
+  try {
+    const parsed = typeof valor === 'string' ? JSON.parse(valor) : valor;
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    const ciclos = parsed
+      .filter(
+        (c) =>
+          c &&
+          Number.isFinite(Number(c.ano)) &&
+          Number.isFinite(Number(c.mes)) &&
+          c.inicio &&
+          c.fim,
+      )
+      .map((c) => ({
+        ano: parseInt(String(c.ano), 10),
+        mes: parseInt(String(c.mes), 10),
+        inicio: String(c.inicio).slice(0, 10),
+        fim: String(c.fim).slice(0, 10),
+      }));
+    return ciclos.length > 0 ? ciclos : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+function serializarCiclosFatura(valor) {
+  const ciclos = parseCiclosFatura(valor);
+  return ciclos ? JSON.stringify(ciclos) : null;
 }
 
 function parseBool(value, fallback = false) {
@@ -241,6 +273,7 @@ function mapRow(row, totalAPagarMesOverride = null, pagamentoMes = undefined) {
     diaFechamento: row.diaFechamento ?? null,
     diaVencimento: row.diaVencimento ?? null,
     diaMelhorCompra: row.diaMelhorCompra ?? null,
+    ciclosFatura: parseCiclosFatura(row.ciclosFatura),
     pessoa: row.pessoa ?? null,
     observacoes: row.observacoes,
     observacaoAtraso,
@@ -416,6 +449,7 @@ router.post('/', (req, res) => {
       observacoes,
       observacaoAtraso,
       previsaoPagamento,
+      ciclosFatura,
     } = req.body;
 
     if (!nome || !banco) {
@@ -431,8 +465,8 @@ router.post('/', (req, res) => {
     const result = db
       .prepare(
         `INSERT INTO cartoes
-         (usuario_id, nome, banco, limite, valorUtilizado, faturaPaga, valorFaturaPaga, diaFechamento, diaVencimento, diaMelhorCompra, pessoa, observacoes, observacaoAtraso, previsaoPagamento)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (usuario_id, nome, banco, limite, valorUtilizado, faturaPaga, valorFaturaPaga, diaFechamento, diaVencimento, diaMelhorCompra, ciclosFatura, pessoa, observacoes, observacaoAtraso, previsaoPagamento)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         req.usuario.id,
@@ -445,6 +479,7 @@ router.post('/', (req, res) => {
         dias.fech,
         dias.venc,
         dias.melhor,
+        serializarCiclosFatura(ciclosFatura),
         pessoa ? String(pessoa).trim() : null,
         observacoes ? String(observacoes).trim() : null,
         observacaoAtraso ? String(observacaoAtraso).trim() : null,
@@ -515,13 +550,17 @@ router.patch('/:id', (req, res) => {
       body.previsaoPagamento !== undefined
         ? body.previsaoPagamento
         : atual.previsaoPagamento;
+    const ciclosFatura =
+      body.ciclosFatura !== undefined
+        ? serializarCiclosFatura(body.ciclosFatura)
+        : atual.ciclosFatura;
 
     db.prepare(
       `UPDATE cartoes SET
         nome = ?, banco = ?, limite = ?, valorUtilizado = ?,
         faturaPaga = ?, valorFaturaPaga = ?,
         diaFechamento = ?, diaVencimento = ?, diaMelhorCompra = ?,
-        pessoa = ?, observacoes = ?, observacaoAtraso = ?, previsaoPagamento = ?,
+        ciclosFatura = ?, pessoa = ?, observacoes = ?, observacaoAtraso = ?, previsaoPagamento = ?,
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ? AND usuario_id = ?`,
     ).run(
@@ -534,6 +573,7 @@ router.patch('/:id', (req, res) => {
       dias.fech,
       dias.venc,
       dias.melhor,
+      ciclosFatura,
       pessoa ? String(pessoa).trim() : null,
       observacoes ? String(observacoes).trim() : null,
       observacaoAtraso ? String(observacaoAtraso).trim() : null,

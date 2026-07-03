@@ -8,6 +8,8 @@ import {
   calcularTotaisTabelaDividas,
   calcularTotaisTabelaDividasNoMes,
   calcularValorPagoAcumulado,
+  calcularValorPagoAposDesfazerMes,
+  dataPagamentoAposDesfazerMes,
   compararLancamentosFaturaPorData,
   dividaVisivelNoMesReferencia,
   filtrarDividasPorMesReferencia,
@@ -365,6 +367,46 @@ describe('dividas.util', () => {
     expect(calcularValorPagoAcumulado(300, 3, '2026-05-01', 6, 50)).toBe(150);
     expect(calcularValorPagoAcumulado(300, 3, '2026-05-01', 4, 100)).toBe(0);
     expect(calcularValorPagoAcumulado(300, 0, undefined, 5, 500)).toBe(300);
+  });
+
+  it('desfaz pagamento só do mês de referência sem afetar parcelas de outros meses', () => {
+    const parcelamento = divida({
+      valorTotal: 300,
+      quantidadeParcelas: 3,
+      dataInicio: '2026-06-01',
+      valorPago: 200,
+      dataPagamento: '2026-07-02',
+    });
+
+    expect(calcularValorPagoAposDesfazerMes(parcelamento, 2026, 6)).toBeNull();
+    expect(projetarDividaNoMes(parcelamento, 2026, 7)?.statusParcelaMes).toBe(
+      'paga',
+    );
+
+    const somenteJunhoPago = {
+      ...parcelamento,
+      valorPago: 100,
+      dataPagamento: '2026-06-10',
+    };
+    expect(
+      calcularValorPagoAposDesfazerMes(somenteJunhoPago, 2026, 6),
+    ).toBe(0);
+    expect(dataPagamentoAposDesfazerMes(somenteJunhoPago, 0)).toBeNull();
+
+    expect(
+      calcularValorPagoAposDesfazerMes(parcelamento, 2026, 7),
+    ).toBe(100);
+    const aposDesfazerJulho = {
+      ...parcelamento,
+      valorPago: 100,
+      dataPagamento: '2026-06-10',
+    };
+    expect(
+      projetarDividaNoMes(aposDesfazerJulho, 2026, 7)?.statusParcelaMes,
+    ).toBe('pendente');
+    expect(
+      projetarDividaNoMes(aposDesfazerJulho, 2026, 6)?.statusParcelaMes,
+    ).toBe('paga');
   });
 
   it('calcula pagamento acumulado atravessando anos sem zerar parcelas anteriores', () => {

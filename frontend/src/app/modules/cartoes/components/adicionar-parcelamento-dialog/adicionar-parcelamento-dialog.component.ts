@@ -70,13 +70,11 @@ export class AdicionarParcelamentoDialogComponent {
   }
 
   get primeiraParcelaLabel(): string {
-    if (!this.editando) {
-      return labelFaturaMes(this.data.ano, this.data.mes);
-    }
-
     const dataCompra = this.form.get('dataCompra')?.value;
 
-    if (!dataCompra) return '';
+    if (!dataCompra) {
+      return labelFaturaMes(this.data.ano, this.data.mes);
+    }
 
     return labelPrimeiraParcela(
       dataCompra,

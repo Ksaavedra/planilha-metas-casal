@@ -4,6 +4,7 @@ import { Observable, of, throwError, NEVER } from 'rxjs';
 import { Cartao } from '@core/interfaces/cartoes/cartoes';
 import { Divida, DividaNoMes } from '@core/interfaces/dividas/dividas';
 import * as echarts from 'echarts';
+import { ConfirmModalPaymentDetails } from 'shared/components/confirm-modal/confirm-modal.component';
 import { CartoesPageComponent } from './cartoes-page.component';
 
 describe('CartoesPageComponent', () => {
@@ -314,8 +315,8 @@ describe('CartoesPageComponent', () => {
     ];
 
     expect(component.podeParcelarCompra(c)).toBe(false);
-    expect(component.motivoParcelarCompraDesabilitado()).toContain(
-      'Fatura paga',
+    expect(component.motivoParcelarCompraDesabilitado()).toBe(
+      'Disponível somente para faturas não pagas.',
     );
     expect(component.isFaturaPaga(c)).toBe(true);
     expect(component.podeEditarLancamentosFatura(c)).toBe(false);
@@ -378,6 +379,28 @@ describe('CartoesPageComponent', () => {
       .mockImplementation(() => undefined);
 
     expect(component.statusFaturaClicavel(c)).toBe(true);
+    component.abrirAcaoPagamentoFatura(c);
+    expect(component['confirmarPagarFatura']).toHaveBeenCalledWith(c);
+  });
+
+  it('deve permitir clicar em Pendente para pagar', () => {
+    component.mesAtual = new Date(2026, 6, 1);
+    const c = cartao({
+      id: 7,
+      valorUtilizado: 150,
+      diaVencimento: 6,
+      diaMelhorCompra: 28,
+    });
+    component.parcelamentos = [
+      parcelaMes({ cartaoId: 7, statusParcelaMes: 'pendente' }),
+    ];
+    jest
+      .spyOn(component as any, 'confirmarPagarFatura')
+      .mockImplementation(() => undefined);
+
+    expect(component.statusLinhaLabel(c)).toContain('Pendente');
+    expect(component.statusFaturaClicavel(c)).toBe(true);
+    expect(component.tituloAcaoPagamentoFatura(c)).toBe('Pagar fatura');
     component.abrirAcaoPagamentoFatura(c);
     expect(component['confirmarPagarFatura']).toHaveBeenCalledWith(c);
   });
@@ -741,7 +764,22 @@ describe('CartoesPageComponent', () => {
         cartaoId: 1,
         statusParcelaMes: 'paga',
         parcelaMesPaga: true,
+        valorTotal: 300,
+        quantidadeParcelas: 3,
+        valorPago: 100,
       }),
+    ];
+    component['parcelamentosAno'] = [
+      {
+        id: 11,
+        objetivo: 'Compra',
+        tipoDivida: 'parcelamento',
+        valorTotal: 300,
+        valorPago: 100,
+        quantidadeParcelas: 3,
+        cartaoId: 1,
+        dataInicio: '2026-05-01',
+      } as Divida,
     ];
     dialog.open
       .mockReturnValueOnce(afterClosed(true))
@@ -808,6 +846,28 @@ describe('CartoesPageComponent', () => {
     expect(payload.valorPago).toBe(2995.1);
   });
 
+  it('deve exibir loading e bloquear duplo clique ao pagar fatura pendente', () => {
+    const c = cartao({ id: 10, valorUtilizado: 150, diaVencimento: 6 });
+    component.parcelamentos = [
+      parcelaMes({ cartaoId: 10, statusParcelaMes: 'pendente' }),
+    ];
+    cartoesService.registrarPagamentoFatura.mockReturnValue(NEVER);
+    dividasService.updateDivida.mockReturnValue(NEVER);
+
+    dialog.open.mockReturnValueOnce(afterClosed(true));
+    component.confirmarPagarFatura(c);
+
+    expect(component.statusFaturaClicavel(c)).toBe(true);
+    expect(component.estaProcessandoAcaoFatura(c, 'pagar')).toBe(true);
+    expect(component.tituloAcaoPagamentoFatura(c)).toBe(
+      'Processando pagamento...',
+    );
+
+    const chamadasDialog = dialog.open.mock.calls.length;
+    component.confirmarPagarFatura(c);
+    expect(dialog.open).toHaveBeenCalledTimes(chamadasDialog);
+  });
+
   it('deve exibir loading e bloquear duplo clique ao desfazer pagamento', () => {
     const c = cartao({ id: 9, valorUtilizado: 0, valorFaturaPaga: 200 });
     component.parcelamentos = [
@@ -834,6 +894,76 @@ describe('CartoesPageComponent', () => {
     const chamadasDialog = dialog.open.mock.calls.length;
     component.confirmarDesfazerPagamento(c);
     expect(dialog.open).toHaveBeenCalledTimes(chamadasDialog);
+  });
+
+  it('deve incluir data e valor na mensagem de confirmar pagamento', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 6, 2, 12, 0, 0));
+    component.mesAtual = new Date(2026, 6, 1);
+
+    dialog.open.mockReturnValueOnce(afterClosed(false));
+    component.parcelamentos = [
+      parcelaMes({
+        cartaoId: 1,
+        statusParcelaMes: 'pendente',
+        valorTotal: 100,
+        quantidadeParcelas: 1,
+      }),
+    ];
+    component.confirmarPagarFatura(
+      cartao({ id: 1, nome: 'C6', valorUtilizado: 100 }),
+    );
+
+    const dialogData = dialog.open.mock.calls[0][1]?.data as {
+      title?: string;
+      message?: string;
+      paymentDetails?: ConfirmModalPaymentDetails;
+      confirmText?: string;
+      cancelText?: string;
+      variant?: string;
+    };
+    expect(dialogData?.title).toBe('💳 Confirmar pagamento da fatura');
+    expect(dialogData?.confirmText).toBe('Pagar fatura');
+    expect(dialogData?.cancelText).toBe('Cancelar');
+    expect(dialogData?.variant).toBe('payment');
+    expect(dialogData?.message).toContain(
+      'Deseja confirmar o pagamento da fatura do cartão C6?',
+    );
+    expect(dialogData?.paymentDetails?.nomeCartao).toBe('C6');
+    expect(dialogData?.paymentDetails?.dataPagamento).toBe('02/07/2026');
+    expect(dialogData?.paymentDetails?.vencimento).toBeTruthy();
+    expect(dialogData?.paymentDetails?.valor).toMatch(/R\$\s?100,00/);
+
+    dialog.open.mockClear();
+    dialog.open.mockReturnValueOnce(afterClosed(false));
+    component.parcelamentos = [
+      parcelaMes({
+        cartaoId: 2,
+        statusParcelaMes: 'pendente',
+        valorTotal: 5071.65,
+        quantidadeParcelas: 1,
+      }),
+    ];
+    component.confirmarPagarFatura(
+      cartao({
+        id: 2,
+        nome: 'C6 Bank',
+        valorUtilizado: 5071.65,
+        previsaoPagamento: '2026-07-05',
+      }),
+    );
+
+    const comPrevisao = dialog.open.mock.calls[0][1]?.data as {
+      message?: string;
+      paymentDetails?: ConfirmModalPaymentDetails;
+    };
+    expect(comPrevisao?.message).toContain(
+      'Deseja confirmar o pagamento da fatura do cartão C6 Bank?',
+    );
+    expect(comPrevisao?.paymentDetails?.dataPagamento).toBe('05/07/2026');
+    expect(comPrevisao?.paymentDetails?.valor).toMatch(/R\$\s?5\.071,65/);
+
+    jest.useRealTimers();
   });
 
   it('deve abrir dialog de adicionar e editar cartão', () => {
@@ -1042,6 +1172,18 @@ describe('CartoesPageComponent', () => {
       dataInicio: undefined,
     } as DividaNoMes;
     component.parcelamentos = [pendente, paga];
+    component['parcelamentosAno'] = [
+      {
+        id: 102,
+        objetivo: 'Compra',
+        tipoDivida: 'parcelamento',
+        valorTotal: 300,
+        valorPago: 100,
+        quantidadeParcelas: 3,
+        cartaoId: 12,
+        dataInicio: '2026-05-01',
+      } as Divida,
+    ];
 
     const pagar = (component as any).atualizacoesParcelasPagas(c);
     const desfazer = (component as any).atualizacoesParcelasDesfeitas(c);
@@ -1057,5 +1199,43 @@ describe('CartoesPageComponent', () => {
       dataPagamento: null,
       statusDivida: 'pagando',
     });
+  });
+
+  it('deve desfazer pagamento só do mês atual sem afetar parcelas pagas em outros meses', () => {
+    component.mesAtual = new Date(2026, 5, 1);
+    const c = cartao({ id: 13, valorUtilizado: 200, valorFaturaPaga: 100 });
+    component['parcelamentosAno'] = [
+      {
+        id: 201,
+        objetivo: 'Compra',
+        tipoDivida: 'parcelamento',
+        valorTotal: 300,
+        valorPago: 200,
+        valorRestante: 100,
+        quantidadeParcelas: 3,
+        cartaoId: 13,
+        dataInicio: '2026-06-01',
+        dataPagamento: '2026-07-02',
+        statusDivida: 'pagando',
+      } as Divida,
+    ];
+    component.parcelamentos = [
+      parcelaMes({
+        id: 201,
+        cartaoId: 13,
+        valorTotal: 300,
+        quantidadeParcelas: 3,
+        dataInicio: '2026-06-01',
+        valorPago: 200,
+        dataPagamento: '2026-07-02',
+        statusParcelaMes: 'paga',
+        parcelaMesPaga: true,
+      }),
+    ];
+
+    const atualizacoes = (component as any).atualizacoesParcelasDesfeitas(c);
+
+    expect(atualizacoes.length).toBe(0);
+    expect(dividasService.updateDivida).not.toHaveBeenCalled();
   });
 });

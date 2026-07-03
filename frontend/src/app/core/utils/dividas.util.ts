@@ -572,6 +572,59 @@ export function calcularValorPagoAcumulado(
   return Math.min(valorTotal, Math.round(acumulado * 100) / 100);
 }
 
+/**
+ * Remove o pagamento apenas da parcela do mês de referência,
+ * quando ela for a última parcela paga (efeito do pagamento desta fatura).
+ * Preserva parcelas de meses posteriores já quitados.
+ */
+export function calcularValorPagoAposDesfazerMes(
+  divida: ContextoMesReferenciaPagamento & Pick<Divida, 'valorPago'>,
+  anoReferencia: number,
+  mesReferencia: number,
+): number | null {
+  const valorPagoAtual = Math.max(0, divida.valorPago ?? 0);
+  const parcela = calcularParcelaMensal(
+    divida.valorTotal,
+    divida.quantidadeParcelas,
+  );
+  if (parcela <= 0) return 0;
+
+  const indice = indiceParcelaNoMes(
+    {
+      ...divida,
+      valorTotal: divida.valorTotal,
+      quantidadeParcelas: divida.quantidadeParcelas,
+      dataInicio: divida.dataInicio,
+    } as Divida,
+    anoReferencia,
+    mesReferencia,
+  );
+  if (indice == null || indice < 1) return null;
+
+  const parcelasPagas = parcelasPagasDivida({
+    ...divida,
+    valorPago: valorPagoAtual,
+  } as Divida);
+  if (indice > parcelasPagas) return null;
+
+  // Parcelas de meses posteriores já pagas: não altera a dívida neste desfazer.
+  if (indice < parcelasPagas) return null;
+
+  const novoValor = Math.max(0, valorPagoAtual - parcela);
+  return Math.min(
+    divida.valorTotal,
+    Math.round(novoValor * 100) / 100,
+  );
+}
+
+export function dataPagamentoAposDesfazerMes(
+  divida: Pick<Divida, 'dataPagamento'>,
+  novoValorPago: number,
+): string | null {
+  if (novoValorPago <= 0) return null;
+  return divida.dataPagamento ?? null;
+}
+
 export function projetarDividaNoMes(
   d: Divida,
   ano: number,

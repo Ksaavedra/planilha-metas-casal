@@ -32,7 +32,7 @@
   overflow-x: clip;
 }
 
-.cartoes-container > * {
+.cartoes-container>* {
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -905,6 +905,15 @@ tfoot .cartoes-table__total td {
   justify-content: center;
   gap: 0.3rem;
   width: 100%;
+}
+
+.acao-tooltip-host {
+  display: inline-flex;
+  align-items: center;
+
+  button:disabled {
+    pointer-events: none;
+  }
 }
 
 .btn-parcelar,
