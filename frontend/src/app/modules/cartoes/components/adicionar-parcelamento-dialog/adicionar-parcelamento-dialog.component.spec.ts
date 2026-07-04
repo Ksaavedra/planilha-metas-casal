@@ -69,6 +69,8 @@ describe('AdicionarParcelamentoDialogComponent', () => {
     createDivida: jest.fn(),
 
     updateDivida: jest.fn(),
+
+    getDividas: jest.fn(),
   };
 
   function criar(
@@ -99,6 +101,48 @@ describe('AdicionarParcelamentoDialogComponent', () => {
     dividasService.createDivida.mockReturnValue(of({}));
 
     dividasService.updateDivida.mockReturnValue(of({}));
+
+    dividasService.getDividas.mockReturnValue(
+      of([
+        { objetivo: 'Netflix', tipoDivida: 'parcelamento', cartaoId: 1 },
+        { objetivo: 'Ifood', tipoDivida: 'parcelamento', cartaoId: 1 },
+        { objetivo: 'netflix', tipoDivida: 'parcelamento', cartaoId: 1 },
+        { objetivo: 'Mercado', tipoDivida: 'parcelamento', cartaoId: 2 },
+      ]),
+    );
+  });
+
+  it('deve sugerir compras cadastradas e opção de criar', () => {
+    const component = criar();
+    component.comprasAutocompleteOptions = ['Ifood', 'Netflix'];
+    component.onCompraFieldFocus();
+
+    expect(component['filtrarCompras']('net')).toEqual([
+      { label: 'Netflix', value: 'Netflix', criar: false },
+    ]);
+  });
+
+  it('deve oferecer criar compra quando não houver sugestão', () => {
+    const component = criar();
+    component.comprasAutocompleteOptions = ['Ifood', 'Netflix'];
+    component.onCompraFieldFocus();
+
+    expect(component['filtrarCompras']('Uber Eats')).toEqual([
+      {
+        label: "+ Criar 'Uber Eats'",
+        value: 'Uber Eats',
+        criar: true,
+      },
+    ]);
+  });
+
+  it('deve carregar compras cadastradas do cartão ao iniciar', () => {
+    const component = criar();
+    component.ngOnInit();
+
+    expect(dividasService.getDividas).toHaveBeenCalledWith(2023);
+    expect(dividasService.getDividas).toHaveBeenCalledWith(2022);
+    expect(component.comprasAutocompleteOptions).toEqual(['Ifood', 'Netflix']);
   });
 
   it('deve criar formulário com data da compra no fim do período da fatura', () => {

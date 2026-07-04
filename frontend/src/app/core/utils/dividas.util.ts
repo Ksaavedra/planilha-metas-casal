@@ -757,3 +757,84 @@ export function formatarMoedaGrafico(valor: number): string {
     maximumFractionDigits: 0,
   });
 }
+
+export const LIMITE_SUGESTOES_COMPRA = 8;
+
+export interface SugestaoObjetivoCompra {
+  label: string;
+  value: string;
+  criar: boolean;
+}
+
+/** Catálogo único de nomes de compra parcelada, ordenado alfabeticamente. */
+export function catalogoObjetivosCompraParcelamento(
+  dividas: Pick<Divida, 'objetivo' | 'tipoDivida' | 'cartaoId'>[],
+  cartaoId?: number | null,
+): string[] {
+  const vistos = new Map<string, string>();
+
+  for (const divida of dividas) {
+    if (divida.tipoDivida !== 'parcelamento') continue;
+    if (cartaoId != null && divida.cartaoId !== cartaoId) continue;
+
+    const texto = (divida.objetivo || '').trim();
+    if (!texto) continue;
+
+    const chave = texto.toLowerCase();
+    if (!vistos.has(chave)) {
+      vistos.set(chave, texto);
+    }
+  }
+
+  return [...vistos.values()].sort((a, b) =>
+    a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }),
+  );
+}
+
+export function filtrarSugestoesObjetivoCompra(
+  catalogo: string[],
+  termo: string,
+  limite = LIMITE_SUGESTOES_COMPRA,
+): SugestaoObjetivoCompra[] {
+  const busca = termo.trim();
+  const buscaLower = busca.toLowerCase();
+
+  const filtradas = buscaLower
+    ? catalogo.filter((nome) => nome.toLowerCase().includes(buscaLower))
+    : [...catalogo];
+
+  const sugestoes = filtradas.slice(0, limite).map((valor) => ({
+    label: valor,
+    value: valor,
+    criar: false,
+  }));
+
+  if (
+    busca &&
+    !catalogo.some((nome) => nome.toLowerCase() === buscaLower) &&
+    sugestoes.length === 0
+  ) {
+    return [
+      {
+        label: `+ Criar '${busca}'`,
+        value: busca,
+        criar: true,
+      },
+    ];
+  }
+
+  return sugestoes;
+}
+
+/** Evita duplicar nomes por diferença apenas de maiúsculas/minúsculas. */
+export function resolverObjetivoCompraSalvo(
+  texto: string,
+  catalogo: string[],
+): string {
+  const normalizado = texto.trim();
+  if (!normalizado) return normalizado;
+
+  const chave = normalizado.toLowerCase();
+  const existente = catalogo.find((nome) => nome.toLowerCase() === chave);
+  return existente ?? normalizado;
+}

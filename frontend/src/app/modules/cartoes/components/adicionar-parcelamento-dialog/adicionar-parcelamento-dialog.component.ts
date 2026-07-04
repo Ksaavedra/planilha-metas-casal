@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, OnDestroy, OnInit } from '@angular/core';
 
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -12,7 +12,13 @@ import { Divida } from '@core/interfaces/dividas/dividas';
 
 import { DividasService } from '@core/services/dividas/dividas.service';
 
-import { calcularParcelaMensal } from '@core/utils/dividas.util';
+import {
+  calcularParcelaMensal,
+  catalogoObjetivosCompraParcelamento,
+  filtrarSugestoesObjetivoCompra,
+  resolverObjetivoCompraSalvo,
+  SugestaoObjetivoCompra,
+} from '@core/utils/dividas.util';
 
 import {
   compraNoPeriodoFatura,
@@ -24,6 +30,8 @@ import {
   periodoCompraLimitesIso,
   periodoFaturaCartao,
 } from '@core/utils/fatura-cartao.util';
+
+import { forkJoin, map, merge, Observable, startWith, Subject, Subscription } from 'rxjs';
 
 export interface AdicionarParcelamentoDialogData {
   cartao: Cartao;
@@ -44,12 +52,22 @@ export interface AdicionarParcelamentoDialogData {
 
   standalone: false,
 })
-export class AdicionarParcelamentoDialogComponent {
+export class AdicionarParcelamentoDialogComponent implements OnInit, OnDestroy {
   form: FormGroup;
 
   saving = false;
 
   erro: string | null = null;
+
+  comprasAutocompleteOptions: string[] = [];
+
+  filteredCompras$!: Observable<SugestaoObjetivoCompra[]>;
+
+  listaAutocompleteCompraAtiva = false;
+
+  private comprasApiSub?: Subscription;
+
+  private readonly comprasOpcoesAtualizadas$ = new Subject<void>();
 
   get editando(): boolean {
     return !!this.data.parcelamento;
@@ -163,8 +181,24 @@ export class AdicionarParcelamentoDialogComponent {
     });
   }
 
+  ngOnInit(): void {
+    this.configurarFiltroCompras();
+    this.carregarComprasOpcoes();
+  }
+
+  ngOnDestroy(): void {
+    this.comprasApiSub?.unsubscribe();
+    this.comprasOpcoesAtualizadas$.complete();
+  }
+
   fechar(): void {
     this.dialogRef.close(false);
+  }
+
+  onCompraFieldFocus(): void {
+    if (this.listaAutocompleteCompraAtiva) return;
+    this.listaAutocompleteCompraAtiva = true;
+    this.comprasOpcoesAtualizadas$.next();
   }
 
   salvar(): void {
@@ -203,8 +237,13 @@ export class AdicionarParcelamentoDialogComponent {
 
     this.saving = true;
 
+    const objetivo = resolverObjetivoCompraSalvo(
+      String(v.objetivo),
+      this.comprasAutocompleteOptions,
+    );
+
     const payload = {
-      objetivo: String(v.objetivo).trim(),
+      objetivo,
 
       tipoDivida: 'parcelamento',
 
@@ -246,6 +285,55 @@ export class AdicionarParcelamentoDialogComponent {
         this.erro = this.mensagemErroHttp(err);
       },
     });
+  }
+
+  private configurarFiltroCompras(): void {
+    const objetivoCtrl = this.form.get('objetivo')!;
+
+    this.filteredCompras$ = merge(
+      objetivoCtrl.valueChanges,
+      this.comprasOpcoesAtualizadas$,
+    ).pipe(
+      map(() => this.filtrarCompras(this.getObjetivoFiltroValue())),
+      startWith(this.filtrarCompras(this.getObjetivoFiltroValue())),
+    );
+  }
+
+  private carregarComprasOpcoes(): void {
+    const anos = [this.data.ano, this.data.ano - 1];
+
+    this.comprasApiSub = forkJoin(
+      anos.map((ano) => this.dividasService.getDividas(ano)),
+    )
+      .pipe(map((listas) => listas.flat()))
+      .subscribe({
+        next: (dividas) => {
+          this.comprasAutocompleteOptions = catalogoObjetivosCompraParcelamento(
+            dividas,
+            this.data.cartao.id,
+          );
+          this.comprasOpcoesAtualizadas$.next();
+        },
+        error: () => {
+          this.comprasAutocompleteOptions = [];
+          this.comprasOpcoesAtualizadas$.next();
+        },
+      });
+  }
+
+  private getObjetivoFiltroValue(): string {
+    return String(this.form.get('objetivo')?.value ?? '').trim();
+  }
+
+  private filtrarCompras(termo: string): SugestaoObjetivoCompra[] {
+    if (!this.listaAutocompleteCompraAtiva) {
+      return [];
+    }
+
+    return filtrarSugestoesObjetivoCompra(
+      this.comprasAutocompleteOptions,
+      termo,
+    );
   }
 
   private dataCompraDeParcelamento(parcelamento: Divida): string {

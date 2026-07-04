@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ElementRef } from '@angular/core';
-import { Observable, of, throwError, NEVER } from 'rxjs';
+import { BehaviorSubject, Observable, of, throwError, NEVER } from 'rxjs';
 import { Cartao } from '@core/interfaces/cartoes/cartoes';
 import { Divida, DividaNoMes } from '@core/interfaces/dividas/dividas';
 import * as echarts from 'echarts';
@@ -24,7 +24,9 @@ describe('CartoesPageComponent', () => {
   let dialog: { open: jest.Mock };
   let perfilService: {
     temGrupoFamiliar$: Observable<boolean>;
+    temGrupoFamiliarAtual: boolean;
   };
+  let temGrupoFamiliarSubject: BehaviorSubject<boolean>;
 
   const cartao = (partial: Partial<Cartao> = {}): Cartao => ({
     id: partial.id ?? 1,
@@ -91,8 +93,10 @@ describe('CartoesPageComponent', () => {
     dialog = {
       open: jest.fn().mockReturnValue(afterClosed(false)),
     };
+    temGrupoFamiliarSubject = new BehaviorSubject(true);
     perfilService = {
-      temGrupoFamiliar$: of(true),
+      temGrupoFamiliar$: temGrupoFamiliarSubject.asObservable(),
+      temGrupoFamiliarAtual: true,
     };
 
     component = new CartoesPageComponent(
@@ -245,9 +249,25 @@ describe('CartoesPageComponent', () => {
     expect(component.resumo.limiteTotal).toBe(0);
   });
 
+  it('deve voltar para Minhas faturas ao desativar modo família', () => {
+    component.ngOnInit();
+    component.visaoFaturas = 'usuario';
+
+    perfilService.temGrupoFamiliarAtual = false;
+    temGrupoFamiliarSubject.next(false);
+
+    expect(component.visaoFaturas).toBe('lista');
+    expect(component.cartaoExpandidoId).toBeNull();
+  });
+
   it('deve alternar visão e mês', () => {
     component.selecionarVisao('usuario');
     expect(component.visaoFaturas).toBe('usuario');
+
+    perfilService.temGrupoFamiliarAtual = false;
+    component.visaoFaturas = 'lista';
+    component.selecionarVisao('usuario');
+    expect(component.visaoFaturas).toBe('lista');
 
     component.mesAnterior();
     expect(component.mesAtual.getMonth()).toBe(3);

@@ -71,7 +71,7 @@ import {
   ConfirmModalPaymentDetails,
 } from 'shared/components/confirm-modal/confirm-modal.component';
 import { SuccessModalComponent } from 'shared/components/success-modal/success-modal.component';
-import { forkJoin, map, Observable, tap, finalize, catchError } from 'rxjs';
+import { forkJoin, map, Observable, Subscription, tap, finalize, catchError } from 'rxjs';
 
 @Component({
   selector: 'app-cartoes-page',
@@ -129,6 +129,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   ];
 
   private charts: echarts.ECharts[] = [];
+  private temGrupoFamiliarSub?: Subscription;
 
   constructor(
     private cartoesService: CartoesService,
@@ -234,6 +235,14 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.carregar();
+    this.temGrupoFamiliarSub = this.temGrupoFamiliar$.subscribe(
+      (temGrupoFamiliar) => {
+        if (!temGrupoFamiliar && this.visaoFaturas === 'usuario') {
+          this.visaoFaturas = 'lista';
+          this.cartaoExpandidoId = null;
+        }
+      },
+    );
   }
 
   ngAfterViewInit(): void {
@@ -241,6 +250,7 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.temGrupoFamiliarSub?.unsubscribe();
     this.charts.forEach((c) => c.dispose());
     this.charts = [];
   }
@@ -344,6 +354,11 @@ export class CartoesPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   selecionarVisao(visao: 'lista' | 'usuario' | 'exemplos'): void {
+    if (visao === 'usuario' && !this.perfilService.temGrupoFamiliarAtual) {
+      this.visaoFaturas = 'lista';
+      return;
+    }
+
     this.visaoFaturas = visao;
   }
 

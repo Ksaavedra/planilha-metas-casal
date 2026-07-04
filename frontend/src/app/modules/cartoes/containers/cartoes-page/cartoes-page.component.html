@@ -41,8 +41,9 @@
           (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoFaturas === 'lista'">
           Minhas faturas
         </button>
-        <button type="button" class="cartoes-hero__chip" [class.is-active]="visaoFaturas === 'usuario'"
-          (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoFaturas === 'usuario'">
+        <button *ngIf="temGrupoFamiliar$ | async" type="button" class="cartoes-hero__chip"
+          [class.is-active]="visaoFaturas === 'usuario'" (click)="selecionarVisao('usuario')" role="tab"
+          [attr.aria-selected]="visaoFaturas === 'usuario'">
           Por pessoa
         </button>
         <button type="button" class="cartoes-hero__chip" [class.is-active]="visaoFaturas === 'exemplos'"
@@ -440,8 +441,10 @@
     </section>
   </ng-container>
 
-  <app-cartoes-usuario *ngIf="visaoFaturas === 'usuario' && !exibirAvisoVazio && !carregando" [cartoes]="cartoes"
-    [parcelamentos]="parcelamentos" [nomeMesReferencia]="nomeMesAtual" [mesReferencia]="mesAtual">
+  <app-cartoes-usuario
+    *ngIf="visaoFaturas === 'usuario' && (temGrupoFamiliar$ | async) && !exibirAvisoVazio && !carregando"
+    [cartoes]="cartoes" [parcelamentos]="parcelamentos" [nomeMesReferencia]="nomeMesAtual"
+    [mesReferencia]="mesAtual">
   </app-cartoes-usuario>
 
   <app-faturas-exemplos *ngIf="visaoFaturas === 'exemplos'"></app-faturas-exemplos>

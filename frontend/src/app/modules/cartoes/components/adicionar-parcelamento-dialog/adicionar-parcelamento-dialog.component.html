@@ -18,16 +18,25 @@
       </p>
 
       <div class="form-grid">
-        <label class="field field-wide">
-          <span class="field-label">Compra</span>
-          <input
-            type="text"
-            formControlName="objetivo"
-            class="input-text"
-            placeholder="Ex.: Celular, roupa, notebook"
-            autocomplete="off"
-          />
-        </label>
+        <div class="field field-wide">
+          <div class="modal-input-group">
+            <span class="field-label">Compra</span>
+            <mat-form-field class="parcelamento-compra-field" appearance="outline" subscriptSizing="fixed"
+              floatLabel="never">
+              <input id="parcelamento-compra" type="text" matInput formControlName="objetivo"
+                placeholder="Ex.: Celular, roupa, notebook" autocomplete="off" [matAutocomplete]="autoCompra"
+                (focus)="onCompraFieldFocus()" />
+              <mat-autocomplete autoActiveFirstOption panelClass="parcelamento-compra-autocomplete-panel"
+                #autoCompra="matAutocomplete">
+                @for (option of (filteredCompras$ | async) ?? []; track option.value + option.criar) {
+                <mat-option [value]="option.value" [class.parcelamento-compra-option--criar]="option.criar">
+                  {{ option.label }}
+                </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+          </div>
+        </div>
 
         <label class="field">
           <span class="field-label">Valor total (R$)</span>

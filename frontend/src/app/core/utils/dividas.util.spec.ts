@@ -9,7 +9,10 @@ import {
   calcularTotaisTabelaDividasNoMes,
   calcularValorPagoAcumulado,
   calcularValorPagoAposDesfazerMes,
+  catalogoObjetivosCompraParcelamento,
   dataPagamentoAposDesfazerMes,
+  filtrarSugestoesObjetivoCompra,
+  resolverObjetivoCompraSalvo,
   compararLancamentosFaturaPorData,
   dividaVisivelNoMesReferencia,
   filtrarDividasPorMesReferencia,
@@ -592,5 +595,42 @@ describe('dividas.util', () => {
       ...divida({ quantidadeParcelas: 0 }),
       dataInicio: undefined,
     }], 2026)[0]).toBeGreaterThan(0);
+  });
+
+  it('deve montar catálogo de compras sem duplicar por caixa', () => {
+    const catalogo = catalogoObjetivosCompraParcelamento(
+      [
+        divida({ objetivo: 'Netflix', tipoDivida: 'parcelamento', cartaoId: 1 }),
+        divida({ objetivo: 'netflix', tipoDivida: 'parcelamento', cartaoId: 1 }),
+        divida({ objetivo: 'Ifood', tipoDivida: 'parcelamento', cartaoId: 1 }),
+        divida({ objetivo: 'Mercado', tipoDivida: 'parcelamento', cartaoId: 2 }),
+        divida({ objetivo: 'Empréstimo', tipoDivida: 'emprestimo', cartaoId: 1 }),
+      ],
+      1,
+    );
+
+    expect(catalogo).toEqual(['Ifood', 'Netflix']);
+  });
+
+  it('deve filtrar sugestões de compra e oferecer criar quando vazio', () => {
+    const catalogo = ['Amazon', 'Drogaria', 'Ifood', 'Mercado', 'Netflix', 'Uber'];
+
+    expect(filtrarSugestoesObjetivoCompra(catalogo, 'mer')).toEqual([
+      { label: 'Mercado', value: 'Mercado', criar: false },
+    ]);
+
+    expect(filtrarSugestoesObjetivoCompra(catalogo, 'xyz')).toEqual([
+      { label: "+ Criar 'xyz'", value: 'xyz', criar: true },
+    ]);
+
+    expect(filtrarSugestoesObjetivoCompra(catalogo, '').length).toBe(6);
+    expect(filtrarSugestoesObjetivoCompra(catalogo, 'a').length).toBe(3);
+  });
+
+  it('deve resolver objetivo salvo sem duplicar por maiúsculas', () => {
+    const catalogo = ['Netflix', 'Ifood'];
+
+    expect(resolverObjetivoCompraSalvo('netflix', catalogo)).toBe('Netflix');
+    expect(resolverObjetivoCompraSalvo('  Uber  ', catalogo)).toBe('Uber');
   });
 });
