@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const db = require('../scripts/db');
 const {
@@ -7,9 +8,15 @@ const {
    autenticarToken,
 } = require('../middlewares/auth.middleware');
 const { migrarDadosLegadosParaUsuario } = require('../utils/user-data-scope');
+const { enviarCodigoRecuperacaoSenha } = require('../utils/email.service');
 
 const router = express.Router();
 const TOKEN_EXPIRATION = '7d';
+const RESET_CODE_EXPIRATION_MINUTES = 15;
+const RESET_TOKEN_EXPIRATION = '15m';
+const MAX_RESET_CODE_ATTEMPTS = 5;
+const GENERIC_FORGOT_PASSWORD_MESSAGE =
+   'Se o email estiver cadastrado, enviaremos um código de recuperação.';
 
 function ensureUsuariosAuthSchema() {
    db.exec(`
@@ -171,6 +178,57 @@ function ensurePessoasSchema() {
 
 ensurePessoasSchema();
 
+function ensurePasswordResetSchema() {
+   db.exec(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      code_hash TEXT NOT NULL,
+      expires_at DATETIME NOT NULL,
+      used_at DATETIME,
+      attempts INTEGER DEFAULT 0,
+      date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES usuarios(id) ON DELETE CASCADE
+    )
+  `);
+
+   const cols = db.prepare('PRAGMA table_info(password_reset_tokens)').all();
+   const hasColumn = (name) => cols.some((col) => col.name === name);
+
+   if (!hasColumn('code_hash')) {
+      if (hasColumn('token')) {
+         db.exec('ALTER TABLE password_reset_tokens ADD COLUMN code_hash TEXT');
+         db.exec(
+            'UPDATE password_reset_tokens SET code_hash = token WHERE code_hash IS NULL',
+         );
+      } else {
+         db.exec('ALTER TABLE password_reset_tokens ADD COLUMN code_hash TEXT');
+      }
+   }
+
+   if (!hasColumn('attempts')) {
+      db.exec(
+         'ALTER TABLE password_reset_tokens ADD COLUMN attempts INTEGER DEFAULT 0',
+      );
+      db.exec(
+         'UPDATE password_reset_tokens SET attempts = 0 WHERE attempts IS NULL',
+      );
+   }
+
+   if (hasColumn('token')) {
+      db.exec(
+         'UPDATE password_reset_tokens SET token = code_hash WHERE token IS NULL AND code_hash IS NOT NULL',
+      );
+   }
+
+   db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_password_reset_user_active
+    ON password_reset_tokens(user_id, used_at, expires_at)
+  `);
+}
+
+ensurePasswordResetSchema();
+
 function normalizarEmail(email) {
    return String(email || '')
       .trim()
@@ -211,6 +269,101 @@ function gerarToken(usuario) {
       },
       JWT_SECRET,
       { expiresIn: TOKEN_EXPIRATION },
+   );
+}
+
+function emailValido(email) {
+   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function buscarUsuarioPorEmail(email) {
+   return db
+      .prepare(
+         `
+      SELECT
+         id,
+         username AS usuario,
+         full_name AS nomeCompleto,
+         nickname AS apelido,
+         email,
+         password_hash AS senha_hash,
+         use_type AS tipoUso,
+         date_created AS createdAt,
+         date_updated AS updatedAt
+      FROM usuarios
+      WHERE lower(email) = lower(?)
+        AND password_hash IS NOT NULL
+        AND trim(password_hash) <> ''
+    `,
+      )
+      .get(email);
+}
+
+function gerarCodigoRecuperacao() {
+   return String(crypto.randomInt(100000, 1000000));
+}
+
+function invalidarTokensRecuperacaoAtivos(userId) {
+   db.prepare(
+      `
+      UPDATE password_reset_tokens
+      SET used_at = CURRENT_TIMESTAMP
+      WHERE user_id = ?
+        AND used_at IS NULL
+    `,
+   ).run(userId);
+}
+
+function inserirTokenRecuperacao(userId, codeHash, expiresAt) {
+   const cols = db.prepare('PRAGMA table_info(password_reset_tokens)').all();
+   const hasTokenLegado = cols.some((col) => col.name === 'token');
+
+   if (hasTokenLegado) {
+      return db
+         .prepare(
+            `
+            INSERT INTO password_reset_tokens (user_id, code_hash, token, expires_at)
+            VALUES (?, ?, ?, ?)
+          `,
+         )
+         .run(userId, codeHash, codeHash, expiresAt);
+   }
+
+   return db
+      .prepare(
+         `
+        INSERT INTO password_reset_tokens (user_id, code_hash, expires_at)
+        VALUES (?, ?, ?)
+      `,
+      )
+      .run(userId, codeHash, expiresAt);
+}
+
+function buscarTokenRecuperacaoAtivo(userId) {
+   return db
+      .prepare(
+         `
+      SELECT id, user_id AS userId, code_hash AS codeHash, expires_at AS expiresAt, attempts
+      FROM password_reset_tokens
+      WHERE user_id = ?
+        AND used_at IS NULL
+        AND datetime(expires_at) > datetime('now')
+      ORDER BY date_created DESC
+      LIMIT 1
+    `,
+      )
+      .get(userId);
+}
+
+function gerarResetToken(userId, resetId) {
+   return jwt.sign(
+      {
+         id: userId,
+         resetId,
+         purpose: 'password_reset',
+      },
+      JWT_SECRET,
+      { expiresIn: RESET_TOKEN_EXPIRATION },
    );
 }
 
@@ -406,6 +559,166 @@ router.get('/perfil', autenticarToken, (req, res) => {
    } catch (error) {
       console.error('Erro ao buscar perfil:', error);
       res.status(500).json({ error: 'Erro ao buscar perfil.' });
+   }
+});
+
+router.post('/forgot-password', async (req, res) => {
+   try {
+      const email = normalizarEmail(req.body.email);
+
+      if (!email || !emailValido(email)) {
+         return res.status(400).json({ error: 'Informe um email válido.' });
+      }
+
+      const usuario = buscarUsuarioPorEmail(email);
+
+      if (usuario) {
+         invalidarTokensRecuperacaoAtivos(usuario.id);
+
+         const codigo = gerarCodigoRecuperacao();
+         const codeHash = await bcrypt.hash(codigo, 10);
+         const expiresAt = new Date(
+            Date.now() + RESET_CODE_EXPIRATION_MINUTES * 60 * 1000,
+         ).toISOString();
+
+         inserirTokenRecuperacao(usuario.id, codeHash, expiresAt);
+
+         try {
+            await enviarCodigoRecuperacaoSenha(email, codigo);
+         } catch (emailError) {
+            console.error('Erro ao enviar email de recuperação:', emailError);
+         }
+      } else {
+         console.log(
+            'Recuperação de senha solicitada para email não cadastrado:',
+            email,
+         );
+      }
+
+      res.json({ message: GENERIC_FORGOT_PASSWORD_MESSAGE });
+   } catch (error) {
+      console.error('Erro ao solicitar recuperação de senha:', error);
+      res.status(500).json({ error: 'Erro ao solicitar recuperação de senha.' });
+   }
+});
+
+router.post('/verify-reset-code', async (req, res) => {
+   try {
+      const email = normalizarEmail(req.body.email);
+      const codigo = String(req.body.codigo || req.body.code || '').trim();
+
+      if (!email || !emailValido(email)) {
+         return res.status(400).json({ error: 'Informe um email válido.' });
+      }
+
+      if (!/^\d{6}$/.test(codigo)) {
+         return res.status(400).json({ error: 'Informe o código de 6 dígitos.' });
+      }
+
+      const usuario = buscarUsuarioPorEmail(email);
+      if (!usuario) {
+         return res.status(400).json({ error: 'Código inválido ou expirado.' });
+      }
+
+      const token = buscarTokenRecuperacaoAtivo(usuario.id);
+      if (!token) {
+         return res.status(400).json({ error: 'Código inválido ou expirado.' });
+      }
+
+      if (token.attempts >= MAX_RESET_CODE_ATTEMPTS) {
+         return res.status(429).json({
+            error: 'Número máximo de tentativas excedido. Solicite um novo código.',
+         });
+      }
+
+      const codigoValido = await bcrypt.compare(codigo, token.codeHash);
+      db.prepare(
+         'UPDATE password_reset_tokens SET attempts = attempts + 1 WHERE id = ?',
+      ).run(token.id);
+
+      if (!codigoValido) {
+         return res.status(400).json({ error: 'Código inválido ou expirado.' });
+      }
+
+      const resetToken = gerarResetToken(usuario.id, token.id);
+
+      res.json({
+         message: 'Código verificado com sucesso.',
+         resetToken,
+      });
+   } catch (error) {
+      console.error('Erro ao verificar código de recuperação:', error);
+      res.status(500).json({ error: 'Erro ao verificar código de recuperação.' });
+   }
+});
+
+router.post('/reset-password', async (req, res) => {
+   try {
+      const resetToken = String(req.body.resetToken || '').trim();
+      const novaSenha = String(
+         req.body.novaSenha || req.body.senha || req.body.password || '',
+      );
+
+      if (!resetToken) {
+         return res.status(400).json({ error: 'Token de recuperação não informado.' });
+      }
+
+      if (!novaSenha || novaSenha.length < 6) {
+         return res.status(400).json({
+            error: 'A nova senha deve ter pelo menos 6 caracteres.',
+         });
+      }
+
+      let payload;
+      try {
+         payload = jwt.verify(resetToken, JWT_SECRET);
+      } catch (error) {
+         return res.status(400).json({
+            error: 'Token de recuperação inválido ou expirado.',
+         });
+      }
+
+      if (payload.purpose !== 'password_reset' || !payload.id || !payload.resetId) {
+         return res.status(400).json({
+            error: 'Token de recuperação inválido ou expirado.',
+         });
+      }
+
+      const token = db
+         .prepare(
+            `
+        SELECT id, user_id AS userId, used_at AS usedAt, expires_at AS expiresAt
+        FROM password_reset_tokens
+        WHERE id = ? AND user_id = ?
+      `,
+         )
+         .get(payload.resetId, payload.id);
+
+      if (
+         !token ||
+         token.usedAt ||
+         new Date(token.expiresAt).getTime() <= Date.now()
+      ) {
+         return res.status(400).json({
+            error: 'Token de recuperação inválido ou expirado.',
+         });
+      }
+
+      const senhaHash = await bcrypt.hash(novaSenha, 10);
+      db.prepare(
+         'UPDATE usuarios SET password_hash = ?, date_updated = CURRENT_TIMESTAMP WHERE id = ?',
+      ).run(senhaHash, payload.id);
+
+      db.prepare(
+         'UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?',
+      ).run(token.id);
+
+      invalidarTokensRecuperacaoAtivos(payload.id);
+
+      res.json({ message: 'Senha redefinida com sucesso.' });
+   } catch (error) {
+      console.error('Erro ao redefinir senha:', error);
+      res.status(500).json({ error: 'Erro ao redefinir senha.' });
    }
 });
 
