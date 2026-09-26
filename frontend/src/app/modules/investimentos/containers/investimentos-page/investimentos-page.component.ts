@@ -9,6 +9,7 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import * as echarts from 'echarts';
+import { Subscription } from 'rxjs';
 import { Investimento } from '@core/interfaces/investimentos/investimentos';
 import {
   TIPOS_INVESTIMENTO_OPCOES,
@@ -76,6 +77,7 @@ export class InvestimentosPageComponent
   paginaTabela = 1;
 
   private charts: echarts.ECharts[] = [];
+  private temGrupoFamiliarSub?: Subscription;
 
   constructor(
     private investimentosService: InvestimentosService,
@@ -152,6 +154,13 @@ export class InvestimentosPageComponent
   ngOnInit(): void {
     this.anoSelecionado = this.investimentosService.getAnoSelecionado();
     this.carregar();
+    this.temGrupoFamiliarSub = this.temGrupoFamiliar$.subscribe(
+      (temGrupoFamiliar) => {
+        if (!temGrupoFamiliar && this.visaoInvestimentos === 'usuario') {
+          this.selecionarVisao('lista');
+        }
+      },
+    );
   }
 
   ngAfterViewInit(): void {
@@ -159,6 +168,7 @@ export class InvestimentosPageComponent
   }
 
   ngOnDestroy(): void {
+    this.temGrupoFamiliarSub?.unsubscribe();
     this.charts.forEach((c) => c.dispose());
     this.charts = [];
   }
@@ -193,6 +203,9 @@ export class InvestimentosPageComponent
   }
 
   selecionarVisao(visao: 'lista' | 'exemplos' | 'usuario'): void {
+    if (visao === 'usuario' && !this.perfilService.temGrupoFamiliarAtual) {
+      visao = 'lista';
+    }
     this.visaoInvestimentos = visao;
     if (visao === 'lista') {
       setTimeout(() => this.atualizarGraficos(), 0);
