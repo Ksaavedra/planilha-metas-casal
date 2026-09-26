@@ -159,19 +159,10 @@ export class MetasPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.anoSelecionado = this.clampAnoReferencia(
-      this.metasService.getAnoSelecionado(),
-    );
+    this.anoSelecionado = this.anoAtual;
     this.anosComparacao = buildAnosComparacaoParaMetas([], this.anoAtual);
     this.metasService.setAnoSelecionado(this.anoSelecionado);
     this.carregarMetas();
-  }
-
-  private clampAnoReferencia(ano: number): number {
-    if (!Number.isFinite(ano)) {
-      return this.anoAtual;
-    }
-    return Math.max(ANO_REFERENCIA_MIN, Math.round(ano));
   }
 
   private carregarMetas(): void {
