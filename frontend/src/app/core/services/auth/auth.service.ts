@@ -8,6 +8,11 @@ import {
   RegisterRequest,
   AuthResponse,
   PerfilResponse,
+  MessageResponse,
+  ForgotPasswordRequest,
+  VerifyResetCodeRequest,
+  VerifyResetCodeResponse,
+  ResetPasswordRequest,
 } from '@core/interfaces/auths/auth';
 
 @Injectable({
@@ -103,6 +108,23 @@ export class AuthService {
           this.currentUserSubject.next(usuario);
         }),
       );
+  }
+
+  forgotPassword(data: ForgotPasswordRequest): Observable<MessageResponse> {
+    return this.apiService.post<MessageResponse>('/auth/forgot-password', data);
+  }
+
+  verifyResetCode(
+    data: VerifyResetCodeRequest,
+  ): Observable<VerifyResetCodeResponse> {
+    return this.apiService.post<VerifyResetCodeResponse>(
+      '/auth/verify-reset-code',
+      data,
+    );
+  }
+
+  resetPassword(data: ResetPasswordRequest): Observable<MessageResponse> {
+    return this.apiService.post<MessageResponse>('/auth/reset-password', data);
   }
 
   private setAuth(token: string, user: Usuario): void {

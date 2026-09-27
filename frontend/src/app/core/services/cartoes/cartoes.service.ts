@@ -5,6 +5,8 @@ import { environment } from 'src/environments';
 import {
   Cartao,
   CreateCartaoRequest,
+  PagamentoFaturaCartao,
+  RegistrarPagamentoFaturaRequest,
   UpdateCartaoRequest,
 } from '../../interfaces/cartoes/cartoes';
 
@@ -32,5 +34,25 @@ export class CartoesService {
 
   deleteCartao(id: number): Observable<void> {
     return this.http.delete<void>(`${this.API_URL}/${id}`);
+  }
+
+  registrarPagamentoFatura(
+    id: number,
+    body: RegistrarPagamentoFaturaRequest,
+  ): Observable<PagamentoFaturaCartao> {
+    return this.http.put<PagamentoFaturaCartao>(
+      `${this.API_URL}/${id}/fatura-pagamento`,
+      body,
+    );
+  }
+
+  desfazerPagamentoFatura(
+    id: number,
+    ano: number,
+    mes: number,
+  ): Observable<void> {
+    return this.http.delete<void>(`${this.API_URL}/${id}/fatura-pagamento`, {
+      params: { ano, mes },
+    });
   }
 }

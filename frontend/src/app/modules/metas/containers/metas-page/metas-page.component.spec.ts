@@ -1041,13 +1041,18 @@ describe('MetasPageComponent', () => {
       scrollSpy.mockRestore();
     });
 
-    it('ngOnInit usa anoAtual quando getAnoSelecionado retorna NaN', () => {
-      jest.spyOn(metasService, 'getAnoSelecionado').mockReturnValue(NaN);
-      jest.spyOn(metasService, 'getMetas').mockReturnValue(of([]));
+    it('ngOnInit abre no ano atual mesmo com outro ano salvo', () => {
+      jest.spyOn(metasService, 'getAnoSelecionado').mockReturnValue(2023);
+      const setSpy = jest.spyOn(metasService, 'setAnoSelecionado');
+      const getSpy = jest
+        .spyOn(metasService, 'getMetas')
+        .mockReturnValue(of([]));
 
       component.ngOnInit();
 
       expect(component.anoSelecionado).toBe(component.anoAtual);
+      expect(setSpy).toHaveBeenCalledWith(component.anoAtual);
+      expect(getSpy).toHaveBeenCalledWith(component.anoAtual);
     });
   });
 

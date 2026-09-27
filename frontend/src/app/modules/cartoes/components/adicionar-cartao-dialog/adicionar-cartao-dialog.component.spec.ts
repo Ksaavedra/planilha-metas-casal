@@ -87,7 +87,6 @@ describe('AdicionarCartaoDialogComponent', () => {
       cartao: {
         ...cartao,
         pessoa: null,
-        diaFechamento: null,
         diaVencimento: null,
         diaMelhorCompra: null,
       },
@@ -96,7 +95,6 @@ describe('AdicionarCartaoDialogComponent', () => {
     component.ngOnInit();
 
     expect(component.form.get('pessoa')?.value).toBe('');
-    expect(component.form.get('diaFechamento')?.value).toBeNull();
     expect(component.form.get('diaVencimento')?.value).toBeNull();
     expect(component.form.get('diaMelhorCompra')?.value).toBeNull();
   });
@@ -114,20 +112,21 @@ describe('AdicionarCartaoDialogComponent', () => {
 
     component.salvar();
 
-    expect(component.erro).toBe('Preencha nome, banco e limite do cartão.');
+    expect(component.erro).toBe(
+      'Preencha nome, banco, limite, melhor dia de compra e vencimento.',
+    );
     expect(cartoesService.createCartao).not.toHaveBeenCalled();
   });
 
-  it('deve criar cartão com pessoa selecionada', () => {
+  it('deve criar cartão com pessoa selecionada e calcular fechamento', () => {
     const component = criar();
     component.form.patchValue({
       nome: ' Black ',
       banco: ' C6 ',
       pessoa: ' David ',
       limite: 2000,
-      diaFechamento: 5,
-      diaVencimento: 15,
-      diaMelhorCompra: 6,
+      diaVencimento: 6,
+      diaMelhorCompra: 28,
     });
 
     component.salvar();
@@ -138,13 +137,20 @@ describe('AdicionarCartaoDialogComponent', () => {
       limite: 2000,
       faturaPaga: false,
       valorFaturaPaga: 0,
-      diaFechamento: 5,
-      diaVencimento: 15,
-      diaMelhorCompra: 6,
+      diaFechamento: 27,
+      diaVencimento: 6,
+      diaMelhorCompra: 28,
       pessoa: 'David',
     });
     expect(dialogRef.close).toHaveBeenCalledWith(true);
     expect(component.saving).toBe(false);
+  });
+
+  it('deve exibir fechamento calculado no preview', () => {
+    const component = criar();
+    component.form.patchValue({ diaMelhorCompra: 28, diaVencimento: 6 });
+
+    expect(component.diaFechamentoCalculado).toBe(27);
   });
 
   it('deve zerar status de fatura quando houver valor utilizado no formulário', () => {

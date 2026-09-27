@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth/auth.service';
@@ -10,12 +10,11 @@ import { AuthService } from '@core/services/auth/auth.service';
   styleUrl: './login.component.scss',
   standalone: false,
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   carregando = false;
   erro: string | null = null;
   sucesso: string | null = null;
   mostrarSenha = false;
-  modoRecuperacao = false;
 
   form = this.fb.group({
     usuarioOuEmail: ['', Validators.required],
@@ -28,6 +27,12 @@ export class LoginComponent {
     private router: Router,
     private route: ActivatedRoute,
   ) {}
+
+  ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('senhaRedefinida') === '1') {
+      this.sucesso = 'Senha redefinida com sucesso. Faça login com sua nova senha.';
+    }
+  }
 
   entrar(): void {
     this.erro = null;
@@ -59,37 +64,6 @@ export class LoginComponent {
           this.erro = this.mensagemErro(err);
         },
       });
-  }
-
-  iniciarRecuperacao(): void {
-    this.erro = null;
-    this.sucesso = null;
-    this.modoRecuperacao = true;
-    this.form.get('senha')?.reset();
-    this.form.get('senha')?.markAsUntouched();
-  }
-
-  voltarParaLogin(): void {
-    this.erro = null;
-    this.sucesso = null;
-    this.modoRecuperacao = false;
-  }
-
-  recuperarSenha(): void {
-    this.erro = null;
-    this.sucesso = null;
-
-    const identificadorControl = this.form.get('usuarioOuEmail');
-    identificadorControl?.markAsTouched();
-    const email = String(identificadorControl?.value || '').trim();
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      this.erro = 'Informe um email válido para recuperar sua senha.';
-      return;
-    }
-
-    this.sucesso =
-      'Email validado com sucesso. A recuperação automática ainda precisa ser configurada no backend.';
   }
 
   private mensagemErro(err: unknown): string {

@@ -104,4 +104,31 @@ describe('CartoesService', () => {
     expect(req.request.method).toBe('DELETE');
     req.flush(null);
   });
+
+  it('deve registrar pagamento da fatura por mês', () => {
+    const body = {
+      ano: 2026,
+      mes: 5,
+      valorFatura: 500,
+      valorPago: 500,
+      dataPagamento: '2026-05-10',
+    };
+
+    service.registrarPagamentoFatura(1, body).subscribe((result) => {
+      expect(result.faturaPaga).toBe(true);
+    });
+
+    const req = httpMock.expectOne(`${baseUrl}/1/fatura-pagamento`);
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual(body);
+    req.flush({ cartaoId: 1, ...body, faturaPaga: true });
+  });
+
+  it('deve desfazer pagamento da fatura por mês', () => {
+    service.desfazerPagamentoFatura(1, 2026, 5).subscribe();
+
+    const req = httpMock.expectOne(`${baseUrl}/1/fatura-pagamento?ano=2026&mes=5`);
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+  });
 });

@@ -210,6 +210,120 @@
   transform: translateY(0);
 }
 
+.modal-content--payment .modal-header {
+  background: linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%);
+  border-bottom-color: #e9d5ff;
+}
+
+.modal-header--payment h3 {
+  color: #6d28d9;
+}
+
+.modal-close--payment {
+  color: #7c3aed;
+}
+
+.modal-close--payment:hover {
+  background-color: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
+}
+
+.modal-content--payment .message {
+  white-space: pre-line;
+  text-align: left;
+}
+
+.modal-body--payment {
+  padding-top: 24px;
+  text-align: left;
+}
+
+.payment-intro {
+  margin: 0 0 1.25rem;
+  color: #334155;
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 500;
+  animation: messageSlideIn 0.5s ease-out 0.2s both;
+}
+
+.payment-intro__cartao {
+  color: #6d28d9;
+  font-weight: 700;
+}
+
+.payment-resumo {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%);
+  border: 1px solid #e9d5ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  animation: messageSlideIn 0.5s ease-out 0.35s both;
+}
+
+.payment-resumo__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.payment-resumo__item dt {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.01em;
+
+  .material-icons {
+    font-size: 1.05rem;
+    color: #7c3aed;
+  }
+}
+
+.payment-resumo__item dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.payment-resumo__item--destaque {
+  margin-top: 0.15rem;
+  padding-top: 0.8rem;
+  border-top: 1px dashed #d8b4fe;
+
+  dd {
+    font-size: 1.2rem;
+    color: #6d28d9;
+    letter-spacing: -0.02em;
+  }
+}
+
+.modal-content--payment .icon-box .material-icons {
+  color: #7c3aed;
+  filter: drop-shadow(0 4px 8px rgba(124, 58, 237, 0.2));
+}
+
+.btn-confirmar--payment {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.btn-confirmar--payment:hover {
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
+  background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+}
+
 @keyframes buttonSlideIn {
   from {
     opacity: 0;
