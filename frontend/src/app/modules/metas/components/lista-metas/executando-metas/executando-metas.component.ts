@@ -632,6 +632,10 @@ export class ExecutandoMetasComponent implements OnChanges, OnDestroy {
     });
   }
 
+  nomeMesSemAno(mes: string): string {
+    return mes.split('/')[0];
+  }
+
   getTotalContribuicoesMeta(meta: Meta): number {
     if (!meta.meses) return 0;
     return meta.meses.reduce((total, mes) => total + mes.valor, 0);

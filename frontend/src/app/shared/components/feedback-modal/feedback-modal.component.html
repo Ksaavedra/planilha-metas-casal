@@ -1,0 +1,42 @@
+<div class="modal-overlay" (click)="onOverlayClick($event)">
+  <div class="modal-content" role="dialog" aria-labelledby="feedback-titulo">
+    <div class="modal-header">
+      <h3 id="feedback-titulo">Como está sua experiência?</h3>
+      <button type="button" class="modal-close" (click)="agoraNao()" aria-label="Fechar">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <p class="message">Sua opinião ajuda a melhorar o sistema. Leva só alguns segundos.</p>
+
+      <div class="tela">
+        <label class="tela-label" for="feedbackTela">Sobre qual tela?</label>
+        <select id="feedbackTela" class="tela-select" [(ngModel)]="tela">
+          <option *ngFor="let t of telas" [ngValue]="t">{{ t.label }}</option>
+        </select>
+      </div>
+
+      <div class="notas" role="radiogroup" aria-label="Nota da experiência">
+        <button type="button" class="nota" *ngFor="let o of opcoes" [class.is-active]="nota === o.nota"
+          (click)="selecionarNota(o.nota)" role="radio" [attr.aria-checked]="nota === o.nota"
+          [attr.aria-label]="o.label" [attr.title]="o.label">
+          <span class="material-icons" aria-hidden="true">{{ o.icone }}</span>
+        </button>
+      </div>
+      <p class="nota-label" aria-live="polite">{{ labelNotaSelecionada || 'Escolha uma carinha' }}</p>
+
+      <textarea class="comentario" *ngIf="nota !== null" [(ngModel)]="comentario" [maxlength]="comentarioMax"
+        rows="3" placeholder="Quer contar mais? (opcional)" aria-label="Comentário opcional"></textarea>
+
+      <p class="erro" *ngIf="erro" role="alert">{{ erro }}</p>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn-cancelar" (click)="agoraNao()">Agora não</button>
+      <button type="button" class="btn-enviar" (click)="enviar()" [disabled]="nota === null || enviando">
+        {{ enviando ? 'Enviando…' : 'Enviar' }}
+      </button>
+    </div>
+  </div>
+</div>
