@@ -1368,6 +1368,16 @@ describe('ExecutandoMetasComponent', () => {
     });
   });
 
+  describe('nomeMesSemAno', () => {
+    it('remove o ano do nome do mês', () => {
+      expect(component.nomeMesSemAno('Agosto/2026')).toBe('Agosto');
+    });
+
+    it('mantém o nome quando não há ano', () => {
+      expect(component.nomeMesSemAno('Janeiro')).toBe('Janeiro');
+    });
+  });
+
   describe('getTotalContribuicoesMeta', () => {
     it('deve retornar 0 quando meta não tiver meses', () => {
       const meta = {
