@@ -7,7 +7,7 @@ const esModule = [
   'angular2-text-mask',
 ];
 
-module.exports = {
+const config = {
   verbose: true,
   preset: 'jest-preset-angular',
   globalSetup: '',
@@ -33,10 +33,10 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      statements: 80,
-      branches: 80,
-      functions: 80,
-      lines: 80,
+      statements: 97,
+      branches: 97,
+      functions: 97,
+      lines: 97,
     },
   },
   transformIgnorePatterns: [
@@ -54,6 +54,8 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^/opt/nodejs/(.*)$': '<rootDir>/test/_mocks_/layerMock.js',
+    '^@core/(.*)$': '<rootDir>/src/app/core/$1',
+    '^@app/(.*)$': '<rootDir>/src/app/$1',
     'src(.*)$': '<rootDir>/src$1',
     'code/(.*)$': '<rootDir>/src/app/code/$1',
     'core/components/(.*)$': '<rootDir>/src/app/core/components/$1',
@@ -76,3 +78,5 @@ module.exports = {
     ],
   },
 };
+
+export default config;

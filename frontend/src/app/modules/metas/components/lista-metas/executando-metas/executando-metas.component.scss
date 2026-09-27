@@ -1,83 +1,141 @@
-  .section-execucao {
-    background: white;
+  .executando-section {
+    background: #fff;
     border-radius: 16px;
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
     margin-bottom: 2rem;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
     overflow: hidden;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #e2e8f0;
+    box-shadow:
+      0 4px 6px -1px rgba(15, 23, 42, 0.06),
+      0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  }
+
+  .executando-hero__accent {
+    height: 4px;
+    background: linear-gradient(90deg, #5b21b6 0%, #7c3aed 35%, #a855f7 70%, #c4b5fd 100%);
   }
 
   .section-header {
-    background: #475569;
-    color: white;
-    padding: 1.5rem 2rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
   }
 
-  .section-header h2 {
+  .section-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .section-header__text {
+    min-width: 0;
+
+    h2 {
+      margin: 0 0 0.25rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #0f172a;
+      line-height: 1.3;
+      text-transform: none;
+    }
+  }
+
+  .section-header__subtitle {
     margin: 0;
-    font-size: 1.3rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.4;
   }
 
-  /* opcional */
-  .section-execucao .table-container {
-    overflow-x: auto;
-    overflow-y: visible;
-  }
-
-  /* Tabelas */
   .table-container {
-    padding: 1.5rem;
+    padding: 1rem 1.25rem 1.25rem;
     overflow-x: auto;
     overflow-y: visible;
     position: relative;
+    scrollbar-width: thin;
+    scrollbar-color: #a78bfa #eef2ff;
   }
 
   .execucao-table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     border-radius: 12px;
-    overflow: visible;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    min-width: 1200px;
   }
 
   .execucao-table th {
-    background: #475569;
-    color: white;
-    padding: 0.4rem 0.5rem;
+    background: linear-gradient(180deg, #475569 0%, #334155 100%);
+    color: #fff;
+    padding: 0.7rem 1rem;
     text-align: center;
     font-weight: 600;
-    font-size: 0.9rem;
-    letter-spacing: 0.5px;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    border-bottom: 2px solid #e2e8f0;
     white-space: nowrap;
   }
 
+  .execucao-table th:first-child,
+  .execucao-table th:last-child {
+    text-align: left;
+  }
+
   .execucao-table td {
-    padding: 0.4rem 0.6rem;
+    padding: 0.55rem 1rem;
     border-bottom: 1px solid #f1f5f9;
     vertical-align: middle;
     text-align: center;
     transition: background-color 0.2s ease;
   }
 
+  .execucao-table td.col-nome,
+  .execucao-table td.col-valor,
+  .execucao-table td:first-child {
+    text-align: left;
+  }
+
+  .total-row td {
+    border-top: 2px solid #e9d5ff;
+    background: #faf5ff !important;
+    color: #374151;
+    font-size: 0.875rem;
+    padding: 0.65rem 1rem;
+    font-weight: 500;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .total-row td:first-child {
+    color: #374151;
+    font-weight: 500;
+  }
+
+  .execucao-table td.col-valor {
+    color: #374151;
+    font-weight: 500;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .execucao-table tr:nth-child(odd) td:first-child,
+  .execucao-table tr:nth-child(even) td:first-child,
+  .execucao-table td.col-nome {
+    color: #374151;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
   .execucao-table tr:nth-child(odd) td:first-child {
     background: #f8fafc;
-    color: #374151;
-    font-weight: 600;
     border-right: 2px solid #e2e8f0;
   }
 
   .execucao-table tr:nth-child(even) td:first-child {
     background: #f1f5f9;
-    color: #374151;
-    font-weight: 600;
     border-right: 2px solid #e2e8f0;
   }
 
@@ -93,6 +151,39 @@
 
   .execucao-table tr:hover td:not(:first-child) {
     background-color: #f8fafc;
+  }
+
+  .status-cell.mes-desabilitado {
+    background-color: #f1f5f9 !important;
+  }
+
+  .status-dropdown-container.is-disabled {
+    pointer-events: none;
+    opacity: 0.65;
+  }
+
+  .valor-desabilitado,
+  .valor-finalizado {
+    color: #9ca3af !important;
+    cursor: not-allowed !important;
+  }
+
+  .status-indicator.status-desabilitado,
+  .status-indicator.status-finalizado {
+    background: #e5e7eb !important;
+    border-color: #d1d5db !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+  }
+
+  .status-indicator.status-desabilitado .material-icons,
+  .status-indicator.status-finalizado .material-icons {
+    color: #9ca3af !important;
+  }
+
+  .status-indicator.status-desabilitado:hover,
+  .status-indicator.status-finalizado:hover {
+    transform: none !important;
   }
 
   /* Responsividade */
@@ -127,32 +218,24 @@
     min-width: 1200px;
   }
 
-  .table-container {
-    scrollbar-width: thin;
-    scrollbar-color: #475569 #e2e8f0;
-  }
-
   .table-container::-webkit-scrollbar {
-    height: 4px;
+    height: 6px;
   }
 
   .table-container::-webkit-scrollbar-track {
     background: #f1f5f9;
-    border-radius: 2px;
+    border-radius: 999px;
   }
 
   .table-container::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 2px;
-  }
-
-  .table-container::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
+    border-radius: 999px;
   }
 
   /* Status Styles */
   .status-cell {
     padding: 0.3rem !important;
+    text-align: left;
   }
 
   .status-container {
@@ -165,9 +248,9 @@
   }
 
   .valor-display {
-    font-weight: 600;
-    color: #1e293b;
-    font-size: 0.9rem;
+    font-weight: 500;
+    color: #374151;
+    font-size: 0.875rem;
     cursor: pointer;
     padding: 0.2rem 0.15rem 0.2rem 0.4rem;
     border-radius: 4px;
@@ -177,9 +260,9 @@
     user-select: none;
     display: inline-flex !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
     min-width: 60px;
-    text-align: center;
+    text-align: left;
     border: 1px solid transparent;
     margin: 0 !important;
     flex-shrink: 0 !important;
@@ -232,8 +315,8 @@
   .execucao-table td.status-cell {
     position: relative;
     overflow: visible !important;
-    text-align: center;
-    padding: 0.4rem 0.6rem !important;
+    text-align: left;
+    padding: 0.4rem 0.75rem !important;
     vertical-align: middle !important;
   }
 
@@ -242,11 +325,11 @@
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
-    justify-content: center !important;
-    gap: 0.25rem !important;
+    justify-content: space-between !important;
+    gap: 0.35rem !important;
     white-space: nowrap !important;
-    margin: 0 auto !important;
-    width: fit-content !important;
+    margin: 0 !important;
+    width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
     line-height: 1 !important;
@@ -259,19 +342,23 @@
     vertical-align: middle !important;
   }
 
-  .status-dropdown-container>.valor-display {
+  .status-dropdown-container > .valor-display {
     order: 1 !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
   }
 
-  .status-dropdown-container>.status-indicator-wrapper {
+  .status-dropdown-container > .status-indicator-wrapper {
     order: 2 !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
   }
 
   .status-indicator-wrapper {
     position: relative;
     display: inline-flex !important;
     flex-shrink: 0 !important;
-    margin: 0 !important;
+    margin: 0 0 0 auto !important;
   }
 
   .status-dropdown-overlay {
@@ -523,8 +610,8 @@
   }
 
   .nome-texto {
-    font-weight: 600;
-    color: #1f2937;
+    font-weight: 500;
+    color: #374151;
   }
 
   .material-icons.ok {
@@ -559,8 +646,8 @@
   }
 
   .cell-text {
-    font-weight: 600;
-    color: #1f2937;
+    font-weight: 500;
+    color: #374151;
   }
 
   .cell-input {

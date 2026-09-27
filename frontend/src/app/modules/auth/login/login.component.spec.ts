@@ -1,0 +1,157 @@
+import { FormBuilder } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
+import { LoginComponent } from './login.component';
+
+describe('LoginComponent', () => {
+  const authService = {
+    login: jest.fn(),
+  };
+  const router = {
+    navigateByUrl: jest.fn(),
+  };
+  const route = {
+    snapshot: {
+      queryParamMap: {
+        get: jest.fn(),
+      },
+    },
+  };
+
+  function criar() {
+    return new LoginComponent(
+      new FormBuilder(),
+      authService as any,
+      router as any,
+      route as any,
+    );
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    authService.login.mockReturnValue(of({}));
+    route.snapshot.queryParamMap.get.mockReturnValue(null);
+  });
+
+  it('deve bloquear formulário inválido', () => {
+    const component = criar();
+
+    component.entrar();
+
+    expect(component.erro).toBe('Informe usuário ou email e senha para entrar.');
+    expect(authService.login).not.toHaveBeenCalled();
+  });
+
+  it('deve fazer login e navegar para dashboard por padrão', () => {
+    const component = criar();
+    component.form.patchValue({ usuarioOuEmail: 'usuario1', senha: '123456' });
+
+    component.entrar();
+
+    expect(authService.login).toHaveBeenCalledWith({
+      usuarioOuEmail: 'usuario1',
+      senha: '123456',
+    });
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/dashboard');
+    expect(component.carregando).toBe(false);
+  });
+
+  it('deve respeitar returnUrl após login', () => {
+    route.snapshot.queryParamMap.get.mockReturnValue('/metas');
+    const component = criar();
+    component.form.patchValue({ usuarioOuEmail: 'teste@email.com', senha: '123456' });
+
+    component.entrar();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/metas');
+  });
+
+  it('deve exibir sucesso quando senha foi redefinida', () => {
+    route.snapshot.queryParamMap.get.mockImplementation((key: string) =>
+      key === 'senhaRedefinida' ? '1' : null,
+    );
+    const component = criar();
+
+    component.ngOnInit();
+
+    expect(component.sucesso).toBe(
+      'Senha redefinida com sucesso. Faça login com sua nova senha.',
+    );
+  });
+
+  it('não deve exibir sucesso quando senhaRedefinida está ausente', () => {
+    const component = criar();
+
+    component.ngOnInit();
+
+    expect(component.sucesso).toBeNull();
+  });
+
+  it('deve bloquear quando já está carregando', () => {
+    const component = criar();
+    component.form.patchValue({ usuarioOuEmail: 'usuario1', senha: '123456' });
+    component.carregando = true;
+
+    component.entrar();
+
+    expect(component.erro).toBe('Informe usuário ou email e senha para entrar.');
+    expect(authService.login).not.toHaveBeenCalled();
+  });
+
+  it('deve remover espaços do usuário e limpar sucesso anterior', () => {
+    const component = criar();
+    component.sucesso = 'anterior';
+    component.form.patchValue({ usuarioOuEmail: '  usuario1  ', senha: '123456' });
+
+    component.entrar();
+
+    expect(authService.login).toHaveBeenCalledWith({
+      usuarioOuEmail: 'usuario1',
+      senha: '123456',
+    });
+    expect(component.sucesso).toBeNull();
+  });
+
+  it.each([
+    ['erro como string', 'falhou'],
+    ['erro nulo', null],
+    ['objeto sem chave error', { message: 'x' }],
+    ['mensagem vazia', { error: '' }],
+  ])('deve usar fallback em HttpErrorResponse com %s', (_desc, error) => {
+    authService.login.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 500, error })),
+    );
+    const component = criar();
+    component.form.patchValue({ usuarioOuEmail: 'usuario1', senha: '123456' });
+
+    component.entrar();
+
+    expect(component.carregando).toBe(false);
+    expect(component.erro).toBe(
+      'Não foi possível entrar. Verifique seus dados e tente novamente.',
+    );
+  });
+
+  it('deve exibir erro amigável da API ou fallback', () => {
+    authService.login.mockReturnValueOnce(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 401,
+            error: { error: 'Email ou senha inválidos.' },
+          }),
+      ),
+    );
+    const component = criar();
+    component.form.patchValue({ usuarioOuEmail: 'teste@email.com', senha: '123456' });
+
+    component.entrar();
+    expect(component.erro).toBe('Email ou senha inválidos.');
+
+    authService.login.mockReturnValueOnce(throwError(() => new Error('erro')));
+    component.entrar();
+    expect(component.erro).toBe(
+      'Não foi possível entrar. Verifique seus dados e tente novamente.',
+    );
+  });
+});

@@ -1,0 +1,49 @@
+<main class="auth-page">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-brand__top">
+        <div class="title-brand">
+          <div class="title-brand__name">
+            <span class="auth-brand__icon" aria-hidden="true">
+              <img src="/assets/images/logo-roxo.png" alt="" />
+            </span>
+            <strong>ORBIS</strong>
+          </div>
+          <p>Planejamento Financeiro</p>
+        </div>
+      </div>
+      <h1>Verificar código</h1>
+      <span>Digite o código de 6 dígitos enviado para <strong>{{ email }}</strong>.</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="verificar()" class="auth-form">
+      <label>
+        <span>Código</span>
+        <input
+          type="text"
+          formControlName="codigo"
+          placeholder="000000"
+          inputmode="numeric"
+          maxlength="6"
+          autocomplete="one-time-code"
+        />
+        <small *ngIf="form.get('codigo')?.touched && form.get('codigo')?.invalid">
+          Informe o código de 6 dígitos.
+        </small>
+      </label>
+
+      <div class="auth-alert" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <button type="submit" [disabled]="carregando">
+        {{ carregando ? 'Verificando...' : 'Verificar código' }}
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Não recebeu o código?
+      <a routerLink="/recuperar-senha">Solicitar novamente</a>
+    </p>
+  </section>
+</main>

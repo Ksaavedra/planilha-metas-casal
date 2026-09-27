@@ -26,4 +26,8 @@ export class SidebarComponent implements OnInit {
   onSidebarClick() {
     this.sidebar.changeStatus();
   }
+
+  onNavigationClick(): void {
+    this.sidebar.close();
+  }
 }

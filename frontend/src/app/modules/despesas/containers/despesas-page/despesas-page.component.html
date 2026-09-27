@@ -8,12 +8,13 @@
         </div>
         <div class="despesas-hero__text">
           <h1 class="despesas-hero__title">
-            Despesas do casal
+            {{ (temGrupoFamiliar$ | async) ? 'Despesas do casal' : 'Despesas' }}
           </h1>
           <p class="despesas-hero__subtitle">{{ tituloSecundario }}</p>
         </div>
       </div>
-      <div class="despesas-hero__field" aria-label="Mês de referência">
+      <div class="despesas-hero__field" aria-label="Mês de referência"
+        *ngIf="visaoDespesas === 'lista' || visaoDespesas === 'usuario'">
         <p class="despesas-hero__label">Mês de referência</p>
         <div class="despesas-hero__mes-nav">
           <button type="button" class="despesas-hero__nav-btn" (click)="mesAnterior()" title="Mês anterior"
@@ -39,7 +40,8 @@
           (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoDespesas === 'lista'">
           Minhas despesas
         </button>
-        <button type="button" class="despesas-hero__chip" [class.is-active]="visaoDespesas === 'usuario'"
+        <button *ngIf="temGrupoFamiliar$ | async" type="button" class="despesas-hero__chip"
+          [class.is-active]="visaoDespesas === 'usuario'"
           (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoDespesas === 'usuario'">
           Por pessoa
         </button>
@@ -212,6 +214,6 @@
   </ng-container>
 
   <app-despesas-exemplos *ngIf="visaoDespesas === 'exemplos'"></app-despesas-exemplos>
-  <app-despesas-usuario *ngIf="visaoDespesas === 'usuario'" [despesas]="despesas" [nomeMesReferencia]="nomeMesAtual">
+  <app-despesas-usuario *ngIf="visaoDespesas === 'usuario' && (temGrupoFamiliar$ | async)" [despesas]="despesas" [nomeMesReferencia]="nomeMesAtual">
   </app-despesas-usuario>
 </div>

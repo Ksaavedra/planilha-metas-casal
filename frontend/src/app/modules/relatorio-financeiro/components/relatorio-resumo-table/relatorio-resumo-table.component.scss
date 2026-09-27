@@ -1,0 +1,197 @@
+:host {
+  --categoria-column-width: 180px;
+  --valor-column-width: 112px;
+  --table-scroll-width: 1636px;
+
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  contain: inline-size;
+}
+
+:host *,
+:host *::before,
+:host *::after {
+  box-sizing: inherit;
+}
+
+.data-table-shell {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  contain: inline-size;
+}
+
+.data-table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  contain: inline-size;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+
+  //   scrollbar-width: thin;
+  //   scrollbar-color: #8b5cf6 #e5e7eb;
+}
+
+.data-table::-webkit-scrollbar {
+  height: 10px;
+}
+
+.data-table::-webkit-scrollbar-track {
+  background: #e5e7eb;
+  border-radius: 999px;
+}
+
+.data-table::-webkit-scrollbar-thumb {
+  background: #8b5cf6;
+  border-radius: 999px;
+}
+
+.data-table::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
+}
+
+.data-table table {
+  width: 100%;
+  min-width: var(--table-scroll-width);
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.data-table th,
+.data-table td {
+  width: var(--valor-column-width);
+  min-width: var(--valor-column-width);
+  max-width: var(--valor-column-width);
+  padding: 0.55rem 0.5rem;
+  white-space: nowrap;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.data-table th {
+  background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+.data-table th:first-child,
+.data-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: var(--categoria-column-width);
+  min-width: var(--categoria-column-width);
+  max-width: var(--categoria-column-width);
+  text-align: left;
+  font-weight: 600;
+  background: #fff;
+  box-shadow: 1px 0 0 #e2e8f0;
+}
+
+.data-table th:first-child {
+  z-index: 4;
+  background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+  color: #fff;
+  border-radius: 13px 0 0 0;
+}
+
+.data-table th:not(:first-child),
+.data-table td:not(:first-child) {
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table th:last-child {
+  border-radius: 0 13px 0 0;
+}
+
+.data-table td {
+  font-size: 0.78rem;
+}
+
+.data-table tbody tr {
+  background: #fff;
+}
+
+.data-table tbody td {
+  background: #fff;
+  transition: background 0.15s ease;
+}
+
+.data-table tbody tr:hover td {
+  background: #faf5ff;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table .receitas-row,
+.data-table .despesas-row,
+.data-table .cartao-credito-row,
+.data-table .investimentos-row {
+  font-weight: 500;
+}
+
+.data-table .total-row td {
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-top: 2px solid #312e81;
+}
+
+.data-table .positive {
+  background: rgba(34, 197, 94, 0.2) !important;
+  color: #16a34a !important;
+  font-weight: 700;
+}
+
+.data-table .negative {
+  background: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  :host {
+    --categoria-column-width: 150px;
+    --valor-column-width: 104px;
+    --table-scroll-width: 1502px;
+  }
+
+  .data-table-shell {
+    margin-bottom: 1rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.5rem 0.45rem;
+  }
+
+  .data-table th {
+    font-size: 0.68rem;
+  }
+
+  .data-table td {
+    font-size: 0.72rem;
+  }
+}

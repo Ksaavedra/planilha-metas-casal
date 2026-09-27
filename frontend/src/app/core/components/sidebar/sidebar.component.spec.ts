@@ -8,13 +8,19 @@ import { SidebarService } from '../../services/sidebar/sidebar.service';
 describe('SidebarComponent', () => {
   let component: SidebarComponent;
   let fixture: ComponentFixture<SidebarComponent>;
-  let sidebarService: { getStatus: jest.Mock; isMobile: jest.Mock; changeStatus: jest.Mock };
+  let sidebarService: {
+    getStatus: jest.Mock;
+    isMobile: jest.Mock;
+    changeStatus: jest.Mock;
+    close: jest.Mock;
+  };
 
   beforeEach(async () => {
     sidebarService = {
       getStatus: jest.fn().mockReturnValue(of(false)),
       isMobile: jest.fn().mockReturnValue(of(false)),
       changeStatus: jest.fn(),
+      close: jest.fn(),
     };
     await TestBed.configureTestingModule({
       declarations: [SidebarComponent],
@@ -40,16 +46,18 @@ describe('SidebarComponent', () => {
 
   it('should have correct navigation items', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    const linkTexts = Array.from(compiled.querySelectorAll('a')).map((link) =>
-      link.textContent?.trim()
-    );
+    const menuText = Array.from(compiled.querySelectorAll('a'))
+      .map((link) => link.textContent?.trim())
+      .join(' ');
 
-    expect(linkTexts).toContain('📊 Dashboard');
-    expect(linkTexts).toContain('🎯 Metas');
-    expect(linkTexts).toContain('💰 Investimentos');
-    expect(linkTexts).toContain('💸 Despesas');
-    expect(linkTexts).toContain('💵 Receitas');
-    expect(linkTexts).toContain('📋 Dívidas');
+    expect(menuText).toContain('Dashboard');
+    expect(menuText).toContain('Faturas');
+    expect(menuText).toContain('Empréstimos');
+    expect(menuText).toContain('Financiamentos');
+    expect(menuText).toContain('Investimentos');
+    expect(menuText).toContain('Metas');
+    expect(menuText).toContain('Despesas');
+    expect(menuText).toContain('Receitas');
   });
 
   it('should have correct router links', () => {
@@ -60,11 +68,13 @@ describe('SidebarComponent', () => {
       link.getAttribute('routerLink')
     );
     expect(hrefs).toContain('/dashboard');
+    expect(hrefs).toContain('/faturas');
+    expect(hrefs).toContain('/emprestimos');
+    expect(hrefs).toContain('/financiamentos');
     expect(hrefs).toContain('/metas');
     expect(hrefs).toContain('/investimentos');
     expect(hrefs).toContain('/despesas');
     expect(hrefs).toContain('/receitas');
-    expect(hrefs).toContain('/dividas');
   });
 
   it('should have close button', () => {
@@ -79,5 +89,23 @@ describe('SidebarComponent', () => {
     expect(sidebarService.changeStatus).toHaveBeenCalledTimes(1);
     component.onSidebarClick();
     expect(sidebarService.changeStatus).toHaveBeenCalledTimes(2);
+  });
+
+  it('deve fechar a sidebar ao navegar no desktop', () => {
+    component.isMobile = false;
+
+    component.onNavigationClick();
+
+    expect(sidebarService.close).toHaveBeenCalledTimes(1);
+    expect(sidebarService.changeStatus).not.toHaveBeenCalled();
+  });
+
+  it('deve fechar a sidebar ao navegar no mobile', () => {
+    component.isMobile = true;
+
+    component.onNavigationClick();
+
+    expect(sidebarService.close).toHaveBeenCalledTimes(1);
+    expect(sidebarService.changeStatus).not.toHaveBeenCalled();
   });
 });

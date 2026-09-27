@@ -2,12 +2,20 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 import { ApiService } from '../api/api.service';
-import type { LoginRequest, RegisterRequest, AuthResponse, Usuario } from 'auths/auth';
+import type {
+  LoginRequest,
+  RegisterRequest,
+  AuthResponse,
+  Usuario,
+} from 'auths/auth';
 
 const mockUsuario: Usuario = {
-  id: '1',
-  nome: 'Usuário Teste',
+  id: 1,
+  usuario: 'usuario1',
+  nomeCompleto: 'Usuário Teste',
+  apelido: 'Teste',
   email: 'teste@exemplo.com',
+  tipoUso: 'individual',
 };
 
 const mockAuthResponse: AuthResponse = {
@@ -18,28 +26,35 @@ const mockAuthResponse: AuthResponse = {
 
 describe('AuthService', () => {
   let service: AuthService;
-  let apiService: jest.Mocked<Pick<ApiService, 'post'>>;
+  let apiService: jest.Mocked<Pick<ApiService, 'post' | 'get' | 'put'>>;
   let localStorageMock: Record<string, string>;
 
   beforeEach(() => {
     localStorageMock = {};
-    jest.spyOn(Storage.prototype, 'getItem').mockImplementation((key: string) => localStorageMock[key] ?? null);
-    jest.spyOn(Storage.prototype, 'setItem').mockImplementation((key: string, value: string) => {
-      localStorageMock[key] = value;
-    });
-    jest.spyOn(Storage.prototype, 'removeItem').mockImplementation((key: string) => {
-      delete localStorageMock[key];
-    });
+    jest
+      .spyOn(Storage.prototype, 'getItem')
+      .mockImplementation((key: string) => localStorageMock[key] ?? null);
+    jest
+      .spyOn(Storage.prototype, 'setItem')
+      .mockImplementation((key: string, value: string) => {
+        localStorageMock[key] = value;
+      });
+    jest
+      .spyOn(Storage.prototype, 'removeItem')
+      .mockImplementation((key: string) => {
+        delete localStorageMock[key];
+      });
 
     apiService = {
       post: jest.fn().mockReturnValue(of(mockAuthResponse)),
+      get: jest.fn().mockReturnValue(of(mockUsuario)),
+      put: jest
+        .fn()
+        .mockReturnValue(of({ ...mockUsuario, tipoUso: 'familia' })),
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        AuthService,
-        { provide: ApiService, useValue: apiService },
-      ],
+      providers: [AuthService, { provide: ApiService, useValue: apiService }],
     });
 
     service = TestBed.inject(AuthService);
@@ -76,12 +91,20 @@ describe('AuthService', () => {
 
   describe('login', () => {
     it('deve chamar api.post /auth/login e ao sucesso setar token, user e currentUser$', (done) => {
-      const credentials: LoginRequest = { email: 'a@b.com', senha: '123' };
+      const credentials: LoginRequest = {
+        usuarioOuEmail: 'usuario1',
+        senha: '123',
+      };
       service.login(credentials).subscribe((response) => {
         expect(response).toEqual(mockAuthResponse);
-        expect(apiService.post).toHaveBeenCalledWith('/auth/login', credentials);
+        expect(apiService.post).toHaveBeenCalledWith(
+          '/auth/login',
+          credentials,
+        );
         expect(localStorageMock['auth_token']).toBe('token-123');
-        expect(localStorageMock['current_user']).toBe(JSON.stringify(mockUsuario));
+        expect(localStorageMock['current_user']).toBe(
+          JSON.stringify(mockUsuario),
+        );
         expect(service.getCurrentUser()).toEqual(mockUsuario);
         done();
       });
@@ -90,7 +113,7 @@ describe('AuthService', () => {
     it('em erro deve repassar o erro', (done) => {
       const err = new Error('Unauthorized');
       (apiService.post as jest.Mock).mockReturnValue(throwError(() => err));
-      service.login({ email: 'x', senha: 'y' }).subscribe({
+      service.login({ usuarioOuEmail: 'x', senha: 'y' }).subscribe({
         next: () => fail('deveria falhar'),
         error: (e) => {
           expect(e).toBe(err);
@@ -102,23 +125,42 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('deve chamar api.post /auth/registrar e ao sucesso setar auth', (done) => {
-      const userData: RegisterRequest = { nome: 'A', email: 'a@b.com', senha: '123' };
+      const userData: RegisterRequest = {
+        usuario: 'usuario1',
+        nomeCompleto: 'A',
+        apelido: 'A',
+        email: 'a@b.com',
+        senha: '123',
+      };
       service.register(userData).subscribe(() => {
-        expect(apiService.post).toHaveBeenCalledWith('/auth/registrar', userData);
+        expect(apiService.post).toHaveBeenCalledWith(
+          '/auth/registrar',
+          userData,
+        );
         expect(service.getCurrentUser()).toEqual(mockUsuario);
         done();
       });
     });
 
     it('em erro deve repassar o erro', (done) => {
-      (apiService.post as jest.Mock).mockReturnValue(throwError(() => new Error('Conflict')));
-      service.register({ nome: 'X', email: 'x@x.com', senha: '1' }).subscribe({
-        next: () => fail('deveria falhar'),
-        error: (e) => {
-          expect(e.message).toBe('Conflict');
-          done();
-        },
-      });
+      (apiService.post as jest.Mock).mockReturnValue(
+        throwError(() => new Error('Conflict')),
+      );
+      service
+        .register({
+          usuario: 'x',
+          nomeCompleto: 'X',
+          apelido: 'X',
+          email: 'x@x.com',
+          senha: '1',
+        })
+        .subscribe({
+          next: () => fail('deveria falhar'),
+          error: (e) => {
+            expect(e.message).toBe('Conflict');
+            done();
+          },
+        });
     });
   });
 
@@ -162,7 +204,7 @@ describe('AuthService', () => {
     });
 
     it('retorna o usuário após login', (done) => {
-      service.login({ email: 'a@b.com', senha: '1' }).subscribe(() => {
+      service.login({ usuarioOuEmail: 'a@b.com', senha: '1' }).subscribe(() => {
         expect(service.getCurrentUser()).toEqual(mockUsuario);
         done();
       });
@@ -170,24 +212,115 @@ describe('AuthService', () => {
   });
 
   describe('getProfile', () => {
-    it('quando há usuário logado retorna of(usuario)', (done) => {
-      service.login({ email: 'a@b.com', senha: '1' }).subscribe(() => {
+    it('busca perfil na API e atualiza currentUser$', (done) => {
+      service.login({ usuarioOuEmail: 'a@b.com', senha: '1' }).subscribe(() => {
         service.getProfile().subscribe((user) => {
           expect(user).toEqual(mockUsuario);
+          expect(apiService.get).toHaveBeenCalledWith('/auth/perfil');
+          expect(service.getCurrentUser()).toEqual(mockUsuario);
           done();
         });
       });
     });
 
-    it('quando não há usuário retorna mock de perfil', (done) => {
-      service.getProfile().subscribe((user) => {
-        expect(user).toEqual({
-          id: '1',
-          nome: 'Usuário Teste',
-          email: 'teste@exemplo.com',
+    it('limpa autenticação quando perfil retorna 401', (done) => {
+      localStorageMock['auth_token'] = 't';
+      localStorageMock['current_user'] = JSON.stringify(mockUsuario);
+      (apiService.get as jest.Mock).mockReturnValue(
+        throwError(() => ({ status: 401 })),
+      );
+      const s = new AuthService(apiService as unknown as ApiService);
+
+      s.getProfile().subscribe({
+        next: () => fail('deveria falhar'),
+        error: (err) => {
+          expect(err.status).toBe(401);
+          expect(s.getCurrentUser()).toBeNull();
+          expect(localStorageMock['auth_token']).toBeUndefined();
+          done();
+        },
+      });
+    });
+
+    it('mantém autenticação quando perfil retorna erro diferente de 401', (done) => {
+      localStorageMock['auth_token'] = 't';
+      localStorageMock['current_user'] = JSON.stringify(mockUsuario);
+      (apiService.get as jest.Mock).mockReturnValue(
+        throwError(() => ({ status: 500 })),
+      );
+      const s = new AuthService(apiService as unknown as ApiService);
+
+      s.getProfile().subscribe({
+        next: () => fail('deveria falhar'),
+        error: (err) => {
+          expect(err.status).toBe(500);
+          expect(s.getCurrentUser()).toEqual(mockUsuario);
+          expect(localStorageMock['auth_token']).toBe('t');
+          done();
+        },
+      });
+    });
+  });
+
+  describe('atualizarTipoUso', () => {
+    it('atualiza tipo de uso e currentUser$', (done) => {
+      service.atualizarTipoUso('familia').subscribe((usuario) => {
+        expect(apiService.put).toHaveBeenCalledWith('/auth/tipo-uso', {
+          tipoUso: 'familia',
+        });
+        expect(usuario.tipoUso).toBe('familia');
+        expect(service.getCurrentUser()?.tipoUso).toBe('familia');
+        done();
+      });
+    });
+  });
+
+  describe('recuperação de senha', () => {
+    it('forgotPassword deve chamar api.post /auth/forgot-password', (done) => {
+      const resposta = { message: 'Código enviado.' };
+      (apiService.post as jest.Mock).mockReturnValue(of(resposta));
+
+      service.forgotPassword({ email: 'a@b.com' }).subscribe((r) => {
+        expect(r).toEqual(resposta);
+        expect(apiService.post).toHaveBeenCalledWith('/auth/forgot-password', {
+          email: 'a@b.com',
         });
         done();
       });
+    });
+
+    it('verifyResetCode deve chamar api.post /auth/verify-reset-code', (done) => {
+      const resposta = { resetToken: 'reset-123' };
+      (apiService.post as jest.Mock).mockReturnValue(of(resposta));
+
+      service
+        .verifyResetCode({ email: 'a@b.com', codigo: '123456' })
+        .subscribe((r) => {
+          expect(r).toEqual(resposta);
+          expect(apiService.post).toHaveBeenCalledWith(
+            '/auth/verify-reset-code',
+            { email: 'a@b.com', codigo: '123456' },
+          );
+          done();
+        });
+    });
+
+    it('resetPassword deve chamar api.post /auth/reset-password sem alterar auth', (done) => {
+      const resposta = { message: 'Senha redefinida.' };
+      (apiService.post as jest.Mock).mockReturnValue(of(resposta));
+
+      service
+        .resetPassword({ resetToken: 'reset-123', novaSenha: '123456' })
+        .subscribe((r) => {
+          expect(r).toEqual(resposta);
+          expect(apiService.post).toHaveBeenCalledWith('/auth/reset-password', {
+            resetToken: 'reset-123',
+            novaSenha: '123456',
+          });
+          expect(localStorageMock['auth_token']).toBeUndefined();
+          expect(service.getCurrentUser()).toBeNull();
+          done();
+        });
     });
   });
 });

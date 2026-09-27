@@ -1,0 +1,57 @@
+<section class="investimentos-exemplos" aria-label="Como usar os investimentos do casal">
+  <h2 class="investimentos-exemplos__h2">Como funcionam os investimentos</h2>
+  <p class="investimentos-exemplos__intro">
+    Na aba <strong>Meus investimentos</strong>, vocês acompanham patrimônio, gráficos e a tabela do ano.
+    Use o botão <strong>Adicionar investimento</strong> para registrar cada objetivo.
+  </p>
+
+  <article class="investimentos-exemplos__bloco">
+    <h3 class="investimentos-exemplos__h3">Objetivo</h3>
+    <p>
+      É o <strong>nome do plano</strong> — o que vocês querem construir com aquele dinheiro
+      (reserva, aposentadoria, viagem, etc.).
+    </p>
+    <p class="investimentos-exemplos__ideia">
+      <strong>A ideia:</strong> um objetivo claro por linha na tabela facilita ver o progresso de cada meta.
+    </p>
+  </article>
+
+  <article class="investimentos-exemplos__bloco">
+    <h3 class="investimentos-exemplos__h3">Status do investimento</h3>
+    <p>
+      <strong>Crescendo:</strong> ainda recebendo aportes ou em fase de acumulação.
+      <strong>Estável:</strong> patrimônio consolidado, pouca mudança.
+      <strong>Finalizado:</strong> objetivo atingido ou resgatado.
+    </p>
+    <p class="investimentos-exemplos__ideia">
+      <strong>Dica:</strong> atualize o patrimônio atual de tempos em tempos para a rentabilidade ficar realista.
+    </p>
+  </article>
+
+  <div
+    class="investimentos-exemplos__categorias-wrap"
+    aria-label="Ideias de objetivos e tipos de investimento"
+  >
+    <h3 class="investimentos-exemplos__h3 investimentos-exemplos__h3--sec">
+      Mais ideias para começar
+    </h3>
+    <p class="investimentos-exemplos__lista-intro">
+      No formulário, o <strong>tipo</strong> e o <strong>objetivo</strong> têm nomes curtos; aqui estão
+      sugestões mais detalhadas para inspirar o cadastro.
+    </p>
+    <div class="investimentos-exemplos__categorias-grid">
+      <div class="investimentos-exemplos__categorias-col">
+        <h4 class="investimentos-exemplos__h4" id="h-ex-obj">Exemplos de objetivos</h4>
+        <ul class="investimentos-exemplos__lista" aria-labelledby="h-ex-obj">
+          <li *ngFor="let o of exemplosObjetivos">{{ o }}</li>
+        </ul>
+      </div>
+      <div class="investimentos-exemplos__categorias-col">
+        <h4 class="investimentos-exemplos__h4" id="h-ex-tipos">Tipos de investimento</h4>
+        <ul class="investimentos-exemplos__lista" aria-labelledby="h-ex-tipos">
+          <li *ngFor="let t of exemplosTipos">{{ t }}</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

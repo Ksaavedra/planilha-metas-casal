@@ -2,10 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./scripts/db');
 
+const authRoutes = require('./routes/auth.routes');
 const usuariosRoutes = require('./routes/usuarios.routes');
 const receitasRoutes = require('./routes/receitas.routes');
 const despesasRoutes = require('./routes/despesas.routes');
 const metasRoutes = require('./routes/metas.routes');
+const investimentosRoutes = require('./routes/investimentos.routes');
+const dividasRoutes = require('./routes/dividas.routes');
+const cartoesRoutes = require('./routes/cartoes.routes');
 
 const app = express();
 const PORT = 3000;
@@ -17,10 +21,14 @@ app.get('/api/health', (req, res) => {
    res.json({ ok: true });
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/receitas', receitasRoutes);
 app.use('/api/despesas', despesasRoutes);
 app.use('/api/metas', metasRoutes);
+app.use('/api/investimentos', investimentosRoutes);
+app.use('/api/dividas', dividasRoutes);
+app.use('/api/cartoes', cartoesRoutes);
 
 process.on('SIGINT', () => {
    console.log('\n🛑 Fechando conexão com o banco...');
@@ -31,8 +39,12 @@ process.on('SIGINT', () => {
 app.listen(PORT, () => {
    console.log(`Servidor rodando na porta ${PORT}`);
    console.log(`API health: http://localhost:${PORT}/api/health`);
+   console.log(`API auth: http://localhost:${PORT}/api/auth`);
    console.log(`API usuarios: http://localhost:${PORT}/api/usuarios`);
    console.log(`API receitas: http://localhost:${PORT}/api/receitas`);
    console.log(`API despesas: http://localhost:${PORT}/api/despesas`);
    console.log(`API metas: http://localhost:${PORT}/api/metas`);
+   console.log(`API investimentos: http://localhost:${PORT}/api/investimentos`);
+   console.log(`API dividas: http://localhost:${PORT}/api/dividas`);
+   console.log(`API cartoes: http://localhost:${PORT}/api/cartoes`);
 });

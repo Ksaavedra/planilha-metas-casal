@@ -1,10 +1,19 @@
-export { Meta, MesMeta, MetaExtended } from './mes-meta';
+export { Meta, MesMeta, MetaExtended, StatusMeta } from './mes-meta';
 export {
   CreateMetaRequest,
-  ModalAdicionarMetaState,
-  ModalConfirmarDeleteState,
-  ModalEditarValorState,
-  ModalSucessoDeleteState,
-  ModalSucessoState,
   UpdateMetaRequest,
+  ModalAdicionarMetaState,
+  ModalSucessoState,
+  ModalConfirmarDeleteState,
+  ModalSucessoDeleteState,
+  ModalStateSalvar,
+  ValoresSalvarMetaModal,
 } from './metas-modais';
+export {
+  EditarValorDialogData,
+  EditarValorDialogResult,
+  ModalEdicao,
+  ModalEdicaoNome,
+  ModalAdicionarMeta,
+} from './editar-modal';
+export { ParabensDialogData, MetaCompletaEvent } from './metas-parabens';

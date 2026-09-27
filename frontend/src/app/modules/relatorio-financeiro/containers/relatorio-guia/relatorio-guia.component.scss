@@ -1,0 +1,132 @@
+.relatorio-guia {
+  animation: relatorio-guia-fade 0.25s ease;
+}
+
+@keyframes relatorio-guia-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.relatorio-guia__header {
+  margin-bottom: 1rem;
+}
+
+.relatorio-guia__h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.relatorio-guia__intro {
+  margin: 0 0 1.35rem;
+  max-width: 760px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: #64748b;
+}
+
+.relatorio-guia__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.guia-card {
+  position: relative;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.guia-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border-top: 4px solid #8b5cf6;
+  pointer-events: none;
+}
+
+.guia-card__tag {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: #f3e8ff;
+  color: #6d28d9;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.guia-card__title {
+  margin: 0 0 0.75rem;
+  color: #0f172a;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.guia-card__text {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.guia-card__example {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.guia-card__example strong {
+  color: #0f172a;
+}
+
+.relatorio-guia__lista {
+  margin: 1rem 0 0;
+  padding-left: 1.2rem;
+  color: #334155;
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.relatorio-guia__lista li {
+  margin-bottom: 0.35rem;
+}
+
+.relatorio-guia__lista li::marker {
+  color: #334155;
+  font-size: 0.85rem;
+}
+
+.relatorio-guia__lista {
+  margin: 1rem 0 0;
+  padding-left: 1.2rem;
+  color: #334155;
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+.relatorio-guia__lista li {
+  margin-bottom: 0.35rem;
+}
+
+.relatorio-guia__lista li::marker {
+  color: #334155;
+  font-size: 0.85rem;
+}

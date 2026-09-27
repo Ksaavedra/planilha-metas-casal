@@ -39,6 +39,15 @@ describe('SidebarService', () => {
     });
   });
 
+  it('deve fechar a sidebar explicitamente', (done) => {
+    service.changeStatus();
+    service.close();
+    service.getStatus().subscribe((status) => {
+      expect(status).toBe(false);
+      done();
+    });
+  });
+
   it('should detect mobile screen size', (done) => {
     service.isMobile().subscribe((isMobile) => {
       expect(typeof isMobile).toBe('boolean');

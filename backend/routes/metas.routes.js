@@ -1,12 +1,110 @@
 const express = require("express");
 const db = require("../scripts/db");
+const { autenticarToken } = require("../middlewares/auth.middleware");
+const { ensureDadosFinanceirosPorUsuario } = require("../utils/user-data-scope");
 
 const router = express.Router();
 
-//GET /api/metas
+function ensureAnoColumn() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      name TEXT PRIMARY KEY,
+      applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  const cols = db.prepare("PRAGMA table_info(metas)").all();
+  if (!cols.some((c) => c.name === "ano")) {
+    db.exec(`ALTER TABLE metas ADD COLUMN ano INTEGER`);
+  }
+
+  const migracaoAplicada = db
+    .prepare("SELECT 1 FROM schema_migrations WHERE name = ?")
+    .get("metas_ano_legado_null");
+
+  if (!migracaoAplicada) {
+    db.exec(`UPDATE metas SET ano = NULL`);
+    db.prepare("INSERT INTO schema_migrations (name) VALUES (?)").run(
+      "metas_ano_legado_null",
+    );
+  }
+
+  const migracaoAnoExercicio = db
+    .prepare("SELECT 1 FROM schema_migrations WHERE name = ?")
+    .get("metas_ano_legado_exercicio_atual");
+
+  if (!migracaoAnoExercicio) {
+    const anoAtual = new Date().getFullYear();
+    db.prepare("UPDATE metas SET ano = ? WHERE ano IS NULL").run(anoAtual);
+    db.prepare("INSERT INTO schema_migrations (name) VALUES (?)").run(
+      "metas_ano_legado_exercicio_atual",
+    );
+  }
+
+  // Metas criadas antes do campo "ano" passam a valer para o exercício atual
+  const anoAtual = new Date().getFullYear();
+  const corrigidas = db
+    .prepare("UPDATE metas SET ano = ? WHERE ano IS NULL")
+    .run(anoAtual);
+  if (corrigidas.changes > 0) {
+    console.log(
+      `[metas] ${corrigidas.changes} meta(s) legada(s) vinculada(s) ao ano ${anoAtual}`,
+    );
+  }
+}
+
+ensureAnoColumn();
+ensureDadosFinanceirosPorUsuario();
+router.use(autenticarToken);
+
+function listarMetasPorAno(anoQuery, usuarioId) {
+  const anoAtual = new Date().getFullYear();
+
+  if (anoQuery === anoAtual) {
+    db.prepare(
+      "UPDATE metas SET ano = ? WHERE usuario_id = ? AND ano IS NULL",
+    ).run(anoAtual, usuarioId);
+  }
+
+  const sufixoAno = `/${anoQuery}`;
+
+  // Criada no ano, parcelas com /ano no nome, ou planejamento longo (ex. 18 meses 2026→2027)
+  return db
+    .prepare(
+      `
+      SELECT DISTINCT m.* FROM metas m
+      WHERE m.usuario_id = ?
+        AND (
+          m.ano = ?
+          OR (m.ano IS NULL AND ? = ?)
+          OR EXISTS (
+           SELECT 1 FROM meses ms
+           WHERE ms.metaId = m.id AND ms.nome LIKE '%' || ?
+          )
+          OR (
+           m.ano IS NOT NULL
+           AND m.mesesNecessarios > 0
+           AND m.ano <= ?
+           AND (m.ano + (m.mesesNecessarios - 1) / 12) >= ?
+          )
+        )
+      ORDER BY m.id
+    `,
+    )
+    .all(usuarioId, anoQuery, anoQuery, anoAtual, sufixoAno, anoQuery, anoQuery);
+}
+
+//GET /api/metas?ano=2026  (ano obrigatório)
 router.get("/", (req, res) => {
   try {
-    const metas = db.prepare("SELECT * FROM metas ORDER BY id").all();
+    const anoQuery = parseInt(req.query.ano, 10);
+    if (!Number.isFinite(anoQuery)) {
+      return res.status(400).json({
+        error: "Informe o parâmetro ano (ex.: ?ano=2026)",
+      });
+    }
+
+    const metas = listarMetasPorAno(anoQuery, req.usuario.id);
 
     // Para cada meta, buscar seus meses
     const metasComMeses = metas.map((meta) => {
@@ -37,8 +135,8 @@ router.get("/", (req, res) => {
 router.get("/:id", (req, res) => {
   try {
     const meta = db
-      .prepare("SELECT * FROM metas WHERE id = ?")
-      .get(parseInt(req.params.id));
+      .prepare("SELECT * FROM metas WHERE id = ? AND usuario_id = ?")
+      .get(parseInt(req.params.id), req.usuario.id);
 
     if (!meta) {
       return res.status(404).json({ error: "Meta não encontrada" });
@@ -75,12 +173,18 @@ router.post("/", (req, res) => {
       valorAtual,
       icon,
       meses,
+      ano,
     } = req.body;
+
+    const anoMeta = parseInt(ano, 10);
+    const anoInserir = Number.isFinite(anoMeta)
+      ? anoMeta
+      : new Date().getFullYear();
 
     // Inserir meta
     const insertMeta = db.prepare(`
-      INSERT INTO metas (nome, valorMeta, valorPorMes, mesesNecessarios, valorAtual, icon)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO metas (usuario_id, nome, valorMeta, valorPorMes, mesesNecessarios, valorAtual, icon, ano)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const iconValue = icon && icon.trim() !== "" ? icon : "bi-bullseye";
@@ -88,12 +192,14 @@ router.post("/", (req, res) => {
     console.log(`🎨 Criando meta "${nome}" com ícone: ${iconValue}`);
 
     const result = insertMeta.run(
+      req.usuario.id,
       nome,
       valorMeta || 0,
       valorPorMes || 0,
       mesesNecessarios || 0,
       valorAtual || 0,
       iconValue,
+      anoInserir,
     );
 
     const metaId = result.lastInsertRowid;
@@ -112,8 +218,8 @@ router.post("/", (req, res) => {
 
     // Buscar meta criada com meses
     const metaCriada = db
-      .prepare("SELECT * FROM metas WHERE id = ?")
-      .get(metaId);
+      .prepare("SELECT * FROM metas WHERE id = ? AND usuario_id = ?")
+      .get(metaId, req.usuario.id);
     const mesesMeta = db
       .prepare("SELECT * FROM meses WHERE metaId = ? ORDER BY id")
       .all(metaId);
@@ -141,8 +247,8 @@ router.patch("/:id", (req, res) => {
 
     // Verificar se meta existe
     const metaExistente = db
-      .prepare("SELECT * FROM metas WHERE id = ?")
-      .get(metaId);
+      .prepare("SELECT * FROM metas WHERE id = ? AND usuario_id = ?")
+      .get(metaId, req.usuario.id);
 
     if (!metaExistente) {
       return res.status(404).json({ error: "Meta não encontrada" });
@@ -156,6 +262,7 @@ router.patch("/:id", (req, res) => {
       "mesesNecessarios",
       "valorAtual",
       "icon",
+      "ano",
     ];
     const camposParaAtualizar = {};
 
@@ -172,8 +279,8 @@ router.patch("/:id", (req, res) => {
       const values = Object.values(camposParaAtualizar);
 
       db.prepare(
-        `UPDATE metas SET ${setClause}, updatedAt = CURRENT_TIMESTAMP WHERE id = ?`,
-      ).run(...values, metaId);
+        `UPDATE metas SET ${setClause}, updatedAt = CURRENT_TIMESTAMP WHERE id = ? AND usuario_id = ?`,
+      ).run(...values, metaId, req.usuario.id);
     }
 
     // Se meses foram enviados, atualizar
@@ -194,8 +301,8 @@ router.patch("/:id", (req, res) => {
 
     // Buscar meta atualizada
     const metaAtualizada = db
-      .prepare("SELECT * FROM metas WHERE id = ?")
-      .get(metaId);
+      .prepare("SELECT * FROM metas WHERE id = ? AND usuario_id = ?")
+      .get(metaId, req.usuario.id);
     const mesesMeta = db
       .prepare("SELECT * FROM meses WHERE metaId = ? ORDER BY id")
       .all(metaId);
@@ -230,8 +337,8 @@ router.put("/:id", (req, res) => {
 
     // Verificar se meta existe
     const metaExistente = db
-      .prepare("SELECT * FROM metas WHERE id = ?")
-      .get(metaId);
+      .prepare("SELECT * FROM metas WHERE id = ? AND usuario_id = ?")
+      .get(metaId, req.usuario.id);
 
     if (!metaExistente) {
       return res.status(404).json({ error: "Meta não encontrada" });
@@ -243,7 +350,7 @@ router.put("/:id", (req, res) => {
       `UPDATE metas
        SET nome = ?, valorMeta = ?, valorPorMes = ?, mesesNecessarios = ?,
            valorAtual = ?, icon = ?, updatedAt = CURRENT_TIMESTAMP
-       WHERE id = ?`,
+       WHERE id = ? AND usuario_id = ?`,
     ).run(
       nome,
       valorMeta || 0,
@@ -252,6 +359,7 @@ router.put("/:id", (req, res) => {
       valorAtual || 0,
       iconValue,
       metaId,
+      req.usuario.id,
     );
 
     // Atualizar meses
@@ -272,8 +380,8 @@ router.put("/:id", (req, res) => {
 
     // Buscar meta atualizada
     const metaAtualizada = db
-      .prepare("SELECT * FROM metas WHERE id = ?")
-      .get(metaId);
+      .prepare("SELECT * FROM metas WHERE id = ? AND usuario_id = ?")
+      .get(metaId, req.usuario.id);
     const mesesMeta = db
       .prepare("SELECT * FROM meses WHERE metaId = ? ORDER BY id")
       .all(metaId);
@@ -299,7 +407,9 @@ router.delete("/:id", (req, res) => {
     const metaId = parseInt(req.params.id);
 
     // Verificar se meta existe
-    const meta = db.prepare("SELECT * FROM metas WHERE id = ?").get(metaId);
+    const meta = db
+      .prepare("SELECT * FROM metas WHERE id = ? AND usuario_id = ?")
+      .get(metaId, req.usuario.id);
 
     if (!meta) {
       return res.status(404).json({ error: "Meta não encontrada" });
@@ -309,7 +419,10 @@ router.delete("/:id", (req, res) => {
     db.prepare("DELETE FROM meses WHERE metaId = ?").run(metaId);
 
     // Deletar meta
-    db.prepare("DELETE FROM metas WHERE id = ?").run(metaId);
+    db.prepare("DELETE FROM metas WHERE id = ? AND usuario_id = ?").run(
+      metaId,
+      req.usuario.id,
+    );
 
     res.status(204).send();
   } catch (error) {

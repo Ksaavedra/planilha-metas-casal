@@ -1,0 +1,67 @@
+<main class="auth-page">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-brand__top">
+        <div class="title-brand">
+          <div class="title-brand__name">
+            <span class="auth-brand__icon" aria-hidden="true">
+              <img src="/assets/images/logo-roxo.png" alt="" />
+            </span>
+            <strong>ORBIS</strong>
+          </div>
+          <p>Planejamento Financeiro</p>
+        </div>
+      </div>
+      <h1>Entrar</h1>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="entrar()" class="auth-form">
+      <label>
+        <span>Usuário ou Email</span>
+        <input type="text" formControlName="usuarioOuEmail" placeholder="usuario1 ou voce@email.com"
+          autocomplete="username" />
+        <small *ngIf="form.get('usuarioOuEmail')?.touched && form.get('usuarioOuEmail')?.invalid">
+          Informe seu usuário ou email.
+        </small>
+      </label>
+
+      <label>
+        <span>Senha</span>
+        <div class="password-field">
+          <input [type]="mostrarSenha ? 'text' : 'password'" formControlName="senha" placeholder="Sua senha"
+            autocomplete="current-password" />
+          <button type="button" class="password-toggle" (click)="mostrarSenha = !mostrarSenha"
+            [attr.aria-label]="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'">
+            <span class="material-icons" aria-hidden="true">
+              {{ mostrarSenha ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
+        <small *ngIf="form.get('senha')?.touched && form.get('senha')?.invalid">
+          A senha é obrigatória.
+        </small>
+      </label>
+
+      <a class="auth-forgot" routerLink="/recuperar-senha">
+        Esqueceu sua senha?
+      </a>
+
+      <div class="auth-alert auth-alert--success" *ngIf="sucesso">
+        {{ sucesso }}
+      </div>
+
+      <div class="auth-alert" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <button type="submit" [disabled]="carregando">
+        {{ carregando ? 'Entrando...' : 'Entrar' }}
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      Ainda não tem conta?
+      <a routerLink="/register">Criar conta</a>
+    </p>
+  </section>
+</main>

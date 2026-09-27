@@ -115,6 +115,8 @@ import { MatRadioModule } from '@angular/material/radio';
     LayoutModule,
     CdkMenuModule,
     DialogModule,
+    MatButtonModule,
+    MatDialogModule,
   ],
   exports: [
     MatCommonModule,
@@ -171,6 +173,8 @@ import { MatRadioModule } from '@angular/material/radio';
     LayoutModule,
     CdkMenuModule,
     DialogModule,
+    MatButtonModule,
+    MatDialogModule,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA, NO_ERRORS_SCHEMA],
 })

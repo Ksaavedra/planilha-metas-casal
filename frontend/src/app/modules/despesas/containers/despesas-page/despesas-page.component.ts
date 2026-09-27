@@ -2,9 +2,11 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  OnDestroy,
   OnInit,
 } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Subscription } from 'rxjs';
 import {
   AdicionarDespesaDialogComponent,
   AdicionarDespesaDialogData,
@@ -16,6 +18,7 @@ import {
   NaturezaDespesa,
 } from '@app/core/interfaces/despesas/despesas';
 import { SuccessModalComponent } from '@app/shared/components/success-modal/success-modal.component';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 @Component({
   selector: 'app-despesas-page',
@@ -24,8 +27,9 @@ import { SuccessModalComponent } from '@app/shared/components/success-modal/succ
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class DespesasPageComponent implements OnInit {
+export class DespesasPageComponent implements OnInit, OnDestroy {
   readonly tituloSecundario = 'Tudo que você gasta no dia a dia';
+  readonly temGrupoFamiliar$ = this.perfilService.temGrupoFamiliar$;
 
   visaoDespesas: 'lista' | 'exemplos' | 'usuario' = 'lista';
   mesAtual: Date = new Date();
@@ -38,6 +42,8 @@ export class DespesasPageComponent implements OnInit {
   tamanhoPagina = 5;
   paginaFixas = 1;
   paginaVariaveis = 1;
+
+  private temGrupoFamiliarSub?: Subscription;
 
   meses = [
     'Janeiro',
@@ -58,6 +64,7 @@ export class DespesasPageComponent implements OnInit {
     private despesasService: DespesasService,
     private cdr: ChangeDetectorRef,
     private dialog: MatDialog,
+    private perfilService: PerfilFinanceiroService,
   ) {}
 
   get nomeMesAtual(): string {
@@ -197,6 +204,18 @@ export class DespesasPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregar();
+    this.temGrupoFamiliarSub = this.temGrupoFamiliar$.subscribe(
+      (temGrupoFamiliar) => {
+        if (!temGrupoFamiliar && this.visaoDespesas === 'usuario') {
+          this.visaoDespesas = 'lista';
+          this.cdr.markForCheck();
+        }
+      },
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.temGrupoFamiliarSub?.unsubscribe();
   }
 
   mesAnterior(): void {
@@ -214,6 +233,9 @@ export class DespesasPageComponent implements OnInit {
   }
 
   selecionarVisao(visao: 'lista' | 'exemplos' | 'usuario'): void {
+    if (visao === 'usuario' && !this.perfilService.temGrupoFamiliarAtual) {
+      visao = 'lista';
+    }
     this.visaoDespesas = visao;
     this.cdr.markForCheck();
   }

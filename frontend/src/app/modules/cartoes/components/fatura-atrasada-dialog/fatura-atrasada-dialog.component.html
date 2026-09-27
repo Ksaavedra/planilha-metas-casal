@@ -1,0 +1,48 @@
+<div class="fatura-atrasada-dialog">
+  <h2 mat-dialog-title class="dialog-titulo">
+    <span class="material-icons dialog-titulo-icone" aria-hidden="true">warning</span>
+    Fatura atrasada
+  </h2>
+
+  <mat-dialog-content class="dialog-body">
+    <form [formGroup]="form" class="fatura-atrasada-form" novalidate>
+      <p class="mensagem">
+        Essa fatura está atrasada. O que deseja fazer?
+      </p>
+
+      <div class="resumo-fatura">
+        <span>{{ data.cartao.banco }}</span>
+        <strong>{{ valorEmAberto | currency:'BRL' }}</strong>
+      </div>
+
+      <label class="field">
+        <span class="field-label">Valor pago agora</span>
+        <input class="input-text" type="number" formControlName="valorPago" min="0.01" step="0.01" />
+        <small>Para voltar para Em dia, informe o valor total em aberto.</small>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Previsão de pagamento *</span>
+        <input class="input-text" type="date" formControlName="previsaoPagamento" />
+      </label>
+
+      <label class="field">
+        <span class="field-label">Observação</span>
+        <textarea class="input-text input-textarea" rows="3" formControlName="observacaoAtraso"
+          placeholder="Ex.: pagar no próximo salário"></textarea>
+      </label>
+
+      <p class="erro-form" *ngIf="erro" role="alert">{{ erro }}</p>
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end" class="dialog-acoes">
+    <button type="button" mat-stroked-button (click)="fechar()">Cancelar</button>
+    <button type="button" mat-stroked-button color="warn" (click)="pagarDepois()" [disabled]="!podePagarDepois">
+      Pagar depois
+    </button>
+    <button type="button" mat-flat-button color="primary" (click)="pagarAgora()" [disabled]="!podePagarAgora">
+      Pagar fatura agora
+    </button>
+  </mat-dialog-actions>
+</div>

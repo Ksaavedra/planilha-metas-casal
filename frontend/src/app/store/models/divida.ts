@@ -1,4 +1,38 @@
-import { BaseEntity, Categoria, Status } from './common';
+export interface Categoria {
+  id: string;
+  nome: string;
+  cor?: string;
+  icone?: string;
+}
+
+export interface Status {
+  id: string;
+  nome: string;
+  cor: string;
+}
+
+export const STATUS_ATIVO: Status = {
+  id: 'ativo',
+  nome: 'Ativo',
+  cor: '#28a745',
+};
+
+export const STATUS_PENDENTE: Status = {
+  id: 'pendente',
+  nome: 'Pendente',
+  cor: '#ffc107',
+};
+
+export interface BaseEntity {
+  id: string;
+  descricao: string;
+  valor: number;
+  data: Date;
+  categoria: Categoria;
+  observacoes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface Divida extends BaseEntity {
   credor: string;

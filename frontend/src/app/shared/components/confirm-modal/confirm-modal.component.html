@@ -1,20 +1,51 @@
 <div *ngIf="isOpen" class="modal-overlay" (click)="onOverlayClick($event)">
-  <div class="modal-content">
-    <div class="modal-header">
+  <div class="modal-content" [class.modal-content--payment]="isPaymentVariant">
+    <div class="modal-header" [class.modal-header--payment]="isPaymentVariant">
       <h3>{{ title }}</h3>
-      <button class="modal-close" (click)="onCancel()">×</button>
+      <button class="modal-close" [class.modal-close--payment]="isPaymentVariant" (click)="onCancel()">×</button>
     </div>
-    <div class="modal-body">
-      <div class="icon-box">
-        <span class="material-icons">warning</span>
-      </div>
-      <p class="message">{{ message }}</p>
+    <div class="modal-body" [class.modal-body--payment]="hasPaymentDetails">
+      <ng-container *ngIf="hasPaymentDetails; else defaultMessage">
+        <p class="payment-intro">
+          Deseja confirmar o pagamento da fatura do cartão
+          <strong class="payment-intro__cartao">{{ paymentDetails!.nomeCartao }}</strong>?
+        </p>
+        <dl class="payment-resumo">
+          <div class="payment-resumo__item">
+            <dt>
+              <span class="material-icons" aria-hidden="true">event</span>
+              Data do pagamento
+            </dt>
+            <dd>{{ paymentDetails!.dataPagamento }}</dd>
+          </div>
+          <div class="payment-resumo__item">
+            <dt>
+              <span class="material-icons" aria-hidden="true">calendar_today</span>
+              Vencimento
+            </dt>
+            <dd>{{ paymentDetails!.vencimento }}</dd>
+          </div>
+          <div class="payment-resumo__item payment-resumo__item--destaque">
+            <dt>
+              <span class="material-icons" aria-hidden="true">payments</span>
+              Valor
+            </dt>
+            <dd>{{ paymentDetails!.valor }}</dd>
+          </div>
+        </dl>
+      </ng-container>
+      <ng-template #defaultMessage>
+        <div class="icon-box">
+          <span class="material-icons">{{ isPaymentVariant ? 'payments' : 'warning' }}</span>
+        </div>
+        <p class="message">{{ message }}</p>
+      </ng-template>
     </div>
     <div class="modal-footer">
       <button class="btn-cancelar" (click)="onCancel()">
         {{ cancelText }}
       </button>
-      <button class="btn-confirmar" (click)="onConfirm()">
+      <button class="btn-confirmar" [class.btn-confirmar--payment]="isPaymentVariant" (click)="onConfirm()">
         {{ confirmText }}
       </button>
     </div>

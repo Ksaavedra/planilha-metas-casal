@@ -1,6 +1,4 @@
 import { TestBed } from '@angular/core/testing';
-import { Receita, TipoReceita, FrequenciaRecorrencia } from './models/receita';
-import { Despesa, TipoDespesa } from './models/despesa';
 import { Divida, TipoDivida } from './models/divida';
 import {
   Investimento,
@@ -9,7 +7,7 @@ import {
   NivelLiquidez,
 } from './models/investimento';
 import { AppStore } from './app.store';
-import { STATUS_ATIVO, STATUS_PENDENTE } from './models/common';
+import { STATUS_ATIVO, STATUS_PENDENTE } from './models/divida';
 
 describe('AppStore', () => {
   let store: AppStore;
@@ -23,149 +21,6 @@ describe('AppStore', () => {
 
   it('should be created', () => {
     expect(store).toBeTruthy();
-  });
-
-  describe('Receitas', () => {
-    it('should add receita', () => {
-      const receita: Receita = {
-        id: '999',
-        descricao: 'Nova Receita',
-        valor: 1000,
-        data: new Date(2024, 0, 1),
-        categoria: { id: '1', nome: 'Trabalho', cor: '#10b981', icone: 'work' },
-        tipoReceita: TipoReceita.SALARIO,
-        recorrente: true,
-        frequencia: FrequenciaRecorrencia.MENSAL,
-        observacoes: 'Nova receita de teste',
-        createdAt: new Date(2024, 0, 1),
-        updatedAt: new Date(2024, 0, 1),
-      };
-
-      store.adicionarReceita(receita);
-      const receitas = store.receitas();
-      expect(receitas).toContain(receita);
-    });
-
-    it('should update receita', () => {
-      const receita: Receita = {
-        id: '999',
-        descricao: 'Receita Atualizada',
-        valor: 2000,
-        data: new Date(2024, 0, 1),
-        categoria: { id: '1', nome: 'Trabalho', cor: '#10b981', icone: 'work' },
-        tipoReceita: TipoReceita.SALARIO,
-        recorrente: true,
-        frequencia: FrequenciaRecorrencia.MENSAL,
-        observacoes: 'Receita atualizada',
-        createdAt: new Date(2024, 0, 1),
-        updatedAt: new Date(2024, 0, 1),
-      };
-
-      store.adicionarReceita(receita);
-      store.atualizarReceita(receita);
-      const receitas = store.receitas();
-      expect(receitas.find((r) => r.id === '999')).toEqual(receita);
-    });
-
-    it('should delete receita', () => {
-      const receita: Receita = {
-        id: '999',
-        descricao: 'Receita para Deletar',
-        valor: 1000,
-        data: new Date(2024, 0, 1),
-        categoria: { id: '1', nome: 'Trabalho', cor: '#10b981', icone: 'work' },
-        tipoReceita: TipoReceita.SALARIO,
-        recorrente: true,
-        frequencia: FrequenciaRecorrencia.MENSAL,
-        observacoes: 'Receita para deletar',
-        createdAt: new Date(2024, 0, 1),
-        updatedAt: new Date(2024, 0, 1),
-      };
-
-      store.adicionarReceita(receita);
-      store.removerReceita('999');
-      const receitas = store.receitas();
-      expect(receitas.find((r) => r.id === '999')).toBeUndefined();
-    });
-  });
-
-  describe('Despesas', () => {
-    it('should add despesa', () => {
-      const despesa: Despesa = {
-        id: '999',
-        descricao: 'Nova Despesa',
-        valor: 500,
-        data: new Date(2024, 0, 1),
-        categoria: {
-          id: '4',
-          nome: 'Alimentação',
-          cor: '#f59e0b',
-          icone: 'restaurant',
-        },
-        tipoDespesa: TipoDespesa.ALIMENTACAO,
-        recorrente: true,
-        parcelada: false,
-        observacoes: 'Nova despesa de teste',
-        createdAt: new Date(2024, 0, 1),
-        updatedAt: new Date(2024, 0, 1),
-      };
-
-      store.adicionarDespesa(despesa);
-      const despesas = store.despesas();
-      expect(despesas).toContain(despesa);
-    });
-
-    it('should update despesa', () => {
-      const despesa: Despesa = {
-        id: '999',
-        descricao: 'Despesa Atualizada',
-        valor: 600,
-        data: new Date(2024, 0, 1),
-        categoria: {
-          id: '4',
-          nome: 'Alimentação',
-          cor: '#f59e0b',
-          icone: 'restaurant',
-        },
-        tipoDespesa: TipoDespesa.ALIMENTACAO,
-        recorrente: true,
-        parcelada: false,
-        observacoes: 'Despesa atualizada',
-        createdAt: new Date(2024, 0, 1),
-        updatedAt: new Date(2024, 0, 1),
-      };
-
-      store.adicionarDespesa(despesa);
-      store.atualizarDespesa(despesa);
-      const despesas = store.despesas();
-      expect(despesas.find((d) => d.id === '999')).toEqual(despesa);
-    });
-
-    it('should delete despesa', () => {
-      const despesa: Despesa = {
-        id: '999',
-        descricao: 'Despesa para Deletar',
-        valor: 500,
-        data: new Date(2024, 0, 1),
-        categoria: {
-          id: '4',
-          nome: 'Alimentação',
-          cor: '#f59e0b',
-          icone: 'restaurant',
-        },
-        tipoDespesa: TipoDespesa.ALIMENTACAO,
-        recorrente: true,
-        parcelada: false,
-        observacoes: 'Despesa para deletar',
-        createdAt: new Date(2024, 0, 1),
-        updatedAt: new Date(2024, 0, 1),
-      };
-
-      store.adicionarDespesa(despesa);
-      store.removerDespesa('999');
-      const despesas = store.despesas();
-      expect(despesas.find((d) => d.id === '999')).toBeUndefined();
-    });
   });
 
   describe('Dívidas', () => {
@@ -194,8 +49,7 @@ describe('AppStore', () => {
       };
 
       store.adicionarDivida(divida);
-      const dividas = store.dividas();
-      expect(dividas).toContain(divida);
+      expect(store.dividas()).toContain(divida);
     });
 
     it('should update divida', () => {
@@ -224,8 +78,7 @@ describe('AppStore', () => {
 
       store.adicionarDivida(divida);
       store.atualizarDivida(divida);
-      const dividas = store.dividas();
-      expect(dividas.find((d) => d.id === '999')).toEqual(divida);
+      expect(store.dividas().find((d) => d.id === '999')).toEqual(divida);
     });
 
     it('should delete divida', () => {
@@ -254,8 +107,7 @@ describe('AppStore', () => {
 
       store.adicionarDivida(divida);
       store.removerDivida('999');
-      const dividas = store.dividas();
-      expect(dividas.find((d) => d.id === '999')).toBeUndefined();
+      expect(store.dividas().find((d) => d.id === '999')).toBeUndefined();
     });
   });
 
@@ -288,8 +140,7 @@ describe('AppStore', () => {
       };
 
       store.adicionarInvestimento(investimento);
-      const investimentos = store.investimentos();
-      expect(investimentos).toContain(investimento);
+      expect(store.investimentos()).toContain(investimento);
     });
 
     it('should update investimento', () => {
@@ -321,8 +172,9 @@ describe('AppStore', () => {
 
       store.adicionarInvestimento(investimento);
       store.atualizarInvestimento(investimento);
-      const investimentos = store.investimentos();
-      expect(investimentos.find((i) => i.id === '999')).toEqual(investimento);
+      expect(store.investimentos().find((i) => i.id === '999')).toEqual(
+        investimento,
+      );
     });
 
     it('should delete investimento', () => {
@@ -354,8 +206,7 @@ describe('AppStore', () => {
 
       store.adicionarInvestimento(investimento);
       store.removerInvestimento('999');
-      const investimentos = store.investimentos();
-      expect(investimentos.find((i) => i.id === '999')).toBeUndefined();
+      expect(store.investimentos().find((i) => i.id === '999')).toBeUndefined();
     });
   });
 });

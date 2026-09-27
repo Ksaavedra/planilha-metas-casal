@@ -8,12 +8,13 @@
         </div>
         <div class="receitas-hero__text">
           <h1 class="receitas-hero__title">
-            Receitas do casal
+            {{ (temGrupoFamiliar$ | async) ? 'Receitas do casal' : 'Receitas' }}
           </h1>
           <p class="receitas-hero__subtitle">{{ tituloSecundario }}</p>
         </div>
       </div>
-      <div class="receitas-hero__field" aria-label="Mês de referência">
+      <div class="receitas-hero__field" aria-label="Mês de referência"
+        *ngIf="visaoReceitas === 'lista' || visaoReceitas === 'usuario'">
         <p class="receitas-hero__label">Mês de referência</p>
         <div class="receitas-hero__mes-nav">
           <button type="button" class="receitas-hero__nav-btn" (click)="mesAnterior()" title="Mês anterior"
@@ -39,7 +40,8 @@
           (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoReceitas === 'lista'">
           Minhas receitas
         </button>
-        <button type="button" class="receitas-hero__chip" [class.is-active]="visaoReceitas === 'usuario'"
+        <button *ngIf="temGrupoFamiliar$ | async" type="button" class="receitas-hero__chip"
+          [class.is-active]="visaoReceitas === 'usuario'"
           (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoReceitas === 'usuario'">
           Por pessoa
         </button>
@@ -208,6 +210,6 @@
   </ng-container>
 
   <app-receitas-exemplos *ngIf="visaoReceitas === 'exemplos'"></app-receitas-exemplos>
-  <app-receitas-usuario *ngIf="visaoReceitas === 'usuario'" [receitas]="receitas" [nomeMesReferencia]="nomeMesAtual">
+  <app-receitas-usuario *ngIf="visaoReceitas === 'usuario' && (temGrupoFamiliar$ | async)" [receitas]="receitas" [nomeMesReferencia]="nomeMesAtual">
   </app-receitas-usuario>
 </div>
