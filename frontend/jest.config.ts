@@ -7,7 +7,7 @@ const esModule = [
   'angular2-text-mask',
 ];
 
-module.exports = {
+const config = {
   verbose: true,
   preset: 'jest-preset-angular',
   globalSetup: '',
@@ -33,10 +33,10 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      statements: 90,
-      branches: 90,
-      functions: 90,
-      lines: 90,
+      statements: 97,
+      branches: 97,
+      functions: 97,
+      lines: 97,
     },
   },
   transformIgnorePatterns: [
@@ -78,3 +78,5 @@ module.exports = {
     ],
   },
 };
+
+export default config;

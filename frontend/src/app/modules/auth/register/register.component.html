@@ -1,18 +1,43 @@
 <main class="auth-page">
   <section class="auth-card">
     <div class="auth-brand">
-      <span class="auth-brand__icon">✨</span>
-      <p>Planilha de Orçamento</p>
+      <div class="auth-brand__top">
+        <div class="title-brand">
+          <div class="title-brand__name">
+            <span class="auth-brand__icon" aria-hidden="true">
+              <img src="/assets/images/logo-roxo.png" alt="" />
+            </span>
+            <strong>ORBIS</strong>
+          </div>
+          <p>Planejamento Financeiro</p>
+        </div>
+      </div>
       <h1>Criar conta</h1>
       <span>Cadastre-se para acessar seu sistema financeiro.</span>
     </div>
 
     <form [formGroup]="form" (ngSubmit)="criarConta()" class="auth-form">
       <label>
-        <span>Nome</span>
-        <input type="text" formControlName="nome" placeholder="Seu nome" autocomplete="name" />
-        <small *ngIf="form.get('nome')?.touched && form.get('nome')?.invalid">
-          O nome é obrigatório.
+        <span>Usuário</span>
+        <input type="text" formControlName="usuario" placeholder="usuario1" autocomplete="username" />
+        <small *ngIf="form.get('usuario')?.touched && form.get('usuario')?.invalid">
+          O usuário é obrigatório.
+        </small>
+      </label>
+
+      <label>
+        <span>Nome completo</span>
+        <input type="text" formControlName="nomeCompleto" placeholder="Digite o seu nome completo" autocomplete="name" />
+        <small *ngIf="form.get('nomeCompleto')?.touched && form.get('nomeCompleto')?.invalid">
+          O nome completo é obrigatório.
+        </small>
+      </label>
+
+      <label>
+        <span>Apelido</span>
+        <input type="text" formControlName="apelido" placeholder="Digite o seu apelido" autocomplete="nickname" />
+        <small *ngIf="form.get('apelido')?.touched && form.get('apelido')?.invalid">
+          O apelido é obrigatório.
         </small>
       </label>
 

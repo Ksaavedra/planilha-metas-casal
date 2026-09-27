@@ -7,6 +7,7 @@ import { of, throwError } from 'rxjs';
 import { DespesasPageComponent } from './despesas-page.component';
 import { Despesa } from '@app/core/interfaces/despesas/despesas';
 import { DespesasService } from '@app/core/services/despesas/despesas.service';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 describe('DespesasPageComponent', () => {
   let component: DespesasPageComponent;
@@ -33,6 +34,10 @@ describe('DespesasPageComponent', () => {
     open: jest.fn(),
   };
 
+  const perfilServiceMock = {
+    temGrupoFamiliar$: of(true),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -49,6 +54,7 @@ describe('DespesasPageComponent', () => {
       providers: [
         { provide: DespesasService, useValue: despesasServiceMock },
         { provide: MatDialog, useValue: dialogMock },
+        { provide: PerfilFinanceiroService, useValue: perfilServiceMock },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();

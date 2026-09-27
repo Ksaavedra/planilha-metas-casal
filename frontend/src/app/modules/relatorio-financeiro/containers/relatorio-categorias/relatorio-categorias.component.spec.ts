@@ -156,6 +156,27 @@ describe('RelatorioCategoriasComponent', () => {
     ).toBeLessThan(4);
   });
 
+  it('sem valores de natureza deve exibir mensagens vazias em vez de linhas zeradas', () => {
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const mensagens = Array.from(
+      el.querySelectorAll('.relatorio-categorias__vazio'),
+    ).map((item) => item.textContent ?? '');
+
+    expect(el.querySelector('tr.natureza-receita--fixa')).toBeFalsy();
+    expect(el.querySelector('tr.natureza-despesa--fixa')).toBeFalsy();
+    expect(
+      mensagens.some((texto) =>
+        texto.includes('Nenhum lançamento de receita com valor'),
+      ),
+    ).toBe(true);
+    expect(
+      mensagens.some((texto) =>
+        texto.includes('Nenhum lançamento de despesa com valor'),
+      ),
+    ).toBe(true);
+  });
+
   it('com tipos de receita deve renderizar tabela de tipos', () => {
     component.receitasPorTipoLinhas = [
       {

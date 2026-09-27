@@ -29,6 +29,8 @@ export interface Divida {
   cartaoBanco?: string | null;
   ano: number;
   dataInicio?: string | null;
+  dataCompra?: string | null;
+  dataPagamento?: string | null;
   observacoes?: string | null;
   cartao?: string | null;
 }
@@ -55,6 +57,8 @@ export interface CreateDividaRequest {
   cartaoId?: number | null;
   ano: number;
   dataInicio?: string;
+  dataCompra?: string;
+  dataPagamento?: string | null;
   observacoes?: string;
   cartao?: string;
 }

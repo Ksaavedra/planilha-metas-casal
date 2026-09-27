@@ -7,6 +7,7 @@ import { of, throwError } from 'rxjs';
 import { ReceitasPageComponent } from './receitas-page.component';
 import { ReceitasService } from '../../../../core/services/receitas/receitas.service';
 import { Receita } from '@app/core/interfaces/receitas/receitas';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 describe('ReceitasPageComponent', () => {
   let component: ReceitasPageComponent;
@@ -32,6 +33,10 @@ describe('ReceitasPageComponent', () => {
     open: jest.fn(),
   };
 
+  const perfilServiceMock = {
+    temGrupoFamiliar$: of(true),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -48,6 +53,7 @@ describe('ReceitasPageComponent', () => {
       providers: [
         { provide: ReceitasService, useValue: receitasServiceMock },
         { provide: MatDialog, useValue: dialogMock },
+        { provide: PerfilFinanceiroService, useValue: perfilServiceMock },
       ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
     }).compileComponents();

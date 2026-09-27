@@ -1,0 +1,40 @@
+<div class="data-table-shell">
+  <div class="data-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Categoria</th>
+          <th *ngFor="let mes of meses">{{ mes }}</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="receitas-row">
+          <td>Receitas</td>
+          <td *ngFor="let valor of dadosReceitas">{{ valor | currency : 'BRL' }}</td>
+          <td>{{ totalReceitas | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="despesas-row">
+          <td>Despesas</td>
+          <td *ngFor="let valor of dadosDespesas">{{ valor | currency : 'BRL' }}</td>
+          <td>{{ totalDespesas | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="cartao-credito-row">
+          <td>Cartão de crédito</td>
+          <td *ngFor="let valor of dadosCartaoCredito">{{ valor | currency : 'BRL' }}</td>
+          <td>{{ totalCartaoCredito | currency : 'BRL' }}</td>
+        </tr>
+        <tr class="total-row">
+          <td>Total</td>
+          <td *ngFor="let valor of dadosTotal; let i = index" [class.negative]="valor < 0"
+            [class.positive]="valor >= 0">
+            {{ valor | currency : 'BRL' }}
+          </td>
+          <td [class.negative]="saldoTotal < 0" [class.positive]="saldoTotal >= 0">
+            {{ saldoTotal | currency : 'BRL' }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

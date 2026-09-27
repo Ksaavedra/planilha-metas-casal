@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '@core/services/auth/auth.service';
@@ -10,12 +10,14 @@ import { AuthService } from '@core/services/auth/auth.service';
   styleUrl: './login.component.scss',
   standalone: false,
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   carregando = false;
   erro: string | null = null;
+  sucesso: string | null = null;
+  mostrarSenha = false;
 
   form = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
+    usuarioOuEmail: ['', Validators.required],
     senha: ['', Validators.required],
   });
 
@@ -26,21 +28,28 @@ export class LoginComponent {
     private route: ActivatedRoute,
   ) {}
 
+  ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('senhaRedefinida') === '1') {
+      this.sucesso = 'Senha redefinida com sucesso. Faça login com sua nova senha.';
+    }
+  }
+
   entrar(): void {
     this.erro = null;
+    this.sucesso = null;
 
     if (this.form.invalid || this.carregando) {
       this.form.markAllAsTouched();
-      this.erro = 'Informe email e senha para entrar.';
+      this.erro = 'Informe usuário ou email e senha para entrar.';
       return;
     }
 
-    const { email, senha } = this.form.getRawValue();
+    const { usuarioOuEmail, senha } = this.form.getRawValue();
     this.carregando = true;
 
     this.authService
       .login({
-        email: String(email).trim(),
+        usuarioOuEmail: String(usuarioOuEmail).trim(),
         senha: String(senha),
       })
       .subscribe({

@@ -138,6 +138,56 @@ describe('EditarValorDialogComponent', () => {
     expect(component.mesNome).toBe('Fevereiro');
   });
 
+  it('deve inicializar com zero quando mês não existe', async () => {
+    await setupDialog({ meta: { ...meta, meses: [] } as MetaExtended, mesId: 9, meses: [] });
+
+    expect(component.valor).toBe(0);
+    expect(component.valorInput).toBe('');
+    expect(component.mesNome).toBe('');
+  });
+
+  it('mesNome deve retornar vazio quando mesId está fora da lista', async () => {
+    await setupDialog({ meta: { ...meta, meses: [] } as MetaExtended, mesId: 5, meses: ['Janeiro'] });
+
+    expect(component.mesNome).toBe('');
+  });
+
+  it('mesNome deve retornar vazio quando posição da lista existe sem nome', async () => {
+    await setupDialog({
+      meta: { ...meta, meses: [] } as MetaExtended,
+      mesId: 1,
+      meses: [undefined as any],
+    });
+
+    expect(component.mesNome).toBe('');
+  });
+
+  it('validarApenasNumeros deve permitir teclas de navegação', () => {
+    const event = new KeyboardEvent('keydown', { key: 'Backspace', code: 'Backspace' });
+    jest.spyOn(event, 'preventDefault');
+
+    component.validarApenasNumeros(event);
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('deve parsear valores vazios, inválidos, monetários e com múltiplos pontos', () => {
+    component.onValorChange('');
+    expect(component.valor).toBe(0);
+
+    component.onValorChange(null as any);
+    expect(component.valor).toBe(0);
+
+    component.onValorChange('abc');
+    expect(component.valor).toBe(0);
+
+    component.onValorChange('R$ 1.234,50');
+    expect(component.valor).toBe(1234.5);
+
+    component.onValorChange('1.234.567');
+    expect(component.valor).toBe(1234.57);
+  });
+
   it('deve limitar valor ao restante da meta (jan pago 4000, meta 4124)', async () => {
     const metaComJaneiroPago: MetaExtended = {
       id: 2,

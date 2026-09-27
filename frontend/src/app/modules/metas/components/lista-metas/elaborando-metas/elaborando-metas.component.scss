@@ -165,44 +165,54 @@
 
 /* Tabelas */
 .table-container {
-  padding: 1rem 1.25rem 1.25rem;
+  margin: 1rem 1.25rem 1.25rem;
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
   position: relative;
-  scrollbar-width: thin;
-  scrollbar-color: #a78bfa #eef2ff;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
 }
 
 .metas-table {
-  width: 100%;
+  width: auto;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 0.875rem;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-  min-width: 1200px;
+  font-size: 0.78rem;
+}
+
+.metas-table th:not(:first-child):not(:last-child),
+.metas-table td:not(:first-child):not(.actions-cell) {
+  min-width: 112px;
 }
 
 .metas-table th:first-child,
-.metas-table td:first-child,
-.metas-table td.col-nome {
+.metas-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 1%;
+  min-width: 160px;
   text-align: left;
+  font-weight: 600;
+  background: #fff;
+  box-shadow: 1px 0 0 #e2e8f0;
 }
 
-.metas-table th.col-valor,
-.metas-table th:nth-child(2),
-.metas-table th:nth-child(3),
-.metas-table th:nth-child(5) {
-  text-align: left;
+.metas-table th:first-child {
+  z-index: 4;
+  background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
 }
 
 .meses-restantes-hint {
-  display: block;
-  font-size: 0.72rem;
+  display: inline;
+  margin-left: 0.25rem;
+  font-size: 0.7rem;
   font-weight: 500;
   color: #6b7280;
-  margin-top: 0.15rem;
 }
 
 .cell-text--meses {
@@ -215,134 +225,82 @@
 }
 
 .metas-table th {
-  background: linear-gradient(180deg, #475569 0%, #334155 100%);
+  background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
   color: #fff;
-  padding: 0.7rem 1rem;
+  padding: 0.6rem 0.75rem;
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  text-transform: none;
   white-space: nowrap;
 }
 
-.metas-table td.col-valor,
-.metas-table td:nth-child(2),
-.metas-table td:nth-child(3),
-.metas-table td:nth-child(5) {
-  text-align: left;
-
-  .cell-btn {
-    justify-content: flex-start;
-  }
-
-  .cell-text {
-    text-align: left;
-    font-weight: 500;
-    color: #374151;
-    font-variant-numeric: tabular-nums;
-  }
-}
-
 .metas-table td {
-  padding: 0.55rem 1rem;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 0.3rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
   vertical-align: middle;
   text-align: center;
-  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  color: #334155;
+  background: #fff;
+  transition: background 0.15s ease;
 }
 
 .metas-table tbody tr:not(.total-row) td:not(:first-child):not(.actions-cell) {
-  color: #374151;
+  color: #334155;
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
 }
 
-.metas-table td:first-child .cell-btn,
-.metas-table td.col-nome .cell-btn {
+.metas-table td:first-child .cell-btn {
   justify-content: flex-start;
-  font-weight: 500;
-  font-size: 0.875rem;
-  color: #374151;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #334155;
 }
 
-.metas-table td:first-child .cell-text,
-.metas-table td.col-nome .cell-text {
+.metas-table td:first-child .cell-text {
   text-align: left;
-  font-weight: 500;
-  color: #374151;
+  font-weight: 600;
+  color: #334155;
 }
 
-.metas-table tr:nth-child(odd) td:first-child {
+.metas-table tbody tr:hover td {
+  background: #faf5ff;
+}
+
+.metas-table .total-row td {
   background: #f8fafc;
-  color: #374151;
-  font-weight: 500;
-  font-size: 0.875rem;
-  border-right: 2px solid #e2e8f0;
-}
-
-.metas-table tr:nth-child(even) td:first-child {
-  background: #f1f5f9;
-  color: #374151;
-  font-weight: 500;
-  font-size: 0.875rem;
-  border-right: 2px solid #e2e8f0;
-}
-
-.metas-table tr:nth-child(odd) td:not(:first-child) {
-  background-color: #ffffff;
-}
-
-.metas-table tr:nth-child(even) td:not(:first-child) {
-  background-color: #fafbfc;
-}
-
-.metas-table tr:hover td:not(:first-child) {
-  background-color: #f8fafc;
-}
-
-.total-row td {
-  border-top: 2px solid #e9d5ff;
-  background: #faf5ff !important;
-  color: #374151;
-  font-size: 0.875rem;
-  padding: 0.65rem 1rem;
-  font-weight: 500;
-  text-align: left;
+  color: #0f172a;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  border-top: 2px solid #312e81;
+  border-bottom: none;
 }
 
-.total-row td:nth-child(2),
-.total-row td:nth-child(3),
-.total-row td:nth-child(5) {
-  text-align: left;
-}
-
-.total-row td.col-meses,
-.total-row td.progress-cell,
-.total-row td:nth-child(6) {
-  text-align: center;
-}
-
-.total-row td:first-child {
-  background: #faf5ff !important;
-  color: #374151;
-  font-weight: 500;
-  text-align: left;
+.metas-table .total-row:hover td {
+  background: #f8fafc;
 }
 
 .progress-cell .progress-percentage {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
+  display: inline-block;
+  min-width: 3.5rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: #f5f3ff;
+  color: #5b21b6;
+  font-size: 0.78rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 /* Célula de Ações */
 td.actions-cell {
-  width: 120px;
-  padding: 0.4rem 0.6rem;
+  width: 64px;
+  padding: 0.2rem 0.6rem;
   text-align: center;
   white-space: nowrap;
   vertical-align: middle;
@@ -429,7 +387,7 @@ td.actions-cell .actions {
   justify-content: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.3rem 0.5rem;
+  padding: 0.15rem 0.4rem;
   background: transparent;
   border: 2px solid transparent;
   border-radius: 6px;
@@ -469,8 +427,8 @@ td.actions-cell .actions {
 
 .cell-input:focus {
   outline: none;
-  border-color: #475569;
-  box-shadow: 0 0 0 3px rgba(71, 85, 105, 0.1);
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
   transform: translateY(-1px);
 }
 
@@ -521,12 +479,11 @@ td.actions-cell .actions {
 
   .metas-table {
     font-size: 0.8rem;
-    min-width: 700px;
   }
 
   .metas-table th,
   .metas-table td {
-    padding: 0.6rem 0.8rem;
+    padding: 0.3rem 0.6rem;
   }
 
   .actions-cell {
@@ -541,6 +498,7 @@ td.actions-cell .actions {
 
 /* Meta concluída — linha somente leitura */
 .metas-table tr.meta-row--finalizada td {
+  border-bottom-color: #cbd5e1;
   background-color: #f1f5f9 !important;
   color: #94a3b8 !important;
   opacity: 0.92;
@@ -594,20 +552,28 @@ td.actions-cell .actions {
   background-color: #f1f5f9 !important;
 }
 
+.metas-table tr.meta-row--finalizada .progress-percentage {
+  background: #e2e8f0;
+}
+
 .metas-table tr.meta-row--finalizada .material-icons.ok {
   display: none;
 }
 
 .table-container::-webkit-scrollbar {
-  height: 6px;
+  height: 10px;
 }
 
 .table-container::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #e5e7eb;
   border-radius: 999px;
 }
 
 .table-container::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
+  background: #8b5cf6;
   border-radius: 999px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
 }

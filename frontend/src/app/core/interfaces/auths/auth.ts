@@ -1,17 +1,22 @@
 export interface Usuario {
   id: number;
-  nome: string;
+  usuario?: string;
+  nomeCompleto: string;
+  apelido?: string | null;
   email: string;
+  tipoUso?: 'individual' | 'familia';
   dataCriacao?: string;
 }
 
 export interface LoginRequest {
-  email: string;
+  usuarioOuEmail: string;
   senha: string;
 }
 
 export interface RegisterRequest {
-  nome: string;
+  usuario: string;
+  nomeCompleto: string;
+  apelido: string;
   email: string;
   senha: string;
 }
@@ -22,4 +27,26 @@ export interface AuthResponse {
   message: string;
   token: string;
   usuario: Usuario;
+}
+
+export interface MessageResponse {
+  message: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface VerifyResetCodeRequest {
+  email: string;
+  codigo: string;
+}
+
+export interface VerifyResetCodeResponse extends MessageResponse {
+  resetToken: string;
+}
+
+export interface ResetPasswordRequest {
+  resetToken: string;
+  novaSenha: string;
 }

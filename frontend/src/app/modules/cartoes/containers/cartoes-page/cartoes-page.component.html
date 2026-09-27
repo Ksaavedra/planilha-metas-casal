@@ -7,7 +7,7 @@
           <span class="material-icons cartoes-hero__icon">credit_card</span>
         </div>
         <div class="cartoes-hero__text">
-          <h1 class="cartoes-hero__title">Faturas do casal</h1>
+          <h1 class="cartoes-hero__title">{{ (temGrupoFamiliar$ | async) ? 'Faturas do casal' : 'Faturas' }}</h1>
           <p class="cartoes-hero__subtitle">Controle de faturas, limites, vencimentos e uso mensal</p>
         </div>
       </div>
@@ -28,6 +28,11 @@
             <span class="material-icons">chevron_right</span>
           </button>
         </div>
+        <button *ngIf="estaForaDoMesAtual" type="button" class="cartoes-hero__voltar-hoje"
+          (click)="voltarParaMesAtual()" [attr.title]="'Ir para ' + nomeMesHoje"
+          [attr.aria-label]="'Ver faturas de ' + nomeMesHoje">
+          Ver faturas de {{ nomeMesHoje }}
+        </button>
       </div>
     </div>
     <div class="cartoes-hero__toolbar" aria-label="Visão de faturas">
@@ -36,8 +41,9 @@
           (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoFaturas === 'lista'">
           Minhas faturas
         </button>
-        <button type="button" class="cartoes-hero__chip" [class.is-active]="visaoFaturas === 'usuario'"
-          (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoFaturas === 'usuario'">
+        <button *ngIf="temGrupoFamiliar$ | async" type="button" class="cartoes-hero__chip"
+          [class.is-active]="visaoFaturas === 'usuario'" (click)="selecionarVisao('usuario')" role="tab"
+          [attr.aria-selected]="visaoFaturas === 'usuario'">
           Por pessoa
         </button>
         <button type="button" class="cartoes-hero__chip" [class.is-active]="visaoFaturas === 'exemplos'"
@@ -72,7 +78,14 @@
   </div>
 
   <ng-container *ngIf="visaoFaturas === 'lista' && !exibirAvisoVazio && !carregando">
-    <section class="cartoes-resumo" aria-label="Resumo das faturas">
+    <section class="cartoes-resumo" aria-label="Resumo geral das faturas do mês">
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">savings</span></span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Limite disponível total</span>
+          <span class="resumo-card__valor">{{ resumo.disponivel | currency:'BRL' }}</span>
+        </div>
+      </article>
       <article class="resumo-card">
         <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">credit_score</span></span>
         <div class="resumo-card__body">
@@ -80,19 +93,26 @@
           <span class="resumo-card__valor">{{ resumo.limiteTotal | currency:'BRL' }}</span>
         </div>
       </article>
+      <article class="resumo-card">
+        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">request_quote</span></span>
+        <div class="resumo-card__body">
+          <span class="resumo-card__label">Valor total das faturas</span>
+          <span class="resumo-card__valor">{{ resumo.totalValorFaturas | currency:'BRL' }}</span>
+        </div>
+      </article>
       <article class="resumo-card resumo-card--destaque">
         <span class="resumo-card__icon resumo-card__icon--light" aria-hidden="true"><span
             class="material-icons">shopping_cart</span></span>
         <div class="resumo-card__body">
-          <span class="resumo-card__label">Limite utilizado</span>
-          <span class="resumo-card__valor">{{ resumo.utilizado | currency:'BRL' }}</span>
+          <span class="resumo-card__label">Total a pagar no mês</span>
+          <span class="resumo-card__valor">{{ resumo.totalAPagarMes | currency:'BRL' }}</span>
         </div>
       </article>
       <article class="resumo-card">
-        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">savings</span></span>
+        <span class="resumo-card__icon" aria-hidden="true"><span class="material-icons">receipt_long</span></span>
         <div class="resumo-card__body">
-          <span class="resumo-card__label">Limite disponível</span>
-          <span class="resumo-card__valor">{{ resumo.disponivel | currency:'BRL' }}</span>
+          <span class="resumo-card__label">Limite utilizado total</span>
+          <span class="resumo-card__valor">{{ resumo.utilizado | currency:'BRL' }}</span>
         </div>
       </article>
     </section>
@@ -125,8 +145,8 @@
               <th class="col-centro">Limite</th>
               <th class="col-centro">Utilizado</th>
               <th class="col-centro">Disponível</th>
-              <th class="col-centro">Fechamento</th>
-              <th class="col-centro">Vencimento</th>
+              <th class="col-centro">Valor da fatura</th>
+              <th class="col-centro">Pagar</th>
               <th class="col-centro">Status</th>
               <th class="col-centro">Ações</th>
             </tr>
@@ -136,29 +156,39 @@
               <tr class="cartoes-table__linha" [class.is-expanded]="cartaoExpandido(c)">
                 <td>{{ c.banco }}</td>
                 <td class="num">{{ c.limite | currency:'BRL' }}</td>
-                <td class="num">{{ valorUtilizadoFatura(c) | currency:'BRL' }}</td>
+                <td class="num">{{ valorUtilizadoLimite(c) | currency:'BRL' }}</td>
                 <td class="num num--positivo">{{ valorDisponivelFatura(c) | currency:'BRL' }}</td>
-                <td class="col-centro">{{ c.diaFechamento ? 'Dia ' + c.diaFechamento : '-' }}</td>
-                <td class="col-centro">{{ c.diaVencimento ? 'Dia ' + c.diaVencimento : '-' }}</td>
+                <td class="num">{{ valorFaturaCartao(c) | currency:'BRL' }}</td>
+                <td class="num">{{ valorPagarFatura(c) | currency:'BRL' }}</td>
                 <td class="col-centro">
                   <div class="status-badges">
-                    <button *ngIf="faturaAtrasada(c); else statusNaoAtrasado" type="button"
-                      class="badge-status badge-status--acao" [ngClass]="statusClasse(statusDoCartao(c))"
-                      (click)="abrirAcaoFaturaAtrasada(c)" title="Resolver fatura atrasada">
-                      {{ statusLabel(statusDoCartao(c)) }}
-                    </button>
-                    <ng-template #statusNaoAtrasado>
-                      <button *ngIf="podeDesfazerPagamento(c); else statusFaturaSomenteLeitura" type="button"
-                        class="badge-status badge-status--acao" [ngClass]="statusLinhaClasse(c)"
-                        (click)="confirmarDesfazerPagamento(c)" title="Desfazer pagamento">
+                    <ng-container *ngIf="statusFaturaClicavel(c); else statusSomenteLeitura">
+                      <span class="acao-tooltip-host" [matTooltip]="tituloAcaoPagamentoFatura(c)"
+                        matTooltipPosition="above">
+                        <button type="button" class="badge-status badge-status--acao" [ngClass]="statusLinhaClasse(c)"
+                          [class.is-loading]="estaProcessandoAcaoFatura(c, 'pagar')"
+                          (click)="abrirAcaoPagamentoFatura(c)"
+                          [attr.aria-busy]="estaProcessandoAcaoFatura(c, 'pagar')"
+                          [attr.aria-label]="tituloAcaoPagamentoFatura(c)"
+                          [disabled]="estaProcessandoAcaoFatura(c, 'pagar')">
+                          <span class="material-icons badge-status__loading"
+                            *ngIf="estaProcessandoAcaoFatura(c, 'pagar')" aria-hidden="true">autorenew</span>
+                          <ng-container *ngIf="!estaProcessandoAcaoFatura(c, 'pagar')">{{ statusLinhaLabel(c) }}
+                          </ng-container>
+                        </button>
+                      </span>
+                    </ng-container>
+                    <ng-template #statusSomenteLeitura>
+                      <span class="badge-status" [ngClass]="statusLinhaClasse(c)">
                         {{ statusLinhaLabel(c) }}
-                      </button>
-                      <ng-template #statusFaturaSomenteLeitura>
-                        <span class="badge-status" [ngClass]="statusLinhaClasse(c)">
-                          {{ statusLinhaLabel(c) }}
-                        </span>
-                      </ng-template>
+                        <span class="material-icons badge-status__icone" *ngIf="mostrarIconePagoStatus(c)"
+                          aria-hidden="true">check</span>
+                      </span>
                     </ng-template>
+                    <div class="alerta-previsao alerta-previsao--pago" *ngIf="mostrarAlertaPagamento(c)">
+                      <span class="material-icons" aria-hidden="true">check_circle</span>
+                      {{ textoAlertaPagamento(c) }}
+                    </div>
                     <div class="alerta-previsao" *ngIf="mostrarAlertaPrevisao(c)">
                       <span class="material-icons" aria-hidden="true">notification_important</span>
                       {{ textoAlertaPrevisao(c) }}
@@ -167,22 +197,27 @@
                 </td>
                 <td class="acoes col-centro">
                   <div class="acoes__grupo">
-                    <button *ngIf="podeDesfazerPagamento(c)" type="button" class="btn-desfazer"
-                      (click)="confirmarDesfazerPagamento(c)" title="Desfazer pagamento"
-                      aria-label="Desfazer pagamento">
-                      <span class="material-icons" aria-hidden="true">undo</span>
-                    </button>
-                    <button type="button" class="btn-icone" (click)="editar(c)" title="Editar">
+                    <span *ngIf="mostrarBotaoDesfazer(c)" class="acao-tooltip-host"
+                      [matTooltip]="tooltipDesfazerPagamento(c)" matTooltipPosition="above">
+                      <button type="button" class="btn-desfazer" (click)="confirmarDesfazerPagamento(c)"
+                        [disabled]="estaProcessandoAcaoFatura(c)"
+                        [class.is-loading]="estaProcessandoAcaoFatura(c, 'desfazer')" aria-label="Desfazer pagamento">
+                        <span class="material-icons" aria-hidden="true">
+                          {{ estaProcessandoAcaoFatura(c, 'desfazer') ? 'autorenew' : 'undo' }}
+                        </span>
+                      </button>
+                    </span>
+                    <button type="button" class="btn-icone" (click)="editar(c)" [matTooltip]="tooltipEditarFatura(c)"
+                      matTooltipPosition="above" aria-label="Editar fatura">
                       <span class="material-icons">edit</span>
                     </button>
                     <button type="button" class="btn-icone btn-icone-excluir" (click)="confirmarExcluir(c)"
-                      title="Excluir">
+                      [matTooltip]="tooltipExcluirFatura(c)" matTooltipPosition="above" aria-label="Excluir fatura">
                       <span class="material-icons">delete</span>
                     </button>
                     <button type="button" class="btn-expandir" (click)="alternarCartao(c)"
-                      [attr.aria-expanded]="cartaoExpandido(c)"
-                      [title]="cartaoExpandido(c) ? 'Recolher compras' : 'Expandir compras'"
-                      [attr.aria-label]="cartaoExpandido(c) ? 'Recolher compras' : 'Expandir compras'">
+                      [attr.aria-expanded]="cartaoExpandido(c)" [matTooltip]="tooltipExpandirDetalhes(c)"
+                      matTooltipPosition="above" [attr.aria-label]="tooltipExpandirDetalhes(c)">
                       <span class="material-icons" aria-hidden="true">
                         {{ cartaoExpandido(c) ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
                       </span>
@@ -193,27 +228,92 @@
               <tr class="cartoes-table__detalhes-row" *ngIf="cartaoExpandido(c)">
                 <td colspan="8">
                   <div class="parcelamentos-inline">
+                    <div class="fatura-periodo" *ngIf="periodoFatura(c) as periodo">
+                      <div class="fatura-periodo__titulo">{{ periodo.titulo }}</div>
+                      <dl class="fatura-periodo__grid">
+                        <div class="fatura-periodo__item">
+                          <dt>Período</dt>
+                          <dd>{{ periodo.periodoInicioLabel }} até {{ periodo.periodoFimLabel }}</dd>
+                        </div>
+                        <div class="fatura-periodo__item">
+                          <dt>Fechamento</dt>
+                          <dd>{{ periodo.periodoFimLabel }}</dd>
+                        </div>
+                        <div class="fatura-periodo__item">
+                          <dt>Vencimento</dt>
+                          <dd>{{ periodo.vencimentoLabel }}</dd>
+                        </div>
+                      </dl>
+                    </div>
                     <div class="parcelamentos-inline__header">
                       <div>
                         <strong>Compras parceladas</strong>
                         <span>{{ nomeMesAtual }}</span>
                       </div>
-                      <button type="button" class="parcelamentos-inline__btn" (click)="parcelar(c)"
-                        [disabled]="!podeParcelarCompra(c)"
-                        [title]="podeParcelarCompra(c) ? 'Parcelar compra' : 'Fatura fechada: não é possível parcelar compra'"
-                        [attr.aria-label]="podeParcelarCompra(c) ? 'Parcelar compra' : 'Fatura fechada: não é possível parcelar compra'">
-                        <span class="material-icons" aria-hidden="true">add</span>
-                        Parcelar compra
-                      </button>
+                      <div class="parcelamentos-inline__acoes">
+                        <span class="acao-tooltip-host" [matTooltip]="tituloJurosAjuste(c)" matTooltipPosition="above">
+                          <button type="button" class="parcelamentos-inline__btn parcelamentos-inline__btn--secundario"
+                            (click)="adicionarAjuste(c)" [disabled]="isFaturaPaga(c)"
+                            [attr.aria-label]="tituloJurosAjuste(c)">
+                            <span class="material-icons" aria-hidden="true">tune</span>
+                            Juros / ajuste
+                          </button>
+                        </span>
+                        <span class="acao-tooltip-host" [matTooltip]="tituloParcelarCompra(c)"
+                          matTooltipPosition="above">
+                          <button type="button" class="parcelamentos-inline__btn" (click)="parcelar(c)"
+                            [disabled]="isFaturaPaga(c)" [attr.aria-label]="tituloParcelarCompra(c)">
+                            <span class="material-icons" aria-hidden="true">add</span>
+                            Parcelar compra
+                          </button>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="fatura-resumo"
+                      *ngIf="parcelamentosDoCartao(c).length > 0 || ajustesDoCartao(c).length > 0">
+                      <div class="fatura-resumo__linha">
+                        <span>Total das compras</span>
+                        <strong>{{ resumoFatura(c).totalCompras | currency:'BRL' }}</strong>
+                      </div>
+                      <div class="fatura-resumo__linha fatura-resumo__linha--ajustes">
+                        <span>Créditos / ajustes</span>
+                        <span class="fatura-resumo__valor">
+                          <strong [class.num--negativo]="resumoFatura(c).totalAjustes < 0">
+                            {{ resumoFatura(c).totalAjustes | currency:'BRL' }}
+                          </strong>
+                        </span>
+                      </div>
+                      <div class="fatura-resumo__linha fatura-resumo__linha--destaque">
+                        <span>Valor da fatura</span>
+                        <strong>{{ resumoFatura(c).valorFatura | currency:'BRL' }}</strong>
+                      </div>
+                      <div class="fatura-resumo__linha" *ngIf="resumoFatura(c).pagamentosRealizados > 0">
+                        <span>Pagamentos realizados</span>
+                        <strong
+                          class="num--negativo">{{ (0 - resumoFatura(c).pagamentosRealizados) | currency:'BRL' }}</strong>
+                      </div>
+                      <div class="fatura-resumo__linha fatura-resumo__linha--pagar">
+                        <span>Valor a pagar</span>
+                        <strong>{{ resumoFatura(c).valorAPagar | currency:'BRL' }}</strong>
+                      </div>
+                    </div>
+
+                    <div class="alerta-previsao alerta-previsao--pago alerta-previsao--detalhe"
+                      *ngIf="mostrarAlertaPagamento(c)">
+                      <span class="material-icons" aria-hidden="true">check_circle</span>
+                      <strong>{{ textoAlertaPagamento(c) }}</strong>
+                      <small>Use o ícone desfazer ao lado para reverter o pagamento.</small>
                     </div>
 
                     <div class="alerta-previsao alerta-previsao--detalhe" *ngIf="mostrarAlertaPrevisao(c)">
                       <span class="material-icons" aria-hidden="true">notification_important</span>
                       <strong>{{ textoAlertaPrevisao(c) }}</strong>
-                      <small>Clique em "Fatura atrasada" para pagar ou alterar a previsão.</small>
+                      <small>Clique no status da fatura para pagar ou alterar a previsão.</small>
                     </div>
 
-                    <div class="parcelamentos-vazio" *ngIf="parcelamentosDoCartao(c).length === 0">
+                    <div class="parcelamentos-vazio"
+                      *ngIf="parcelamentosDoCartao(c).length === 0 && ajustesDoCartao(c).length === 0">
                       <span class="material-icons" aria-hidden="true">info</span>
                       Nenhuma compra parcelada neste mês.
                     </div>
@@ -222,7 +322,9 @@
                       <thead>
                         <tr>
                           <th>Compra</th>
+                          <th class="col-centro">Data</th>
                           <th class="col-centro">Parcela</th>
+                          <th class="col-centro">Valor da Parcela</th>
                           <th class="col-centro">Total</th>
                           <th class="col-centro">Restante</th>
                           <th class="col-centro">Ações</th>
@@ -231,39 +333,89 @@
                       <tbody>
                         <tr *ngFor="let p of parcelamentosDoCartao(c)">
                           <td>{{ p.objetivo }}</td>
+                          <td class="col-centro">{{ dataCompraExibicao(p) }}</td>
                           <td class="col-centro">
                             <span class="parcelas-chip">{{ parcelasLabel(p) }}</span>
                           </td>
+                          <td class="num">{{ valorParcela(p) | currency:'BRL' }}</td>
                           <td class="num">{{ p.valorTotal | currency:'BRL' }}</td>
                           <td class="num">{{ p.valorRestante | currency:'BRL' }}</td>
                           <td class="col-centro">
                             <div class="parcelamentos-mini-acoes">
-                              <button type="button" class="btn-mini-acao" (click)="editarParcelamento(c, p)"
-                                [disabled]="!podeParcelarCompra(c)" title="Editar compra" aria-label="Editar compra">
-                                <span class="material-icons" aria-hidden="true">edit</span>
-                              </button>
-                              <button type="button" class="btn-mini-acao btn-mini-acao--excluir"
-                                [disabled]="!podeParcelarCompra(c)" (click)="confirmarExcluirParcelamento(p)"
-                                title="Excluir compra" aria-label="Excluir compra">
-                                <span class="material-icons" aria-hidden="true">delete</span>
-                              </button>
+                              <span class="acao-tooltip-host" [matTooltip]="tooltipEditarCompra(c)"
+                                matTooltipPosition="above">
+                                <button type="button" class="btn-mini-acao" (click)="editarParcelamento(c, p)"
+                                  [disabled]="isFaturaPaga(c)" [attr.aria-label]="tooltipEditarCompra(c)">
+                                  <span class="material-icons" aria-hidden="true">edit</span>
+                                </button>
+                              </span>
+                              <span class="acao-tooltip-host" [matTooltip]="tooltipExcluirCompra(c)"
+                                matTooltipPosition="above">
+                                <button type="button" class="btn-mini-acao btn-mini-acao--excluir"
+                                  [disabled]="isFaturaPaga(c)" (click)="confirmarExcluirParcelamento(p)"
+                                  [attr.aria-label]="tooltipExcluirCompra(c)">
+                                  <span class="material-icons" aria-hidden="true">delete</span>
+                                </button>
+                              </span>
                             </div>
                           </td>
                         </tr>
                       </tbody>
                     </table>
+
+                    <div class="ajustes-inline" *ngIf="ajustesDoCartao(c).length > 0">
+                      <strong class="ajustes-inline__titulo">Créditos, juros e ajustes</strong>
+                      <table class="parcelamentos-mini-table ajustes-mini-table">
+                        <thead>
+                          <tr>
+                            <th>Lançamento</th>
+                            <th class="col-centro">Valor</th>
+                            <th class="col-centro">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let a of ajustesDoCartao(c)">
+                            <td>{{ labelAjuste(a) }}</td>
+                            <td class="num" [class.num--negativo]="(a.valorTotal || 0) < 0">
+                              {{ a.valorTotal | currency:'BRL' }}
+                            </td>
+                            <td class="col-centro">
+                              <div class="parcelamentos-mini-acoes">
+                                <span class="acao-tooltip-host" [matTooltip]="tooltipEditarAjuste(c)"
+                                  matTooltipPosition="above">
+                                  <button type="button" class="btn-mini-acao" (click)="editarAjuste(c, a)"
+                                    [disabled]="isFaturaPaga(c)" [attr.aria-label]="tooltipEditarAjuste(c)">
+                                    <span class="material-icons" aria-hidden="true">edit</span>
+                                  </button>
+                                </span>
+                                <span class="acao-tooltip-host" [matTooltip]="tooltipExcluirAjuste(c)"
+                                  matTooltipPosition="above">
+                                  <button type="button" class="btn-mini-acao btn-mini-acao--excluir"
+                                    [disabled]="isFaturaPaga(c)" (click)="confirmarExcluirAjuste(a)"
+                                    [attr.aria-label]="tooltipExcluirAjuste(c)">
+                                    <span class="material-icons" aria-hidden="true">delete</span>
+                                  </button>
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </td>
               </tr>
             </ng-container>
           </tbody>
-          <tfoot *ngIf="cartoes.length > 0">
+          <tfoot>
             <tr class="cartoes-table__total">
-              <td class="col-cartao">Total</td>
+              <td class="col-cartao">Totais</td>
               <td class="num">{{ resumo.limiteTotal | currency:'BRL' }}</td>
               <td class="num">{{ resumo.utilizado | currency:'BRL' }}</td>
               <td class="num">{{ resumo.disponivel | currency:'BRL' }}</td>
-              <td colspan="4"></td>
+              <td class="num">{{ resumo.totalValorFaturas | currency:'BRL' }}</td>
+              <td class="num">{{ resumo.totalAPagarMes | currency:'BRL' }}</td>
+              <td colspan="2"></td>
             </tr>
           </tfoot>
         </table>
@@ -271,7 +423,7 @@
 
       <div class="cartoes-paginacao" *ngIf="exibirPaginacaoTabela">
         <span class="cartoes-paginacao__info">Mostrando {{ exibindoDeTabela }}–{{ exibindoAteTabela }} de
-          {{ cartoes.length }}</span>
+          {{ cartoesComFaturaMes.length }}</span>
         <nav class="cartoes-paginacao__nav" aria-label="Paginação">
           <button type="button" class="cartoes-paginacao__btn" (click)="paginaAnteriorTabela()"
             [disabled]="paginaTabela <= 1">
@@ -289,8 +441,10 @@
     </section>
   </ng-container>
 
-  <app-cartoes-usuario *ngIf="visaoFaturas === 'usuario' && !exibirAvisoVazio && !carregando" [cartoes]="cartoes"
-    [parcelamentos]="parcelamentos" [nomeMesReferencia]="nomeMesAtual" [mesReferencia]="mesAtual">
+  <app-cartoes-usuario
+    *ngIf="visaoFaturas === 'usuario' && (temGrupoFamiliar$ | async) && !exibirAvisoVazio && !carregando"
+    [cartoes]="cartoes" [parcelamentos]="parcelamentos" [nomeMesReferencia]="nomeMesAtual"
+    [mesReferencia]="mesAtual">
   </app-cartoes-usuario>
 
   <app-faturas-exemplos *ngIf="visaoFaturas === 'exemplos'"></app-faturas-exemplos>

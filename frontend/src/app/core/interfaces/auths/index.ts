@@ -4,4 +4,9 @@ export {
   RegisterRequest,
   AuthResponse,
   PerfilResponse,
+  MessageResponse,
+  ForgotPasswordRequest,
+  VerifyResetCodeRequest,
+  VerifyResetCodeResponse,
+  ResetPasswordRequest,
 } from './auth';

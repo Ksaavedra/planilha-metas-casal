@@ -45,8 +45,8 @@ function getPrimeiroUsuarioAuthId() {
       FROM usuarios
       WHERE email IS NOT NULL
         AND trim(email) <> ''
-        AND senha_hash IS NOT NULL
-        AND trim(senha_hash) <> ''
+        AND password_hash IS NOT NULL
+        AND trim(password_hash) <> ''
       ORDER BY id
       LIMIT 1
     `,

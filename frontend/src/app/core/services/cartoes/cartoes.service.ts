@@ -5,6 +5,8 @@ import { environment } from 'src/environments';
 import {
   Cartao,
   CreateCartaoRequest,
+  PagamentoFaturaCartao,
+  RegistrarPagamentoFaturaRequest,
   UpdateCartaoRequest,
 } from '../../interfaces/cartoes/cartoes';
 
@@ -14,8 +16,8 @@ export class CartoesService {
 
   constructor(private http: HttpClient) {}
 
-  getCartoes(): Observable<Cartao[]> {
-    return this.http.get<Cartao[]>(this.API_URL);
+  getCartoes(params?: { ano: number; mes: number }): Observable<Cartao[]> {
+    return this.http.get<Cartao[]>(this.API_URL, { params });
   }
 
   getCartao(id: number): Observable<Cartao> {
@@ -32,5 +34,25 @@ export class CartoesService {
 
   deleteCartao(id: number): Observable<void> {
     return this.http.delete<void>(`${this.API_URL}/${id}`);
+  }
+
+  registrarPagamentoFatura(
+    id: number,
+    body: RegistrarPagamentoFaturaRequest,
+  ): Observable<PagamentoFaturaCartao> {
+    return this.http.put<PagamentoFaturaCartao>(
+      `${this.API_URL}/${id}/fatura-pagamento`,
+      body,
+    );
+  }
+
+  desfazerPagamentoFatura(
+    id: number,
+    ano: number,
+    mes: number,
+  ): Observable<void> {
+    return this.http.delete<void>(`${this.API_URL}/${id}/fatura-pagamento`, {
+      params: { ano, mes },
+    });
   }
 }

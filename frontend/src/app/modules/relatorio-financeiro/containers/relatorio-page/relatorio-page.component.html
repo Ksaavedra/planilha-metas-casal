@@ -13,15 +13,28 @@
           <p class="relatorio-hero__subtitle">Receitas, despesas, dívidas e investimentos mês a mês</p>
         </div>
       </div>
-      <div class="relatorio-hero__field">
-        <label class="relatorio-hero__label" for="anoSelect">Exercício</label>
-        <div class="relatorio-hero__select-wrap">
-          <span class="material-icons relatorio-hero__select-icon" aria-hidden="true">calendar_today</span>
-          <select id="anoSelect" class="relatorio-hero__select" [(ngModel)]="anoSelecionado" (change)="onAnoChange()"
-            [attr.aria-label]="'Selecionar ano, atual ' + anoSelecionado">
-            <option *ngFor="let ano of anosComparacao" [ngValue]="ano">{{ ano }}</option>
-          </select>
+      <div class="relatorio-hero__field" aria-label="Ano de referência"
+        *ngIf="visaoRelatorio === 'resumo' || visaoRelatorio === 'graficos' || visaoRelatorio === 'categorias'">
+        <p class="relatorio-hero__label">Ano de referência</p>
+        <div class="relatorio-hero__ano-nav">
+          <button type="button" class="relatorio-hero__nav-btn" (click)="anoAnterior()" [disabled]="!podeAnoAnterior"
+            title="Ano anterior" aria-label="Ano anterior">
+            <span class="material-icons">chevron_left</span>
+          </button>
+          <div class="relatorio-hero__ano-atual">
+            <span class="material-icons" aria-hidden="true">calendar_today</span>
+            <span>{{ anoSelecionado }}</span>
+          </div>
+          <button type="button" class="relatorio-hero__nav-btn" (click)="proximoAno()" [disabled]="!podeProximoAno"
+            title="Próximo ano" aria-label="Próximo ano">
+            <span class="material-icons">chevron_right</span>
+          </button>
         </div>
+        <button *ngIf="estaForaDoAnoAtual" type="button" class="relatorio-hero__voltar-hoje"
+          (click)="voltarParaAnoAtual()" [attr.title]="'Ir para ' + anoAtual"
+          [attr.aria-label]="'Ver relatório de ' + anoAtual + ' hoje'">
+          Ver relatório de {{ anoAtual }}
+        </button>
       </div>
     </div>
     <div class="relatorio-hero__chips" role="tablist" aria-label="Tipo de visão do relatório">
@@ -33,77 +46,67 @@
         (click)="selecionarVisao('categorias')" role="tab" [attr.aria-selected]="visaoRelatorio === 'categorias'">
         Categorias
       </button>
+      <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'graficos'"
+        (click)="selecionarVisao('graficos')" role="tab" [attr.aria-selected]="visaoRelatorio === 'graficos'">
+        Gráficos
+      </button>
+      <button type="button" class="relatorio-hero__chip" [class.is-active]="visaoRelatorio === 'guia'"
+        (click)="selecionarVisao('guia')" role="tab" [attr.aria-selected]="visaoRelatorio === 'guia'">
+        Guia
+      </button>
     </div>
   </header>
 
-  <!-- Tabela de Dados -->
   <ng-container *ngIf="visaoRelatorio === 'resumo'">
-    <div class="data-table">
-      <table>
-        <thead>
-          <tr>
-            <th>Categoria</th>
-            <th *ngFor="let mes of meses">{{ mes }}</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="receitas-row">
-            <td>Receitas</td>
-            <td *ngFor="let valor of dadosReceitas">
-              {{ valor | currency : 'BRL' }}
-            </td>
-            <td>{{ totalReceitas | currency : 'BRL' }}</td>
-          </tr>
-          <tr class="despesas-row">
-            <td>Despesas</td>
-            <td *ngFor="let valor of dadosDespesas">
-              {{ valor | currency : 'BRL' }}
-            </td>
-            <td>{{ totalDespesas | currency : 'BRL' }}</td>
-          </tr>
-          <tr class="dividas-row">
-            <td>Dívidas</td>
-            <td *ngFor="let valor of dadosDividas">
-              {{ valor | currency : 'BRL' }}
-            </td>
-            <td>{{ totalDividas | currency : 'BRL' }}</td>
-          </tr>
-          <tr class="investimentos-row">
-            <td>Investimentos</td>
-            <td *ngFor="let valor of dadosInvestimentos">
-              {{ valor | currency : 'BRL' }}
-            </td>
-            <td>{{ totalInvestimentos | currency : 'BRL' }}</td>
-          </tr>
-          <tr class="total-row">
-            <td>Total</td>
-            <td *ngFor="let valor of dadosTotal; let i = index" [class.negative]="valor < 0"
-              [class.positive]="valor >= 0">
-              {{ valor | currency : 'BRL' }}
-            </td>
-            <td [class.negative]="saldoTotal < 0" [class.positive]="saldoTotal >= 0">
-              {{ saldoTotal | currency : 'BRL' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="charts-container">
-      <div class="chart-section">
-        <div #chartSaldo class="demo-chart"></div>
-      </div>
-
-      <div class="chart-section">
-        <div #chartReceitasDespesas class="demo-chart"></div>
-      </div>
-
-      <div class="chart-section">
-        <div #chartDividasInvestimentos class="demo-chart"></div>
+    <div class="relatorio-ano-aviso" *ngIf="exibirAvisoRelatorioVazio" role="status" aria-live="polite">
+      <span class="material-icons relatorio-ano-aviso__icon" aria-hidden="true">info</span>
+      <div class="relatorio-ano-aviso__conteudo">
+        <p class="relatorio-ano-aviso__texto">
+          Nenhum dado financeiro encontrado para <strong>{{ anoSelecionado }}</strong>.
+          Use os filtros para comparar outro ano ou volte ao relatório atual.
+        </p>
+        <button type="button" class="relatorio-ano-aviso__btn" (click)="voltarParaAnoAtual()">
+          Ver relatório de {{ anoAtual }}
+        </button>
       </div>
     </div>
+
+    <ng-container *ngIf="!exibirAvisoRelatorioVazio">
+      <app-relatorio-resumo-table [meses]="meses" [dadosReceitas]="dadosReceitas" [dadosDespesas]="dadosDespesas"
+        [dadosCartaoCredito]="dadosCartaoCredito" [dadosTotal]="dadosTotal" [totalReceitas]="totalReceitas"
+        [totalDespesas]="totalDespesas" [totalCartaoCredito]="totalCartaoCredito" [saldoTotal]="saldoTotal">
+      </app-relatorio-resumo-table>
+
+      <div class="charts-container">
+        <div class="chart-section">
+          <div #chartSaldo class="demo-chart"></div>
+        </div>
+
+        <div class="chart-section">
+          <div #chartReceitasDespesas class="demo-chart"></div>
+        </div>
+      </div>
+    </ng-container>
   </ng-container>
+
+  <app-relatorio-guia *ngIf="visaoRelatorio === 'guia'"></app-relatorio-guia>
+
+  <app-relatorio-graficos *ngIf="visaoRelatorio === 'graficos'" [anoSelecionado]="anoSelecionado" [anoAtual]="anoAtual"
+    [anosSaldoSelecionados]="anosSaldoSelecionados" [podeAnoAnterior]="podeAnoAnterior"
+    [podeProximoAno]="podeProximoAno" [podeAdicionarAnoGraficoSaldo]="podeAdicionarAnoGraficoSaldo"
+    [podeLimparFiltrosGraficoSaldo]="podeLimparFiltrosGraficoSaldo"
+    [totalAnosAdicionaisGraficoSaldo]="totalAnosAdicionaisGraficoSaldo"
+    [limiteAnosAdicionaisGraficoSaldo]="limiteAnosAdicionaisGraficoSaldo"
+    [exibirAvisoRelatorioVazio]="exibirAvisoRelatorioVazio" [chartOption]="chartOption"
+    [chartOptionReceitasDespesas]="chartOptionReceitasDespesas"
+    [chartOptionReceitasFixasVariaveis]="chartOptionReceitasFixasVariaveis"
+    [chartOptionDespesasCategoria]="chartOptionDespesasCategoria" [chartOptionFaturas]="chartOptionFaturas"
+    [chartOptionInvestimentos]="chartOptionInvestimentos" [chartOptionDividasDonut]="chartOptionDividasDonut"
+    (anoAnterior)="anoAnterior()" (proximoAno)="proximoAno()"
+    (adicionarAnoAoGraficoSaldo)="adicionarAnoAoGraficoSaldo()"
+    (limparFiltrosGraficoSaldo)="limparFiltrosGraficoSaldo()"
+    (removerAnoDoGraficoSaldo)="removerAnoDoGraficoSaldo($event)" (voltarParaAnoAtual)="voltarParaAnoAtual()">
+  </app-relatorio-graficos>
 
   <app-relatorio-categorias *ngIf="visaoRelatorio === 'categorias'" [anoSelecionado]="anoSelecionado" [meses]="meses"
     [naturezaReceitaLinhas]="naturezaReceitaLinhas" [receitasPorTipoLinhas]="receitasPorTipoLinhas"

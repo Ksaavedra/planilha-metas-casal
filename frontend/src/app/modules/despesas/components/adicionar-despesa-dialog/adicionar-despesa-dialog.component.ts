@@ -218,7 +218,7 @@ export class AdicionarDespesaDialogComponent implements OnInit, OnDestroy {
       .getUsuarios()
       .subscribe((usuarios) => {
         this.pessoasAutocompleteOptions = this.normalizarListaNomes(
-          usuarios.map((u) => u.nome),
+          usuarios.map((u) => u.nomeExibicao || u.apelido || u.nome),
         );
         this.pessoasOpcoesAtualizadas$.next();
         this.cdr.markForCheck();

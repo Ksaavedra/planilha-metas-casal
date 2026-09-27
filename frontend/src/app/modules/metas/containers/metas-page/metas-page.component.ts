@@ -26,6 +26,7 @@ import {
   quantidadeMesesPlanejamento,
   regenerarMesesMeta,
 } from '@core/utils/metas-meses.util';
+import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro.service';
 
 type StatusMeta = 'Programado' | 'Pago' | 'Vazio' | 'Finalizado';
 
@@ -39,6 +40,7 @@ const ANO_REFERENCIA_MIN = 2020;
 })
 export class MetasPageComponent implements OnInit {
   readonly tituloSecundario = 'Construindo sonhos juntos, passo a passo';
+  readonly temGrupoFamiliar$ = this.perfilService.temGrupoFamiliar$;
 
   visaoMetas: 'lista' | 'exemplos' = 'lista';
 
@@ -66,6 +68,7 @@ export class MetasPageComponent implements OnInit {
   constructor(
     private metasService: MetasService,
     private dialog: MatDialog,
+    private perfilService: PerfilFinanceiroService,
   ) {}
 
   anosComparacao: number[] = [];
@@ -156,19 +159,10 @@ export class MetasPageComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.anoSelecionado = this.clampAnoReferencia(
-      this.metasService.getAnoSelecionado(),
-    );
+    this.anoSelecionado = this.anoAtual;
     this.anosComparacao = buildAnosComparacaoParaMetas([], this.anoAtual);
     this.metasService.setAnoSelecionado(this.anoSelecionado);
     this.carregarMetas();
-  }
-
-  private clampAnoReferencia(ano: number): number {
-    if (!Number.isFinite(ano)) {
-      return this.anoAtual;
-    }
-    return Math.max(ANO_REFERENCIA_MIN, Math.round(ano));
   }
 
   private carregarMetas(): void {

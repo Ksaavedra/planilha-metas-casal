@@ -1,1 +1,1 @@
-export { Usuario, CreateUsuariosRequest } from './usuarios';
+export { Usuario, CreateUsuariosRequest, UpdateUsuariosRequest } from './usuarios';

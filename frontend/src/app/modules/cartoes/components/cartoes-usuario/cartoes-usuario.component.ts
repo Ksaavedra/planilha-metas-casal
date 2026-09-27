@@ -7,9 +7,18 @@ import {
   statusCartaoLabel,
 } from '@core/utils/cartoes.util';
 import {
+  diaMelhorCompraEfetivo,
+  periodoFaturaCartao,
+  PeriodoFaturaCartao,
+} from '@core/utils/fatura-cartao.util';
+import {
+  compararLancamentosFaturaPorData,
+  parcelaMensalDivida,
   parcelasRestantesLabel,
+  formatarDataIsoPtBr,
   statusParcelaMesClasse,
   statusParcelaMesLabel,
+  totalParcelaMensalPendenteNoMes,
 } from '@core/utils/dividas.util';
 
 export interface LinhaUsuarioFaturasMes {
@@ -30,6 +39,7 @@ export class CartoesUsuarioComponent implements OnChanges {
   readonly statusLabel = statusCartaoLabel;
   readonly statusClasse = statusCartaoClasse;
   readonly parcelasLabel = parcelasRestantesLabel;
+  readonly valorParcela = parcelaMensalDivida;
   readonly statusParcelaLabel = statusParcelaMesLabel;
   readonly statusParcelaClasse = statusParcelaMesClasse;
 
@@ -78,7 +88,7 @@ export class CartoesUsuarioComponent implements OnChanges {
 
       const atual = map.get(usuario)!;
       atual.limite += Math.max(0, cartao.limite || 0);
-      atual.utilizado += this.valorUtilizadoFatura(cartao);
+      atual.utilizado += this.valorUtilizadoLimite(cartao);
       atual.totalCartoes += 1;
     }
 
@@ -150,21 +160,39 @@ export class CartoesUsuarioComponent implements OnChanges {
     return this.cartaoExpandidoId === cartao.id;
   }
 
+  melhorDiaCompraLabel(c: Cartao): string {
+    const dia = diaMelhorCompraEfetivo(c);
+    return dia != null ? `Dia ${dia}` : '-';
+  }
+
+  periodoFatura(c: Cartao): PeriodoFaturaCartao | null {
+    const ref = this.mesReferencia;
+    return periodoFaturaCartao(c, ref.getFullYear(), ref.getMonth() + 1);
+  }
+
+  dataCompraExibicao(p: DividaNoMes): string {
+    return (
+      formatarDataIsoPtBr(p.dataCompra) ??
+      formatarDataIsoPtBr(p.dataInicio) ??
+      '-'
+    );
+  }
+
   parcelamentosDoCartao(cartao: Cartao): DividaNoMes[] {
-    return this.parcelamentos.filter((p) => p.cartaoId === cartao.id);
+    return this.parcelamentos
+      .filter((p) => p.cartaoId === cartao.id)
+      .sort(compararLancamentosFaturaPorData);
   }
 
   valorUtilizadoFatura(cartao: Cartao): number {
-    const parcelamentos = this.parcelamentos.filter(
-      (p) => p.cartaoId === cartao.id,
-    );
-
+    const parcelamentos = this.parcelamentosDoCartao(cartao);
     if (parcelamentos.length > 0) {
-      const restante = parcelamentos.reduce(
-        (s, p) => s + Math.max(0, p.valorRestante || 0),
-        0,
-      );
-      return Math.round(restante * 100) / 100;
+      return totalParcelaMensalPendenteNoMes(parcelamentos);
+    }
+
+    if (cartao.totalAPagarMes != null) {
+      const totalAPagarMes = Number(cartao.totalAPagarMes);
+      return Math.max(0, Math.round(totalAPagarMes * 100) / 100);
     }
 
     return Math.max(0, cartao.valorUtilizado || 0);
@@ -172,8 +200,21 @@ export class CartoesUsuarioComponent implements OnChanges {
 
   valorDisponivelFatura(cartao: Cartao): number {
     const disponivel =
-      Math.max(0, cartao.limite || 0) - this.valorUtilizadoFatura(cartao);
+      Math.max(0, cartao.limite || 0) - this.valorUtilizadoLimite(cartao);
     return Math.max(0, Math.round(disponivel * 100) / 100);
+  }
+
+  valorUtilizadoLimite(cartao: Cartao): number {
+    const parcelamentos = this.parcelamentosDoCartao(cartao);
+    if (parcelamentos.length > 0) {
+      const totalRestante = parcelamentos.reduce(
+        (s, p) => s + Math.max(0, p.valorRestante || 0),
+        0,
+      );
+      return Math.round(totalRestante * 100) / 100;
+    }
+
+    return Math.max(0, cartao.valorUtilizado || 0);
   }
 
   statusDoCartao(cartao: Cartao) {
@@ -191,11 +232,14 @@ export class CartoesUsuarioComponent implements OnChanges {
   faturaAtrasada(cartao: Cartao): boolean {
     const statusParcelas = this.statusResumoParcelasCartao(cartao);
     if (statusParcelas) {
+      if (statusParcelas === 'atrasada') {
+        return true;
+      }
+
       return (
-        statusParcelas === 'atrasada' ||
-        (statusParcelas !== 'paga' &&
-          statusParcelas !== 'quitada' &&
-          this.statusDoCartao(cartao) === 'atrasado')
+        statusParcelas !== 'paga' &&
+        statusParcelas !== 'quitada' &&
+        this.statusDoCartao(cartao) === 'atrasado'
       );
     }
 
