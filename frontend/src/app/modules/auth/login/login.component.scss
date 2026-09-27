@@ -141,6 +141,7 @@
 
   .auth-forgot {
     justify-self: end;
+    display: inline-block;
     border: 0;
     padding: 0;
     background: transparent;
@@ -148,6 +149,7 @@
     font: inherit;
     font-weight: 700;
     cursor: pointer;
+    text-decoration: none;
 
     &:hover {
       color: #4c1d95;

@@ -66,52 +66,69 @@ describe('LoginComponent', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith('/metas');
   });
 
-  it('deve alternar para recuperação de senha mantendo apenas o email', () => {
-    const component = criar();
-    component.form.patchValue({ usuarioOuEmail: 'teste@email.com', senha: '123456' });
-    component.erro = 'erro anterior';
-    component.sucesso = 'sucesso anterior';
-
-    component.iniciarRecuperacao();
-
-    expect(component.modoRecuperacao).toBe(true);
-    expect(component.form.get('usuarioOuEmail')?.value).toBe('teste@email.com');
-    expect(component.form.get('senha')?.value).toBeNull();
-    expect(component.erro).toBeNull();
-    expect(component.sucesso).toBeNull();
-  });
-
-  it('deve voltar da recuperação para o login', () => {
-    const component = criar();
-    component.iniciarRecuperacao();
-    component.erro = 'erro anterior';
-    component.sucesso = 'sucesso anterior';
-
-    component.voltarParaLogin();
-
-    expect(component.modoRecuperacao).toBe(false);
-    expect(component.erro).toBeNull();
-    expect(component.sucesso).toBeNull();
-  });
-
-  it('deve validar email antes de recuperar senha', () => {
+  it('deve exibir sucesso quando senha foi redefinida', () => {
+    route.snapshot.queryParamMap.get.mockImplementation((key: string) =>
+      key === 'senhaRedefinida' ? '1' : null,
+    );
     const component = criar();
 
-    component.recuperarSenha();
+    component.ngOnInit();
 
-    expect(component.erro).toBe('Informe um email válido para recuperar sua senha.');
-    expect(component.sucesso).toBeNull();
-  });
-
-  it('deve exibir aviso ao solicitar recuperação de senha', () => {
-    const component = criar();
-    component.form.patchValue({ usuarioOuEmail: 'teste@email.com' });
-
-    component.recuperarSenha();
-
-    expect(component.erro).toBeNull();
     expect(component.sucesso).toBe(
-      'Email validado com sucesso. A recuperação automática ainda precisa ser configurada no backend.',
+      'Senha redefinida com sucesso. Faça login com sua nova senha.',
+    );
+  });
+
+  it('não deve exibir sucesso quando senhaRedefinida está ausente', () => {
+    const component = criar();
+
+    component.ngOnInit();
+
+    expect(component.sucesso).toBeNull();
+  });
+
+  it('deve bloquear quando já está carregando', () => {
+    const component = criar();
+    component.form.patchValue({ usuarioOuEmail: 'usuario1', senha: '123456' });
+    component.carregando = true;
+
+    component.entrar();
+
+    expect(component.erro).toBe('Informe usuário ou email e senha para entrar.');
+    expect(authService.login).not.toHaveBeenCalled();
+  });
+
+  it('deve remover espaços do usuário e limpar sucesso anterior', () => {
+    const component = criar();
+    component.sucesso = 'anterior';
+    component.form.patchValue({ usuarioOuEmail: '  usuario1  ', senha: '123456' });
+
+    component.entrar();
+
+    expect(authService.login).toHaveBeenCalledWith({
+      usuarioOuEmail: 'usuario1',
+      senha: '123456',
+    });
+    expect(component.sucesso).toBeNull();
+  });
+
+  it.each([
+    ['erro como string', 'falhou'],
+    ['erro nulo', null],
+    ['objeto sem chave error', { message: 'x' }],
+    ['mensagem vazia', { error: '' }],
+  ])('deve usar fallback em HttpErrorResponse com %s', (_desc, error) => {
+    authService.login.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 500, error })),
+    );
+    const component = criar();
+    component.form.patchValue({ usuarioOuEmail: 'usuario1', senha: '123456' });
+
+    component.entrar();
+
+    expect(component.carregando).toBe(false);
+    expect(component.erro).toBe(
+      'Não foi possível entrar. Verifique seus dados e tente novamente.',
     );
   });
 
@@ -132,22 +149,6 @@ describe('LoginComponent', () => {
     expect(component.erro).toBe('Email ou senha inválidos.');
 
     authService.login.mockReturnValueOnce(throwError(() => new Error('erro')));
-    component.entrar();
-    expect(component.erro).toBe(
-      'Não foi possível entrar. Verifique seus dados e tente novamente.',
-    );
-
-    authService.login.mockReturnValueOnce(
-      throwError(() => new HttpErrorResponse({ status: 400, error: {} })),
-    );
-    component.entrar();
-    expect(component.erro).toBe(
-      'Não foi possível entrar. Verifique seus dados e tente novamente.',
-    );
-
-    authService.login.mockReturnValueOnce(
-      throwError(() => new HttpErrorResponse({ status: 400, error: 'erro' })),
-    );
     component.entrar();
     expect(component.erro).toBe(
       'Não foi possível entrar. Verifique seus dados e tente novamente.',

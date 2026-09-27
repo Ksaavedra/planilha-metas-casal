@@ -82,6 +82,12 @@ describe('metas-parabens', () => {
 
       expect(getValorRealizadoSemMes(meta, 99)).toBe(0);
     });
+
+    it('deve considerar só o valorAtual quando a meta não tem meses', () => {
+      const meta = metaBase({ valorAtual: 500, meses: undefined as any });
+
+      expect(getValorRealizadoSemMes(meta, 1)).toBe(500);
+    });
   });
 
   describe('getValorMaximoPermitidoMes', () => {

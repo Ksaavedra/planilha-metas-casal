@@ -70,7 +70,11 @@ describe('FaturaAtrasadaDialogComponent', () => {
 
     component.pagarAgora();
 
-    expect(dialogRef.close).toHaveBeenCalledWith({ acao: 'pagar', valorPago: 300 });
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      acao: 'pagar',
+      valorPago: 300,
+      previsaoPagamento: '2026-05-30',
+    });
   });
 
   it('deve bloquear pagar depois sem previsão', () => {
@@ -129,5 +133,103 @@ describe('FaturaAtrasadaDialogComponent', () => {
     component.fechar();
 
     expect(dialogRef.close).toHaveBeenCalledWith();
+  });
+
+  describe('com valor em aberto informado', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    function criarComValor(valorEmAberto: number) {
+      return new FaturaAtrasadaDialogComponent(
+        { cartao, valorEmAberto },
+        dialogRef as any,
+        new FormBuilder(),
+      );
+    }
+
+    it('deve priorizar valor informado arredondado', () => {
+      const component = criarComValor(123.456);
+
+      expect(component.valorEmAberto).toBe(123.46);
+      expect(component.form.get('valorPago')?.value).toBe(123.46);
+    });
+
+    it('deve zerar valor informado negativo', () => {
+      expect(criarComValor(-10).valorEmAberto).toBe(0);
+    });
+
+    it('deve ignorar valor informado não finito e usar valor utilizado do cartão', () => {
+      expect(criarComValor(Number.NaN).valorEmAberto).toBe(250);
+      expect(criarComValor(Number.POSITIVE_INFINITY).valorEmAberto).toBe(250);
+    });
+
+    it('deve tratar valor pago vazio como zero', () => {
+      const component = criar();
+      component.form.patchValue({ valorPago: null });
+
+      expect(component.podePagarAgora).toBe(false);
+
+      component.pagarAgora();
+      expect(component.erro).toBe(
+        'Informe o valor total em aberto para regularizar a fatura.',
+      );
+    });
+
+    it('deve tratar controles ausentes do formulário', () => {
+      const component = criar();
+      component.form.removeControl('valorPago');
+
+      expect(component.podePagarAgora).toBe(false);
+      component.pagarAgora();
+      expect(component.erro).toBe(
+        'Informe o valor total em aberto para regularizar a fatura.',
+      );
+
+      component.form.removeControl('previsaoPagamento');
+      expect(component.podePagarDepois).toBe(false);
+
+      component.pagarAgora();
+      expect(component.erro).toBe('Informe a previsão de pagamento.');
+
+      component.pagarDepois();
+      expect(component.erro).toBe(
+        'Informe a previsão de pagamento para pagar depois.',
+      );
+      expect(dialogRef.close).not.toHaveBeenCalled();
+    });
+
+    it('deve enviar previsão vazia quando o valor não estiver disponível ao pagar', () => {
+      const component = criar();
+      jest
+        .spyOn(component, 'podePagarDepois', 'get')
+        .mockReturnValue(true);
+      jest.spyOn(component, 'podePagarAgora', 'get').mockReturnValue(true);
+      component.form.removeControl('previsaoPagamento');
+
+      component.pagarAgora();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        acao: 'pagar',
+        valorPago: 250,
+        previsaoPagamento: '',
+      });
+    });
+
+    it('deve enviar previsão undefined ao pagar depois sem valor de previsão', () => {
+      const component = criar();
+      jest
+        .spyOn(component, 'podePagarDepois', 'get')
+        .mockReturnValue(true);
+      component.form.patchValue({ previsaoPagamento: '', observacaoAtraso: '' });
+
+      component.pagarDepois();
+
+      expect(dialogRef.close).toHaveBeenCalledWith({
+        acao: 'depois',
+        observacaoAtraso: undefined,
+        previsaoPagamento: undefined,
+      });
+    });
   });
 });

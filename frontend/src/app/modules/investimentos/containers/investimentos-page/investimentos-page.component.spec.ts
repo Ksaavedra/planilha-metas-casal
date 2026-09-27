@@ -214,9 +214,14 @@ describe('InvestimentosPageComponent', () => {
       expect(spy).toHaveBeenCalled();
     });
 
-    it('selecionarVisao agenda gráficos somente ao voltar para lista', () => {
+    it('selecionarVisao não abre "Por pessoa" em perfil individual', () => {
       component.selecionarVisao('usuario');
-      expect(component.visaoInvestimentos).toBe('usuario');
+      expect(component.visaoInvestimentos).toBe('lista');
+    });
+
+    it('selecionarVisao agenda gráficos somente ao voltar para lista', () => {
+      component.selecionarVisao('exemplos');
+      expect(component.visaoInvestimentos).toBe('exemplos');
 
       chartMock.setOption.mockClear();
       component.investimentos = [criarInvestimento(1)];

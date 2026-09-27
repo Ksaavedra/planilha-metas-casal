@@ -8,6 +8,8 @@ import { MetasService } from './core/services/metas/metas.service';
   standalone: false,
 })
 export class AppComponent implements OnInit, OnDestroy {
+  readonly anoAtual = new Date().getFullYear();
+
   sucessoState = {
     isOpen: false,
     title: '',

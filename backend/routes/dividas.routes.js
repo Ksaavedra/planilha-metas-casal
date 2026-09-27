@@ -36,6 +36,8 @@ for (const sql of [
   'ALTER TABLE dividas ADD COLUMN diaVencimento INTEGER',
   'ALTER TABLE dividas ADD COLUMN diaMelhorCompra INTEGER',
   'ALTER TABLE dividas ADD COLUMN cartaoId INTEGER',
+  'ALTER TABLE dividas ADD COLUMN dataPagamento TEXT',
+  'ALTER TABLE dividas ADD COLUMN dataCompra TEXT',
 ]) {
   try {
     db.exec(sql);
@@ -56,6 +58,22 @@ function parseNum(value, fallback = 0) {
 function parseIntSafe(value, fallback = 0) {
   const n = parseInt(String(value), 10);
   return isNaN(n) ? fallback : n;
+}
+
+const TIPO_AJUSTE_FATURA = 'ajuste_fatura';
+
+function calcularCamposAjusteFatura(valorTotal) {
+  const total = Math.round(parseNum(valorTotal, 0) * 100) / 100;
+  return {
+    valorTotal: total,
+    valorPago: 0,
+    valorRestante: total,
+    parcelaMensal: total,
+    quantidadeParcelas: 1,
+    parcelasRestantes: 0,
+    percentualQuitado: 0,
+    statusInferido: 'quitada',
+  };
 }
 
 function calcularCamposDerivados(valorTotal, valorPago, quantidadeParcelas) {
@@ -121,6 +139,8 @@ function mapRow(row) {
     cartaoBanco: row.cartaoBanco ?? null,
     ano: row.ano,
     dataInicio: row.dataInicio,
+    dataCompra: row.dataCompra ?? null,
+    dataPagamento: row.dataPagamento ?? null,
     observacoes: row.observacoes,
   };
 }
@@ -146,8 +166,13 @@ function cartaoIdInformado(value) {
 }
 
 function mergeStatus(statusBody, derivados) {
-  const s = statusBody ? String(statusBody).trim() : '';
   if (derivados.statusInferido === 'quitada') return 'quitada';
+  if (derivados.valorRestante > 0.009) {
+    const s = statusBody ? String(statusBody).trim() : '';
+    if (s === 'atrasada') return 'atrasada';
+    return 'pagando';
+  }
+  const s = statusBody ? String(statusBody).trim() : '';
   if (s === 'atrasada' || s === 'quitada' || s === 'pagando') return s;
   return derivados.statusInferido;
 }
@@ -205,6 +230,7 @@ router.post('/', (req, res) => {
       cartaoId,
       ano,
       dataInicio,
+      dataCompra,
       observacoes,
     } = req.body;
 
@@ -219,18 +245,18 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'ano inválido.' });
     }
 
+    const tipo = String(tipoDivida).trim();
     const qtd = parseIntSafe(quantidadeParcelas);
-    if (qtd < 1) {
+    if (tipo !== TIPO_AJUSTE_FATURA && qtd < 1) {
       return res
         .status(400)
         .json({ error: 'quantidadeParcelas deve ser pelo menos 1.' });
     }
 
-    const derivados = calcularCamposDerivados(
-      valorTotal,
-      valorPago,
-      quantidadeParcelas,
-    );
+    const derivados =
+      tipo === TIPO_AJUSTE_FATURA
+        ? calcularCamposAjusteFatura(valorTotal)
+        : calcularCamposDerivados(valorTotal, valorPago, quantidadeParcelas);
     const status = mergeStatus(statusDivida, derivados);
     const cartao = getCartao(cartaoId, req.usuario.id);
     if (cartaoIdInformado(cartaoId) && !cartao) {
@@ -248,8 +274,8 @@ router.post('/', (req, res) => {
         `INSERT INTO dividas
          (objetivo, tipoDivida, valorTotal, valorPago, valorRestante, parcelaMensal,
           quantidadeParcelas, parcelasRestantes, percentualQuitado, statusDivida,
-          instituicao, limiteCartao, diaVencimento, diaMelhorCompra, cartaoId, usuario_id, ano, dataInicio, observacoes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          instituicao, limiteCartao, diaVencimento, diaMelhorCompra, cartaoId, usuario_id, ano, dataInicio, dataCompra, observacoes)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         String(objetivo).trim(),
@@ -270,6 +296,7 @@ router.post('/', (req, res) => {
         req.usuario.id,
         a,
         dataInicio || null,
+        dataCompra ? String(dataCompra).trim().slice(0, 10) : null,
         observacoes ? String(observacoes).trim() : null,
       );
 
@@ -302,25 +329,25 @@ router.patch('/:id', (req, res) => {
         ? body.quantidadeParcelas
         : atual.quantidadeParcelas;
 
+    const tipoDividaAtual =
+      body.tipoDivida != null
+        ? String(body.tipoDivida).trim()
+        : atual.tipoDivida;
     const qtd = parseIntSafe(quantidadeParcelas);
-    if (qtd < 1) {
+    if (tipoDividaAtual !== TIPO_AJUSTE_FATURA && qtd < 1) {
       return res
         .status(400)
         .json({ error: 'quantidadeParcelas deve ser pelo menos 1.' });
     }
 
-    const derivados = calcularCamposDerivados(
-      valorTotal,
-      valorPago,
-      quantidadeParcelas,
-    );
+    const derivados =
+      tipoDividaAtual === TIPO_AJUSTE_FATURA
+        ? calcularCamposAjusteFatura(valorTotal)
+        : calcularCamposDerivados(valorTotal, valorPago, quantidadeParcelas);
 
     const objetivo =
       body.objetivo != null ? String(body.objetivo).trim() : atual.objetivo;
-    const tipoDivida =
-      body.tipoDivida != null
-        ? String(body.tipoDivida).trim()
-        : atual.tipoDivida;
+    const tipoDivida = tipoDividaAtual;
     const status = mergeStatus(
       body.statusDivida ?? atual.statusDivida,
       derivados,
@@ -358,8 +385,20 @@ router.patch('/:id', (req, res) => {
     const ano = body.ano != null ? parseInt(body.ano, 10) : atual.ano;
     const dataInicio =
       body.dataInicio !== undefined ? body.dataInicio : atual.dataInicio;
+    const dataCompra =
+      body.dataCompra !== undefined
+        ? body.dataCompra
+          ? String(body.dataCompra).trim().slice(0, 10)
+          : null
+        : atual.dataCompra;
     const observacoes =
       body.observacoes !== undefined ? body.observacoes : atual.observacoes;
+    const dataPagamento =
+      body.dataPagamento !== undefined
+        ? body.dataPagamento
+          ? String(body.dataPagamento).trim().slice(0, 10)
+          : null
+        : atual.dataPagamento;
 
     db.prepare(
       `UPDATE dividas SET
@@ -367,7 +406,7 @@ router.patch('/:id', (req, res) => {
         valorRestante = ?, parcelaMensal = ?, quantidadeParcelas = ?,
         parcelasRestantes = ?, percentualQuitado = ?, statusDivida = ?,
         instituicao = ?, limiteCartao = ?, diaVencimento = ?, diaMelhorCompra = ?,
-        cartaoId = ?, ano = ?, dataInicio = ?, observacoes = ?,
+        cartaoId = ?, ano = ?, dataInicio = ?, dataCompra = ?, dataPagamento = ?, observacoes = ?,
         updatedAt = CURRENT_TIMESTAMP
        WHERE id = ? AND usuario_id = ?`,
     ).run(
@@ -388,6 +427,8 @@ router.patch('/:id', (req, res) => {
       cartaoId,
       ano,
       dataInicio,
+      dataCompra,
+      dataPagamento,
       observacoes,
       id,
       req.usuario.id,

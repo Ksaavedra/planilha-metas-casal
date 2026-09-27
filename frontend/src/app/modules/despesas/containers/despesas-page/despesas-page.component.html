@@ -40,7 +40,8 @@
           (click)="selecionarVisao('lista')" role="tab" [attr.aria-selected]="visaoDespesas === 'lista'">
           Minhas despesas
         </button>
-        <button type="button" class="despesas-hero__chip" [class.is-active]="visaoDespesas === 'usuario'"
+        <button *ngIf="temGrupoFamiliar$ | async" type="button" class="despesas-hero__chip"
+          [class.is-active]="visaoDespesas === 'usuario'"
           (click)="selecionarVisao('usuario')" role="tab" [attr.aria-selected]="visaoDespesas === 'usuario'">
           Por pessoa
         </button>
@@ -213,6 +214,6 @@
   </ng-container>
 
   <app-despesas-exemplos *ngIf="visaoDespesas === 'exemplos'"></app-despesas-exemplos>
-  <app-despesas-usuario *ngIf="visaoDespesas === 'usuario'" [despesas]="despesas" [nomeMesReferencia]="nomeMesAtual">
+  <app-despesas-usuario *ngIf="visaoDespesas === 'usuario' && (temGrupoFamiliar$ | async)" [despesas]="despesas" [nomeMesReferencia]="nomeMesAtual">
   </app-despesas-usuario>
 </div>

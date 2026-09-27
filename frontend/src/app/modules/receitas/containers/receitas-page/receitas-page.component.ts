@@ -2,9 +2,11 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  OnDestroy,
   OnInit,
 } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { Subscription } from 'rxjs';
 import {
   AdicionarReceitaDialogComponent,
   AdicionarReceitaDialogData,
@@ -25,7 +27,7 @@ import { PerfilFinanceiroService } from '@core/services/perfis/perfil-financeiro
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: false,
 })
-export class ReceitasPageComponent implements OnInit {
+export class ReceitasPageComponent implements OnInit, OnDestroy {
   readonly tituloSecundario = 'Acompanhem tudo o que entra e construam juntos.';
   readonly temGrupoFamiliar$ = this.perfilService.temGrupoFamiliar$;
 
@@ -40,6 +42,8 @@ export class ReceitasPageComponent implements OnInit {
   tamanhoPagina = 5;
   paginaFixas = 1;
   paginaVariaveis = 1;
+
+  private temGrupoFamiliarSub?: Subscription;
 
   meses = [
     'Janeiro',
@@ -217,6 +221,18 @@ export class ReceitasPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.carregar();
+    this.temGrupoFamiliarSub = this.temGrupoFamiliar$.subscribe(
+      (temGrupoFamiliar) => {
+        if (!temGrupoFamiliar && this.visaoReceitas === 'usuario') {
+          this.visaoReceitas = 'lista';
+          this.cdr.markForCheck();
+        }
+      },
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.temGrupoFamiliarSub?.unsubscribe();
   }
 
   mesAnterior(): void {
@@ -234,6 +250,9 @@ export class ReceitasPageComponent implements OnInit {
   }
 
   selecionarVisao(visao: 'lista' | 'exemplos' | 'usuario'): void {
+    if (visao === 'usuario' && !this.perfilService.temGrupoFamiliarAtual) {
+      visao = 'lista';
+    }
     this.visaoReceitas = visao;
     this.cdr.markForCheck();
   }

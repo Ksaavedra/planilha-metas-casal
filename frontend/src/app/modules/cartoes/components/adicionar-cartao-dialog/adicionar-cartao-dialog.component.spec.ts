@@ -2,7 +2,17 @@ import { FormBuilder, FormControl } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { Cartao } from '@core/interfaces/cartoes/cartoes';
+import { Usuario } from '@core/interfaces/usuarios/usuarios';
+import { montarDiasCicloFatura } from '@core/utils/fatura-cartao.util';
 import { AdicionarCartaoDialogComponent } from './adicionar-cartao-dialog.component';
+
+jest.mock('@core/utils/fatura-cartao.util', () => {
+  const actual = jest.requireActual('@core/utils/fatura-cartao.util');
+  return {
+    ...actual,
+    montarDiasCicloFatura: jest.fn(actual.montarDiasCicloFatura),
+  };
+});
 
 describe('AdicionarCartaoDialogComponent', () => {
   const cartao: Cartao = {
@@ -87,7 +97,6 @@ describe('AdicionarCartaoDialogComponent', () => {
       cartao: {
         ...cartao,
         pessoa: null,
-        diaFechamento: null,
         diaVencimento: null,
         diaMelhorCompra: null,
       },
@@ -96,7 +105,6 @@ describe('AdicionarCartaoDialogComponent', () => {
     component.ngOnInit();
 
     expect(component.form.get('pessoa')?.value).toBe('');
-    expect(component.form.get('diaFechamento')?.value).toBeNull();
     expect(component.form.get('diaVencimento')?.value).toBeNull();
     expect(component.form.get('diaMelhorCompra')?.value).toBeNull();
   });
@@ -114,20 +122,21 @@ describe('AdicionarCartaoDialogComponent', () => {
 
     component.salvar();
 
-    expect(component.erro).toBe('Preencha nome, banco e limite do cartão.');
+    expect(component.erro).toBe(
+      'Preencha nome, banco, limite, melhor dia de compra e vencimento.',
+    );
     expect(cartoesService.createCartao).not.toHaveBeenCalled();
   });
 
-  it('deve criar cartão com pessoa selecionada', () => {
+  it('deve criar cartão com pessoa selecionada e calcular fechamento', () => {
     const component = criar();
     component.form.patchValue({
       nome: ' Black ',
       banco: ' C6 ',
       pessoa: ' David ',
       limite: 2000,
-      diaFechamento: 5,
-      diaVencimento: 15,
-      diaMelhorCompra: 6,
+      diaVencimento: 6,
+      diaMelhorCompra: 28,
     });
 
     component.salvar();
@@ -138,13 +147,20 @@ describe('AdicionarCartaoDialogComponent', () => {
       limite: 2000,
       faturaPaga: false,
       valorFaturaPaga: 0,
-      diaFechamento: 5,
-      diaVencimento: 15,
-      diaMelhorCompra: 6,
+      diaFechamento: 27,
+      diaVencimento: 6,
+      diaMelhorCompra: 28,
       pessoa: 'David',
     });
     expect(dialogRef.close).toHaveBeenCalledWith(true);
     expect(component.saving).toBe(false);
+  });
+
+  it('deve exibir fechamento calculado no preview', () => {
+    const component = criar();
+    component.form.patchValue({ diaMelhorCompra: 28, diaVencimento: 6 });
+
+    expect(component.diaFechamentoCalculado).toBe(27);
   });
 
   it('deve zerar status de fatura quando houver valor utilizado no formulário', () => {
@@ -167,7 +183,12 @@ describe('AdicionarCartaoDialogComponent', () => {
       cartao: { ...cartao, faturaPaga: true, valorFaturaPaga: 300 },
     });
     component.ngOnInit();
-    component.form.patchValue({ nome: 'Roxo 2', banco: 'Nubank', limite: 1200, pessoa: '' });
+    component.form.patchValue({
+      nome: 'Roxo 2',
+      banco: 'Nubank',
+      limite: 1200,
+      pessoa: '',
+    });
 
     component.salvar();
 
@@ -182,7 +203,9 @@ describe('AdicionarCartaoDialogComponent', () => {
   });
 
   it('deve tratar erro do serviço e erro ao carregar usuários', () => {
-    usuariosService.getUsuarios.mockReturnValueOnce(throwError(() => new Error('erro')));
+    usuariosService.getUsuarios.mockReturnValueOnce(
+      throwError(() => new Error('erro')),
+    );
     cartoesService.createCartao.mockReturnValueOnce(
       throwError(
         () =>
@@ -199,16 +222,151 @@ describe('AdicionarCartaoDialogComponent', () => {
     component.salvar();
 
     expect(component.usuarios).toEqual([]);
-    expect(component.erro).toBe('Limite inválido');
+    expect(component.erro).toBe(
+      'Preencha nome, banco, limite, melhor dia de compra e vencimento.',
+    );
     expect(component.saving).toBe(false);
   });
 
   it('deve retornar mensagens amigáveis para erros HTTP', () => {
     const component = criar();
 
-    expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 0 }))).toContain('Servidor indisponível');
-    expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 400, error: {} }))).toBe('Não foi possível salvar. Tente novamente.');
-    expect(component['mensagemErroHttp'](new HttpErrorResponse({ status: 400, error: 'erro' }))).toBe('Não foi possível salvar. Tente novamente.');
-    expect(component['mensagemErroHttp'](new Error('erro'))).toBe('Não foi possível salvar. Tente novamente.');
+    expect(
+      component['mensagemErroHttp'](new HttpErrorResponse({ status: 0 })),
+    ).toContain('Servidor indisponível');
+    expect(
+      component['mensagemErroHttp'](
+        new HttpErrorResponse({ status: 400, error: {} }),
+      ),
+    ).toBe('Não foi possível salvar. Tente novamente.');
+    expect(
+      component['mensagemErroHttp'](
+        new HttpErrorResponse({ status: 400, error: 'erro' }),
+      ),
+    ).toBe('Não foi possível salvar. Tente novamente.');
+    expect(component['mensagemErroHttp'](new Error('erro'))).toBe(
+      'Não foi possível salvar. Tente novamente.',
+    );
+    expect(
+      component['mensagemErroHttp'](
+        new HttpErrorResponse({ status: 400, error: null }),
+      ),
+    ).toBe('Não foi possível salvar. Tente novamente.');
+    expect(
+      component['mensagemErroHttp'](
+        new HttpErrorResponse({ status: 400, error: { error: '' } }),
+      ),
+    ).toBe('Não foi possível salvar. Tente novamente.');
+  });
+
+  function preencherValido(component: AdicionarCartaoDialogComponent) {
+    component.form.patchValue({
+      nome: 'Black',
+      banco: 'C6',
+      limite: 2000,
+      diaVencimento: 6,
+      diaMelhorCompra: 28,
+    });
+  }
+
+  it('deve exibir mensagem da API quando salvar falhar com formulário válido', () => {
+    cartoesService.createCartao.mockReturnValueOnce(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 400,
+            error: { error: 'Limite inválido' },
+          }),
+      ),
+    );
+    const component = criar();
+    preencherValido(component);
+
+    component.salvar();
+
+    expect(component.saving).toBe(false);
+    expect(component.erro).toBe('Limite inválido');
+    expect(cdr.markForCheck).toHaveBeenCalled();
+    expect(dialogRef.close).not.toHaveBeenCalled();
+  });
+
+  it('deve bloquear salvar quando já estiver salvando', () => {
+    const component = criar();
+    preencherValido(component);
+    component.saving = true;
+
+    component.salvar();
+
+    expect(component.erro).toBe(
+      'Preencha nome, banco, limite, melhor dia de compra e vencimento.',
+    );
+    expect(cartoesService.createCartao).not.toHaveBeenCalled();
+  });
+
+  it('deve usar fallbacks de status da fatura quando cartão em edição não os tiver', () => {
+    const component = criar({
+      cartao: {
+        ...cartao,
+        faturaPaga: undefined,
+        valorFaturaPaga: undefined,
+      },
+    });
+    component.ngOnInit();
+
+    component.salvar();
+
+    const [, payload] = cartoesService.updateCartao.mock.calls[0];
+    expect(payload.faturaPaga).toBe(false);
+    expect(payload.valorFaturaPaga).toBe(0);
+  });
+
+  it('deve enviar dias como undefined quando o ciclo não puder ser montado', () => {
+    (montarDiasCicloFatura as jest.Mock).mockReturnValueOnce({
+      diaMelhorCompra: null,
+      diaVencimento: null,
+      diaFechamento: null,
+    });
+    const component = criar();
+    preencherValido(component);
+
+    component.salvar();
+
+    const payload = cartoesService.createCartao.mock.calls[0][0];
+    expect(payload.diaFechamento).toBeUndefined();
+    expect(payload.diaVencimento).toBeUndefined();
+    expect(payload.diaMelhorCompra).toBeUndefined();
+    expect(payload.pessoa).toBeNull();
+  });
+
+  it('deve retornar fechamento nulo para melhor dia ausente ou fora do intervalo', () => {
+    const component = criar();
+
+    component.form.patchValue({ diaMelhorCompra: null });
+    expect(component.diaFechamentoCalculado).toBeNull();
+
+    component.form.patchValue({ diaMelhorCompra: -3 });
+    expect(component.diaFechamentoCalculado).toBeNull();
+
+    component.form.patchValue({ diaMelhorCompra: 32 });
+    expect(component.diaFechamentoCalculado).toBeNull();
+
+    component.form.patchValue({ diaMelhorCompra: 1 });
+    expect(component.diaFechamentoCalculado).toBe(31);
+
+    component.form.removeControl('diaMelhorCompra');
+    expect(component.diaFechamentoCalculado).toBeNull();
+  });
+
+  it('deve exibir nome do usuário priorizando nome de exibição e apelido', () => {
+    const component = criar();
+    const base = { id: 1, nome: 'Kelly Silva' } as Usuario;
+
+    expect(
+      component.nomeUsuario({ ...base, nomeExibicao: 'Kel', apelido: 'K' }),
+    ).toBe('Kel');
+    expect(component.nomeUsuario({ ...base, nomeExibicao: '', apelido: 'K' })).toBe(
+      'K',
+    );
+    expect(component.nomeUsuario(base)).toBe('Kelly Silva');
   });
 });
