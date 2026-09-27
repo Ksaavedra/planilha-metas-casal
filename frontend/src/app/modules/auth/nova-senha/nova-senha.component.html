@@ -1,0 +1,81 @@
+<main class="auth-page">
+  <section class="auth-card">
+    <div class="auth-brand">
+      <div class="auth-brand__top">
+        <div class="title-brand">
+          <div class="title-brand__name">
+            <span class="auth-brand__icon" aria-hidden="true">
+              <img src="/assets/images/logo-roxo.png" alt="" />
+            </span>
+            <strong>ORBIS</strong>
+          </div>
+          <p>Planejamento Financeiro</p>
+        </div>
+      </div>
+      <h1>Nova senha</h1>
+      <span>Defina uma nova senha para acessar sua conta.</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="salvar()" class="auth-form">
+      <label>
+        <span>Nova senha</span>
+        <div class="password-field">
+          <input
+            [type]="mostrarSenha ? 'text' : 'password'"
+            formControlName="novaSenha"
+            placeholder="Mínimo de 6 caracteres"
+            autocomplete="new-password"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="mostrarSenha = !mostrarSenha"
+            [attr.aria-label]="mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'"
+          >
+            <span class="material-icons" aria-hidden="true">
+              {{ mostrarSenha ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
+        <small *ngIf="form.get('novaSenha')?.touched && form.get('novaSenha')?.invalid">
+          A senha deve ter pelo menos 6 caracteres.
+        </small>
+      </label>
+
+      <label>
+        <span>Confirmar senha</span>
+        <div class="password-field">
+          <input
+            [type]="mostrarConfirmacao ? 'text' : 'password'"
+            formControlName="confirmarSenha"
+            placeholder="Repita a nova senha"
+            autocomplete="new-password"
+          />
+          <button
+            type="button"
+            class="password-toggle"
+            (click)="mostrarConfirmacao = !mostrarConfirmacao"
+            [attr.aria-label]="mostrarConfirmacao ? 'Ocultar confirmação' : 'Mostrar confirmação'"
+          >
+            <span class="material-icons" aria-hidden="true">
+              {{ mostrarConfirmacao ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
+        <small *ngIf="senhasDiferentes">As senhas não coincidem.</small>
+      </label>
+
+      <div class="auth-alert" *ngIf="erro">
+        {{ erro }}
+      </div>
+
+      <button type="submit" [disabled]="carregando">
+        {{ carregando ? 'Salvando...' : 'Salvar nova senha' }}
+      </button>
+    </form>
+
+    <p class="auth-footer">
+      <a routerLink="/login">Voltar para entrar</a>
+    </p>
+  </section>
+</main>

@@ -28,3 +28,25 @@ export interface AuthResponse {
   token: string;
   usuario: Usuario;
 }
+
+export interface MessageResponse {
+  message: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface VerifyResetCodeRequest {
+  email: string;
+  codigo: string;
+}
+
+export interface VerifyResetCodeResponse extends MessageResponse {
+  resetToken: string;
+}
+
+export interface ResetPasswordRequest {
+  resetToken: string;
+  novaSenha: string;
+}

@@ -7,10 +7,18 @@ import {
   statusCartaoLabel,
 } from '@core/utils/cartoes.util';
 import {
+  diaMelhorCompraEfetivo,
+  periodoFaturaCartao,
+  PeriodoFaturaCartao,
+} from '@core/utils/fatura-cartao.util';
+import {
+  compararLancamentosFaturaPorData,
   parcelaMensalDivida,
   parcelasRestantesLabel,
+  formatarDataIsoPtBr,
   statusParcelaMesClasse,
   statusParcelaMesLabel,
+  totalParcelaMensalPendenteNoMes,
 } from '@core/utils/dividas.util';
 
 export interface LinhaUsuarioFaturasMes {
@@ -152,26 +160,39 @@ export class CartoesUsuarioComponent implements OnChanges {
     return this.cartaoExpandidoId === cartao.id;
   }
 
+  melhorDiaCompraLabel(c: Cartao): string {
+    const dia = diaMelhorCompraEfetivo(c);
+    return dia != null ? `Dia ${dia}` : '-';
+  }
+
+  periodoFatura(c: Cartao): PeriodoFaturaCartao | null {
+    const ref = this.mesReferencia;
+    return periodoFaturaCartao(c, ref.getFullYear(), ref.getMonth() + 1);
+  }
+
+  dataCompraExibicao(p: DividaNoMes): string {
+    return (
+      formatarDataIsoPtBr(p.dataCompra) ??
+      formatarDataIsoPtBr(p.dataInicio) ??
+      '-'
+    );
+  }
+
   parcelamentosDoCartao(cartao: Cartao): DividaNoMes[] {
-    return this.parcelamentos.filter((p) => p.cartaoId === cartao.id);
+    return this.parcelamentos
+      .filter((p) => p.cartaoId === cartao.id)
+      .sort(compararLancamentosFaturaPorData);
   }
 
   valorUtilizadoFatura(cartao: Cartao): number {
+    const parcelamentos = this.parcelamentosDoCartao(cartao);
+    if (parcelamentos.length > 0) {
+      return totalParcelaMensalPendenteNoMes(parcelamentos);
+    }
+
     if (cartao.totalAPagarMes != null) {
       const totalAPagarMes = Number(cartao.totalAPagarMes);
       return Math.max(0, Math.round(totalAPagarMes * 100) / 100);
-    }
-
-    const parcelamentos = this.parcelamentos.filter(
-      (p) => p.cartaoId === cartao.id,
-    );
-
-    if (parcelamentos.length > 0) {
-      const totalParcelasMes = parcelamentos.reduce(
-        (s, p) => s + parcelaMensalDivida(p),
-        0,
-      );
-      return Math.round(totalParcelasMes * 100) / 100;
     }
 
     return Math.max(0, cartao.valorUtilizado || 0);
@@ -211,11 +232,14 @@ export class CartoesUsuarioComponent implements OnChanges {
   faturaAtrasada(cartao: Cartao): boolean {
     const statusParcelas = this.statusResumoParcelasCartao(cartao);
     if (statusParcelas) {
+      if (statusParcelas === 'atrasada') {
+        return true;
+      }
+
       return (
-        statusParcelas === 'atrasada' ||
-        (statusParcelas !== 'paga' &&
-          statusParcelas !== 'quitada' &&
-          this.statusDoCartao(cartao) === 'atrasado')
+        statusParcelas !== 'paga' &&
+        statusParcelas !== 'quitada' &&
+        this.statusDoCartao(cartao) === 'atrasado'
       );
     }
 

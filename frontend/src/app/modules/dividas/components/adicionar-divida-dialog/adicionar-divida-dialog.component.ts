@@ -166,6 +166,13 @@ export class AdicionarDividaDialogComponent implements OnInit, OnDestroy {
           v.dataInicio || undefined,
           mes,
           valorPagoNoMes,
+          this.data.ano,
+          {
+            ano: this.data.ano,
+            dataInicio: v.dataInicio || undefined,
+            valorTotal,
+            quantidadeParcelas,
+          },
         )
       : valorPagoNoMes;
 

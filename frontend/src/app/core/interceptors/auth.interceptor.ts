@@ -18,7 +18,11 @@ export class AuthInterceptor implements HttpInterceptor {
   ): Observable<HttpEvent<unknown>> {
     const token = this.authService.getToken();
     const isAuthRoute =
-      req.url.includes('/auth/login') || req.url.includes('/auth/registrar');
+      req.url.includes('/auth/login') ||
+      req.url.includes('/auth/registrar') ||
+      req.url.includes('/auth/forgot-password') ||
+      req.url.includes('/auth/verify-reset-code') ||
+      req.url.includes('/auth/reset-password');
 
     if (!token || isAuthRoute || req.headers.has('Authorization')) {
       return next.handle(req);

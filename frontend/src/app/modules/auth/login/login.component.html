@@ -12,10 +12,10 @@
           <p>Planejamento Financeiro</p>
         </div>
       </div>
-      <h1>{{ modoRecuperacao ? 'Recuperar senha' : 'Entrar' }}</h1>
+      <h1>Entrar</h1>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="modoRecuperacao ? recuperarSenha() : entrar()" class="auth-form">
+    <form [formGroup]="form" (ngSubmit)="entrar()" class="auth-form">
       <label>
         <span>Usuário ou Email</span>
         <input type="text" formControlName="usuarioOuEmail" placeholder="usuario1 ou voce@email.com"
@@ -25,7 +25,7 @@
         </small>
       </label>
 
-      <label *ngIf="!modoRecuperacao">
+      <label>
         <span>Senha</span>
         <div class="password-field">
           <input [type]="mostrarSenha ? 'text' : 'password'" formControlName="senha" placeholder="Sua senha"
@@ -42,9 +42,9 @@
         </small>
       </label>
 
-      <button type="button" class="auth-forgot" *ngIf="!modoRecuperacao" (click)="iniciarRecuperacao()">
+      <a class="auth-forgot" routerLink="/recuperar-senha">
         Esqueceu sua senha?
-      </button>
+      </a>
 
       <div class="auth-alert auth-alert--success" *ngIf="sucesso">
         {{ sucesso }}
@@ -55,18 +55,13 @@
       </div>
 
       <button type="submit" [disabled]="carregando">
-        {{ modoRecuperacao ? 'Enviar' : (carregando ? 'Entrando...' : 'Entrar') }}
+        {{ carregando ? 'Entrando...' : 'Entrar' }}
       </button>
     </form>
 
-    <p class="auth-footer" *ngIf="!modoRecuperacao">
+    <p class="auth-footer">
       Ainda não tem conta?
       <a routerLink="/register">Criar conta</a>
-    </p>
-
-    <p class="auth-footer" *ngIf="modoRecuperacao">
-      Lembrou sua senha?
-      <button type="button" (click)="voltarParaLogin()">Voltar para entrar</button>
     </p>
   </section>
 </main>

@@ -407,6 +407,8 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
         d.dataInicio || undefined,
         this.mesRef,
         parcela,
+        this.anoRef,
+        d,
       );
 
       this.dividasService.updateDivida(d.id, { valorPago }).subscribe({
@@ -445,6 +447,8 @@ export class DividasPageComponent implements OnInit, AfterViewInit, OnDestroy {
         d.dataInicio || undefined,
         this.mesRef,
         0,
+        this.anoRef,
+        d,
       );
 
       this.dividasService.updateDivida(d.id, { valorPago }).subscribe({
