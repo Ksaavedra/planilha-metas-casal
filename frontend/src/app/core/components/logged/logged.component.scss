@@ -54,7 +54,6 @@
   justify-content: center;
   box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
   transition:
-    left 0.28s ease,
     transform 0.2s ease,
     box-shadow 0.2s ease;
 
@@ -71,10 +70,6 @@
     outline: 3px solid rgba(139, 92, 246, 0.45);
     outline-offset: 3px;
   }
-
-  &.sidebar-open {
-    left: calc(292px + 24px);
-  }
 }
 
 @media (max-width: 768px) {
@@ -89,7 +84,7 @@
   }
 
   .feedback-fab {
-    left: 16px;
+    right: 16px;
     bottom: 16px;
     width: 48px;
     height: 48px;

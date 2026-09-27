@@ -203,19 +203,6 @@ describe('LoggedComponent', () => {
       expect(dialog.open).toHaveBeenCalledTimes(1);
     });
 
-    it('a bolinha acompanha o menu lateral aberto só no desktop', () => {
-      const fab = () => fixture.nativeElement.querySelector('.feedback-fab') as HTMLElement;
-
-      component.sidebarStatus = true;
-      component.isMobile = false;
-      fixture.detectChanges();
-      expect(fab().classList).toContain('sidebar-open');
-
-      component.isMobile = true;
-      fixture.detectChanges();
-      expect(fab().classList).not.toContain('sidebar-open');
-    });
-
     it('mostra agradecimento quando o feedback é enviado', () => {
       feedbackService.deveExibir.mockReturnValue(true);
       dialog.open.mockReturnValueOnce({ afterClosed: () => of('enviado') });
