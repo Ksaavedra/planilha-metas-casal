@@ -6,7 +6,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "build:gh": "ng build --configuration production --base-href /planilha-metas-casal/",
+    "build:gh": "ng build --configuration production --base-href /",
     "watch": "ng build --watch --configuration development",
     "test": "jest",
     "test:cov": "jest --coverage",
