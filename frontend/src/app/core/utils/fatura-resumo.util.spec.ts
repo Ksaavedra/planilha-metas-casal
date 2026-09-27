@@ -3,6 +3,7 @@ import { Divida, DividaNoMes } from '../interfaces/dividas/dividas';
 import {
   calcularResumoFaturaCartao,
   isAjusteFatura,
+  isCompraFatura,
   labelCategoriaAjuste,
   TIPO_DIVIDA_AJUSTE_FATURA,
 } from './fatura-resumo.util';
@@ -113,5 +114,65 @@ describe('fatura-resumo.util', () => {
     );
 
     expect(resumo.valorAPagar).toBe(100);
+  });
+
+  it('identifica compras de fatura e devolve o próprio id para categoria desconhecida', () => {
+    expect(isCompraFatura({ tipoDivida: 'parcelamento' })).toBe(true);
+    expect(isCompraFatura({ tipoDivida: TIPO_DIVIDA_AJUSTE_FATURA })).toBe(false);
+    expect(labelCategoriaAjuste('categoria_nova')).toBe('categoria_nova');
+  });
+
+  it('considera parcelas pagas ou quitadas pelo status e pagamentos lançados como ajuste', () => {
+    const compras = [
+      compra({ id: 1, parcelaMensal: 100, valorTotal: 100, statusParcelaMes: 'paga' }),
+      compra({ id: 2, parcelaMensal: 50, valorTotal: 50, statusParcelaMes: 'quitada' }),
+      compra({ id: 3, parcelaMensal: 300, valorTotal: 300 }),
+    ];
+    const ajustes = [
+      ajuste({ id: 11, objetivo: 'pagamento_realizado', valorTotal: -200 }),
+      ajuste({ id: 12, objetivo: 'pagamento_realizado', valorTotal: 0 }),
+      ajuste({ id: 13, objetivo: 'juros', valorTotal: 0 }),
+    ];
+
+    const resumo = calcularResumoFaturaCartao(compras, ajustes, cartao());
+
+    expect(resumo.totalCompras).toBe(450);
+    expect(resumo.totalAjustes).toBe(-200);
+    expect(resumo.valorFatura).toBe(250);
+    expect(resumo.pagamentosRealizados).toBe(250);
+  });
+
+  it('usa o valor pago do cartão quando não há compras no mês e a fatura está paga', () => {
+    const resumo = calcularResumoFaturaCartao(
+      [],
+      [ajuste({ objetivo: 'juros', valorTotal: 300 })],
+      cartao({ faturaPaga: true, valorFaturaPaga: 250 }),
+    );
+
+    expect(resumo.valorFatura).toBe(300);
+    expect(resumo.pagamentosRealizados).toBe(250);
+    expect(resumo.valorAPagar).toBe(0);
+  });
+
+  it('ignora fatura paga sem valor informado quando não há compras no mês', () => {
+    const resumo = calcularResumoFaturaCartao(
+      [],
+      [ajuste({ objetivo: 'juros', valorTotal: 300 })],
+      cartao({ faturaPaga: true }),
+    );
+
+    expect(resumo.pagamentosRealizados).toBe(0);
+    expect(resumo.valorAPagar).toBe(0);
+  });
+
+  it('cobra os ajustes quando não há compras e a fatura não está paga', () => {
+    const resumo = calcularResumoFaturaCartao(
+      [],
+      [ajuste({ objetivo: 'juros', valorTotal: 300 })],
+      cartao({ faturaPaga: false, valorFaturaPaga: 100 }),
+    );
+
+    expect(resumo.pagamentosRealizados).toBe(0);
+    expect(resumo.valorAPagar).toBe(300);
   });
 });

@@ -8,7 +8,17 @@ import { Cartao } from '@core/interfaces/cartoes/cartoes';
 
 import { Divida } from '@core/interfaces/dividas/dividas';
 
+import { compraNoPeriodoFatura } from '@core/utils/fatura-cartao.util';
+
 import { AdicionarParcelamentoDialogComponent } from './adicionar-parcelamento-dialog.component';
+
+jest.mock('@core/utils/fatura-cartao.util', () => {
+  const actual = jest.requireActual('@core/utils/fatura-cartao.util');
+  return {
+    ...actual,
+    compraNoPeriodoFatura: jest.fn(actual.compraNoPeriodoFatura),
+  };
+});
 
 describe('AdicionarParcelamentoDialogComponent', () => {
   const cartao: Cartao = {
@@ -401,5 +411,267 @@ describe('AdicionarParcelamentoDialogComponent', () => {
     expect(component['mensagemErroHttp'](new Error('erro'))).toBe(
       'Não foi possível salvar o parcelamento.',
     );
+  });
+
+  it('deve calcular parcela como zero quando quantidade de parcelas estiver vazia', () => {
+    const component = criar();
+    component.form.patchValue({ valorTotal: 300, quantidadeParcelas: null });
+
+    expect(component.parcelaCalculada).toBe(0);
+  });
+
+  it('deve exibir labels e limites do período da fatura', () => {
+    const component = criar();
+
+    expect(component.faturaLabel).toBe('Agosto 2023');
+    expect(component.periodoCompraLabel).toMatch(/^\d{2}\/\d{2} até \d{2}\/\d{2}$/);
+    expect(component.periodoCompraCompleto).toMatch(
+      /^\d{2}\/\d{2}\/\d{4} a \d{2}\/\d{2}\/\d{4}$/,
+    );
+    expect(component.dataCompraMin).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(component.dataCompraMax).toBe('2023-07-27');
+  });
+
+  it('deve retornar nulos de período quando o cartão não tiver dias configurados', () => {
+    const component = criar({
+      cartao: { ...cartao, diaMelhorCompra: null, diaVencimento: null },
+      ano: 2023,
+      mes: 8,
+      parcelamento: undefined,
+    });
+
+    expect(component.periodoCompraLabel).toBeNull();
+    expect(component.periodoCompraCompleto).toBeNull();
+    expect(component.dataCompraMin).toBeNull();
+    expect(component.dataCompraMax).toBeNull();
+  });
+
+  it('deve usar label da fatura como primeira parcela quando não houver data da compra', () => {
+    const component = criar();
+
+    component.form.patchValue({ dataCompra: '' });
+    expect(component.primeiraParcelaLabel).toBe('Agosto 2023');
+
+    component.form.removeControl('dataCompra');
+    expect(component.primeiraParcelaLabel).toBe('Agosto 2023');
+  });
+
+  it('deve usar dataCompra do parcelamento em edição', () => {
+    const component = criar({
+      cartao,
+      ano: 2026,
+      mes: 5,
+      parcelamento: { ...parcelamento, dataCompra: '2026-04-10T12:00:00.000Z' },
+    });
+
+    expect(component.form.get('dataCompra')?.value).toBe('2026-04-10');
+  });
+
+  it('deve usar data padrão da fatura quando parcelamento não tiver datas', () => {
+    const component = criar({
+      cartao,
+      ano: 2023,
+      mes: 8,
+      parcelamento: {
+        ...parcelamento,
+        dataCompra: undefined,
+        dataInicio: undefined as any,
+      },
+    });
+
+    expect(component.form.get('dataCompra')?.value).toBe('2023-07-27');
+  });
+
+  it('deve usar fallbacks do formulário quando parcelamento tiver campos vazios', () => {
+    const component = criar({
+      cartao,
+      ano: 2026,
+      mes: 5,
+      parcelamento: {
+        ...parcelamento,
+        objetivo: undefined as any,
+        valorTotal: undefined as any,
+        quantidadeParcelas: undefined as any,
+        observacoes: undefined,
+      },
+    });
+
+    expect(component.form.get('objetivo')?.value).toBe('');
+    expect(component.form.get('valorTotal')?.value).toBeNull();
+    expect(component.form.get('quantidadeParcelas')?.value).toBe(1);
+    expect(component.form.get('observacoes')?.value).toBe('');
+  });
+
+  it('deve ignorar foco repetido no campo de compra', () => {
+    const component = criar();
+    const nextSpy = jest.spyOn(component['comprasOpcoesAtualizadas$'], 'next');
+
+    component.onCompraFieldFocus();
+    component.onCompraFieldFocus();
+
+    expect(component.listaAutocompleteCompraAtiva).toBe(true);
+    expect(nextSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('deve filtrar sugestões ao digitar e ao atualizar opções', () => {
+    const component = criar();
+    component.ngOnInit();
+    const emissoes: unknown[][] = [];
+    const sub = component.filteredCompras$.subscribe((v) => emissoes.push(v));
+
+    expect(emissoes[0]).toEqual([]);
+
+    component.onCompraFieldFocus();
+    component.form.get('objetivo')?.setValue('if');
+
+    expect(emissoes[emissoes.length - 1]).toEqual([
+      { label: 'Ifood', value: 'Ifood', criar: false },
+    ]);
+
+    sub.unsubscribe();
+    component.ngOnDestroy();
+  });
+
+  it('deve retornar lista vazia quando o autocomplete não estiver ativo', () => {
+    const component = criar();
+    component.comprasAutocompleteOptions = ['Ifood'];
+
+    expect(component['filtrarCompras']('if')).toEqual([]);
+  });
+
+  it('deve tratar valor nulo ou ausente no filtro de objetivo', () => {
+    const component = criar();
+
+    component.form.get('objetivo')?.setValue(null);
+    expect(component['getObjetivoFiltroValue']()).toBe('');
+
+    component.form.removeControl('objetivo');
+    expect(component['getObjetivoFiltroValue']()).toBe('');
+  });
+
+  it('deve limpar sugestões quando falhar ao carregar compras', () => {
+    dividasService.getDividas.mockReturnValue(
+      throwError(() => new Error('falha')),
+    );
+    const component = criar();
+    component.comprasAutocompleteOptions = ['Antigo'];
+
+    component.ngOnInit();
+
+    expect(component.comprasAutocompleteOptions).toEqual([]);
+  });
+
+  it('deve encerrar assinaturas ao destruir com ou sem carregamento', () => {
+    const semInit = criar();
+    expect(() => semInit.ngOnDestroy()).not.toThrow();
+
+    const component = criar();
+    component.ngOnInit();
+    const unsubscribeSpy = jest.spyOn(
+      component['comprasApiSub']!,
+      'unsubscribe',
+    );
+    const completeSpy = jest.spyOn(
+      component['comprasOpcoesAtualizadas$'],
+      'complete',
+    );
+
+    component.ngOnDestroy();
+
+    expect(unsubscribeSpy).toHaveBeenCalled();
+    expect(completeSpy).toHaveBeenCalled();
+  });
+
+  it('deve criar parcelamento sem dias do cartão no payload', () => {
+    const component = criar({
+      cartao: { ...cartao, diaMelhorCompra: null, diaVencimento: null },
+      ano: 2023,
+      mes: 8,
+      parcelamento: undefined,
+    });
+    component.form.patchValue({
+      objetivo: 'Livro',
+      valorTotal: 90,
+      quantidadeParcelas: 1,
+      dataCompra: '2023-01-01',
+    });
+
+    component.salvar();
+
+    const payload = dividasService.createDivida.mock.calls[0][0];
+    expect(payload).not.toHaveProperty('diaMelhorCompra');
+    expect(payload).not.toHaveProperty('diaVencimento');
+    expect(payload.dataInicio).toBe('2023-08-01');
+    expect(payload.observacoes).toBe('');
+  });
+
+  it('deve exibir erro genérico de período quando não houver label do período', () => {
+    (compraNoPeriodoFatura as jest.Mock).mockReturnValueOnce(false);
+    const component = criar({
+      cartao: { ...cartao, diaMelhorCompra: null, diaVencimento: null },
+      ano: 2023,
+      mes: 8,
+      parcelamento: undefined,
+    });
+    component.form.patchValue({
+      objetivo: 'Livro',
+      valorTotal: 90,
+      quantidadeParcelas: 1,
+      dataCompra: '2023-01-01',
+    });
+
+    component.salvar();
+
+    expect(component.erro).toBe(
+      'A data da compra deve estar no período desta fatura.',
+    );
+    expect(dividasService.createDivida).not.toHaveBeenCalled();
+  });
+
+  it('deve recalcular início das parcelas pela data da compra ao editar', () => {
+    const component = criar({ cartao, ano: 2026, mes: 5, parcelamento });
+    component.form.patchValue({ dataCompra: '2026-03-10', observacoes: '' });
+
+    component.salvar();
+
+    const [, payload] = dividasService.updateDivida.mock.calls[0];
+    expect(payload.dataCompra).toBe('2026-03-10');
+    expect(payload.dataInicio).toMatch(/^\d{4}-\d{2}-01$/);
+    expect(payload.observacoes).toBe('');
+    expect(compraNoPeriodoFatura).not.toHaveBeenCalled();
+  });
+
+  it('deve exibir mensagem da API ao falhar atualização', () => {
+    dividasService.updateDivida.mockReturnValueOnce(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 422,
+            error: { error: 'Parcelamento inválido' },
+          }),
+      ),
+    );
+    const component = criar({ cartao, ano: 2026, mes: 5, parcelamento });
+
+    component.salvar();
+
+    expect(component.saving).toBe(false);
+    expect(component.erro).toBe('Parcelamento inválido');
+    expect(dialogRef.close).not.toHaveBeenCalled();
+  });
+
+  it('deve usar mensagem padrão quando erro da API estiver vazio ou nulo', () => {
+    const component = criar();
+
+    expect(
+      component['mensagemErroHttp'](
+        new HttpErrorResponse({ status: 400, error: { error: '' } }),
+      ),
+    ).toBe('Não foi possível salvar o parcelamento.');
+    expect(
+      component['mensagemErroHttp'](
+        new HttpErrorResponse({ status: 400, error: null }),
+      ),
+    ).toBe('Não foi possível salvar o parcelamento.');
   });
 });

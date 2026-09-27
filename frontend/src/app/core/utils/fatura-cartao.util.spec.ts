@@ -1,20 +1,28 @@
 import {
   buscarCicloFaturaReal,
+  buscarCicloFaturaRealPorData,
+  ciclosFaturaEfetivos,
   compraNoPeriodoFatura,
+  dataIso,
   diaFechamentoAPartirDoMelhorDia,
   diaFechamentoEfetivo,
   diaMelhorCompraAPartirDoVencimento,
+  diaMelhorCompraEfetivo,
+  diaVencimentoFaturaEfetivo,
   dataCompraPadraoNaFatura,
   dataInicioFatura,
   dataInicioParcelasDaCompra,
   fechamentoDaFatura,
   labelFaturaMes,
   labelPrimeiraParcela,
+  melhorDiaDaFatura,
   mesVencimentoDaCompra,
   montarDiasCicloFatura,
   periodoCompraLimitesIso,
   periodoFaturaCartao,
+  vencimentoDaFatura,
 } from './fatura-cartao.util';
+import { CicloFaturaCartao } from '../interfaces/cartoes/cartoes';
 
 describe('fatura-cartao.util', () => {
   const cartaoC6 = {
@@ -295,5 +303,318 @@ describe('fatura-cartao.util', () => {
       }),
     ).toBe(true);
     expect(fechamentoDaFatura(2026, 2, 30).getDate()).toBe(26);
+  });
+
+  describe('dias efetivos do cartão', () => {
+    it('estima melhor dia usando julho/2024 como referência padrão', () => {
+      expect(diaMelhorCompraAPartirDoVencimento(6)).toBe(28);
+    });
+
+    it('resolve melhor dia salvo, estimado pelo vencimento ou nulo', () => {
+      expect(diaMelhorCompraEfetivo({ diaMelhorCompra: 10 })).toBe(10);
+      expect(
+        diaMelhorCompraEfetivo({ diaMelhorCompra: null, diaVencimento: 6 }),
+      ).toBe(28);
+      expect(diaMelhorCompraEfetivo({})).toBeNull();
+    });
+
+    it('resolve fechamento salvo ou nulo quando não há melhor dia nem vencimento', () => {
+      expect(
+        diaFechamentoEfetivo({ diaFechamento: 20, diaMelhorCompra: 28 }),
+      ).toBe(20);
+      expect(
+        diaFechamentoEfetivo({
+          diaFechamento: null,
+          diaMelhorCompra: null,
+          diaVencimento: null,
+        }),
+      ).toBeNull();
+    });
+
+    it('usa dia 5 como vencimento padrão', () => {
+      expect(diaVencimentoFaturaEfetivo({})).toBe(5);
+      expect(diaVencimentoFaturaEfetivo({ diaVencimento: 10 })).toBe(10);
+    });
+  });
+
+  describe('calendário da fatura', () => {
+    it('limita melhor dia em meses de 30 dias e em dezembro', () => {
+      expect(melhorDiaDaFatura(2026, 4, 30).getDate()).toBe(29);
+      expect(melhorDiaDaFatura(2026, 5, 30).getDate()).toBe(30);
+      expect(melhorDiaDaFatura(2026, 12, 30).getDate()).toBe(26);
+    });
+
+    it('antecipa fechamento de dezembro quando cai em fim de semana', () => {
+      const fechamento = fechamentoDaFatura(2026, 12, 20);
+      expect(fechamento.getMonth()).toBe(11);
+      expect(fechamento.getDate()).toBe(18);
+    });
+
+    it('mantém fechamento de dezembro no calendário em dia de semana', () => {
+      expect(fechamentoDaFatura(2026, 12, 30).getDate()).toBe(25);
+    });
+
+    it('considera feriados extras do banco no fechamento', () => {
+      expect(fechamentoDaFatura(2026, 3, 30).getDate()).toBe(27);
+      expect(
+        fechamentoDaFatura(2026, 3, 30, {
+          feriadosExtrasIso: ['2026-03-27'],
+        }).getDate(),
+      ).toBe(26);
+    });
+
+    it('posterga vencimento com e sem contexto de feriados', () => {
+      expect(vencimentoDaFatura(2026, 7, 5).getDate()).toBe(6);
+      expect(
+        vencimentoDaFatura(2026, 7, 5, {
+          feriadosExtrasIso: ['2026-07-06'],
+        }).getDate(),
+      ).toBe(7);
+    });
+
+    it('formata ISO com dia 1 por padrão', () => {
+      expect(dataIso(2026, 3)).toBe('2026-03-01');
+      expect(dataIso(2026, 11, 9)).toBe('2026-11-09');
+    });
+  });
+
+  describe('ciclos reais', () => {
+    it('retorna lista vazia sem ciclos e busca ciclo pela data da compra', () => {
+      expect(ciclosFaturaEfetivos({})).toEqual([]);
+      expect(
+        buscarCicloFaturaRealPorData(cartaoComCicloManual, '2026-07-15T10:00:00'),
+      ).toEqual(cartaoComCicloManual.ciclosFatura[0]);
+      expect(
+        buscarCicloFaturaRealPorData(cartaoComCicloManual, '2026-10-01'),
+      ).toBeNull();
+      expect(buscarCicloFaturaReal(cartaoComCicloManual, 2026, 10)).toBeNull();
+    });
+
+    it('encadeia início do ciclo manual com o fim do ciclo manual anterior', () => {
+      const periodo = periodoFaturaCartao(cartaoComCicloManual, 2026, 8);
+
+      expect(periodo?.usaCicloReal).toBe(true);
+      expect(periodo?.periodoInicioLabel).toBe('31/07/2026');
+      expect(periodo?.periodoFimLabel).toBe('29/08/2026');
+      expect(periodo?.vencimentoLabel).toBe('05/08/2026');
+    });
+
+    it('ignora início manual que sobrepõe o ciclo anterior', () => {
+      const cartao = {
+        ...cartaoComCicloManual,
+        ciclosFatura: [
+          cartaoComCicloManual.ciclosFatura[0],
+          { ano: 2026, mes: 8, inicio: '2026-07-20', fim: '2026-08-29' },
+        ],
+      };
+
+      expect(periodoFaturaCartao(cartao, 2026, 8)?.periodoInicioLabel).toBe(
+        '31/07/2026',
+      );
+    });
+
+    it('calcula período seguinte a partir do fim do ciclo manual anterior', () => {
+      const periodo = periodoFaturaCartao(cartaoComCicloManual, 2026, 9);
+
+      expect(periodo?.usaCicloReal).toBe(false);
+      expect(periodo?.periodoInicioLabel).toBe('30/08/2026');
+    });
+
+    it('usa início manual quando cartão não tem melhor dia nem vencimento', () => {
+      const periodo = periodoFaturaCartao(
+        {
+          ciclosFatura: [
+            { ano: 2026, mes: 7, inicio: '2026-06-27', fim: '2026-07-30' },
+          ],
+        },
+        2026,
+        7,
+      );
+
+      expect(periodo?.periodoInicioLabel).toBe('27/06/2026');
+      expect(periodo?.periodoFimLabel).toBe('30/07/2026');
+      expect(periodo?.vencimentoLabel).toBe('06/07/2026');
+    });
+
+    it('usa início encadeado quando início manual é inválido', () => {
+      const periodo = periodoFaturaCartao(
+        {
+          ...cartaoVenc05Melhor30,
+          ciclosFatura: [{ ano: 2026, mes: 7, inicio: '', fim: '2026-07-30' }],
+        },
+        2026,
+        7,
+      );
+
+      expect(periodo?.periodoInicioLabel).toBe('29/05/2026');
+      expect(periodo?.periodoFimLabel).toBe('30/07/2026');
+    });
+
+    it('retorna null quando o ciclo manual tem datas inválidas', () => {
+      expect(
+        periodoFaturaCartao(
+          {
+            ...cartaoVenc05Melhor30,
+            ciclosFatura: [
+              { ano: 2026, mes: 7, inicio: '2026-06-27', fim: 'invalido' },
+            ],
+          },
+          2026,
+          7,
+        ),
+      ).toBeNull();
+      expect(
+        periodoFaturaCartao(
+          {
+            ciclosFatura: [
+              { ano: 2026, mes: 7, inicio: 'xxxx-yy-zz', fim: '2026-07-30' },
+            ],
+          },
+          2026,
+          7,
+        ),
+      ).toBeNull();
+    });
+  });
+
+  describe('dados incompletos ou inválidos', () => {
+    const cartaoCicloAnteriorInvalido = {
+      ...cartaoVenc05Melhor30,
+      ciclosFatura: [{ ano: 2026, mes: 6, inicio: '', fim: '' }],
+    };
+
+    it('retorna null no período calculado quando o ciclo anterior não tem fim válido', () => {
+      expect(periodoFaturaCartao(cartaoCicloAnteriorInvalido, 2026, 7)).toBeNull();
+      expect(
+        periodoCompraLimitesIso(cartaoCicloAnteriorInvalido, 2026, 7),
+      ).toBeNull();
+      expect(
+        compraNoPeriodoFatura('2026-06-10', cartaoCicloAnteriorInvalido, {
+          ano: 2026,
+          mes: 7,
+        }),
+      ).toBe(true);
+    });
+
+    it('usa fechamento calculado como data padrão quando o período não pode ser montado', () => {
+      expect(
+        dataCompraPadraoNaFatura(cartaoCicloAnteriorInvalido, 2026, 7),
+      ).toBe('2026-06-26');
+      expect(dataCompraPadraoNaFatura({}, 2026, 7)).toBe('2026-07-01');
+    });
+
+    it('retorna null sem melhor dia nem vencimento', () => {
+      expect(periodoFaturaCartao({}, 2026, 7)).toBeNull();
+      expect(periodoCompraLimitesIso({}, 2026, 7)).toBeNull();
+      expect(compraNoPeriodoFatura('2026-01-01', {}, { ano: 2026, mes: 1 })).toBe(
+        true,
+      );
+    });
+
+    it('descarta limites quando o ciclo anterior tem data fora do calendário', () => {
+      const cartao = {
+        ...cartaoVenc05Melhor30,
+        ciclosFatura: [
+          { ano: 2026, mes: 6, inicio: '2026-05-01', fim: '999999-1-1' },
+        ],
+      };
+
+      expect(periodoFaturaCartao(cartao, 2026, 7)?.periodoInicioLabel).toBe(
+        'NaN/NaN/NaN',
+      );
+      expect(periodoCompraLimitesIso(cartao, 2026, 7)).toBeNull();
+    });
+
+    it('não entra em loop quando o melhor dia é NaN', () => {
+      expect(
+        dataCompraPadraoNaFatura(
+          { diaMelhorCompra: Number.NaN, diaVencimento: 5 },
+          2026,
+          7,
+        ),
+      ).toBe('NaN-NaN-NaN');
+    });
+  });
+
+  describe('mês de vencimento por regra simples (fallback)', () => {
+    const ciclosVazios = (): CicloFaturaCartao[] => {
+      const ciclos: CicloFaturaCartao[] = [];
+      for (let ano = 2025; ano <= 2028; ano++) {
+        for (let mes = 1; mes <= 12; mes++) {
+          ciclos.push({ ano, mes, inicio: '', fim: '' });
+        }
+      }
+      return ciclos;
+    };
+
+    it('usa dia 1 como melhor dia e vira o ano quando o cartão não tem dias', () => {
+      expect(mesVencimentoDaCompra(new Date(2026, 11, 15), {})).toEqual({
+        ano: 2027,
+        mes: 2,
+      });
+    });
+
+    it('usa melhor dia do cartão quando nenhum período contém a compra', () => {
+      const cartao = { ...cartaoC6, ciclosFatura: ciclosVazios() };
+
+      expect(mesVencimentoDaCompra(new Date(2026, 5, 10), cartao)).toEqual({
+        ano: 2026,
+        mes: 7,
+      });
+      expect(mesVencimentoDaCompra(new Date(2026, 11, 28), cartao)).toEqual({
+        ano: 2027,
+        mes: 2,
+      });
+    });
+  });
+
+  describe('montarDiasCicloFatura', () => {
+    it('mantém nulos e fechamento informado', () => {
+      expect(montarDiasCicloFatura()).toEqual({
+        diaMelhorCompra: null,
+        diaVencimento: null,
+        diaFechamento: null,
+      });
+      expect(montarDiasCicloFatura(28, 6, 20)).toEqual({
+        diaMelhorCompra: 28,
+        diaVencimento: 6,
+        diaFechamento: 20,
+      });
+      expect(montarDiasCicloFatura(null, 6, null)).toEqual({
+        diaMelhorCompra: null,
+        diaVencimento: 6,
+        diaFechamento: null,
+      });
+    });
+  });
+
+  describe('dataInicioParcelasDaCompra e labelPrimeiraParcela', () => {
+    it('devolve a data original quando a compra é inválida', () => {
+      expect(dataInicioParcelasDaCompra('abc', cartaoC6)).toBe('abc');
+      expect(dataInicioParcelasDaCompra('abcdefghijkl', cartaoC6)).toBe(
+        'abcdefghij',
+      );
+    });
+
+    it('usa mês de vencimento da compra sem fatura em contexto', () => {
+      expect(dataInicioParcelasDaCompra('2024-03-27', cartaoVenc05Melhor30)).toBe(
+        '2024-04-01',
+      );
+      expect(labelPrimeiraParcela('2024-03-28', cartaoVenc05Melhor30)).toBe(
+        'Maio 2024',
+      );
+    });
+
+    it('ignora fatura em contexto sem limites ou quando a compra está fora do período', () => {
+      expect(
+        dataInicioParcelasDaCompra('2026-12-15', {}, { ano: 2026, mes: 12 }),
+      ).toBe('2027-02-01');
+      expect(
+        dataInicioParcelasDaCompra('2024-03-28', cartaoVenc05Melhor30, {
+          ano: 2024,
+          mes: 4,
+        }),
+      ).toBe('2024-05-01');
+    });
   });
 });
