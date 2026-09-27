@@ -27,7 +27,7 @@
 
       <label>
         <span>Nome completo</span>
-        <input type="text" formControlName="nomeCompleto" placeholder="Kelly Michele Saavedra" autocomplete="name" />
+        <input type="text" formControlName="nomeCompleto" placeholder="Digite o seu nome completo" autocomplete="name" />
         <small *ngIf="form.get('nomeCompleto')?.touched && form.get('nomeCompleto')?.invalid">
           O nome completo é obrigatório.
         </small>
@@ -35,7 +35,7 @@
 
       <label>
         <span>Apelido</span>
-        <input type="text" formControlName="apelido" placeholder="Kelly" autocomplete="nickname" />
+        <input type="text" formControlName="apelido" placeholder="Digite o seu apelido" autocomplete="nickname" />
         <small *ngIf="form.get('apelido')?.touched && form.get('apelido')?.invalid">
           O apelido é obrigatório.
         </small>

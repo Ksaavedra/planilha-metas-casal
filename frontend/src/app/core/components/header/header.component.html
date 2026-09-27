@@ -64,13 +64,13 @@
     <label class="profile-field">
       <span>Nome *</span>
       <input type="text" [value]="novoPerfilNome" (input)="novoPerfilNome = $any($event.target).value"
-        placeholder="Ex.: Kelly Cristina" />
+        placeholder="Digite o nome da pessoa" />
     </label>
 
     <label class="profile-field">
       <span>Apelido (opcional)</span>
       <input type="text" [value]="novoPerfilApelido" (input)="novoPerfilApelido = $any($event.target).value"
-        placeholder="Ex.: Kelly Filha" />
+        placeholder="Digite o apelido da pessoa" />
     </label>
 
     <p class="profile-modal__error" *ngIf="perfilErroMensagem">{{ perfilErroMensagem }}</p>
