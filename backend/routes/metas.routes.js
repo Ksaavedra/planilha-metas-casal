@@ -5,6 +5,37 @@ const { ensureDadosFinanceirosPorUsuario } = require("../utils/user-data-scope")
 
 const router = express.Router();
 
+function ensureMetasTables() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS metas (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      nome TEXT NOT NULL,
+      valorMeta REAL NOT NULL DEFAULT 0,
+      valorPorMes REAL NOT NULL DEFAULT 0,
+      mesesNecessarios INTEGER NOT NULL DEFAULT 0,
+      valorAtual REAL NOT NULL DEFAULT 0,
+      icon TEXT DEFAULT 'bi-bullseye',
+      ano INTEGER,
+      usuario_id INTEGER,
+      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS meses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      metaId INTEGER NOT NULL,
+      nome TEXT NOT NULL,
+      valor REAL NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'Vazio',
+      FOREIGN KEY (metaId) REFERENCES metas(id) ON DELETE CASCADE
+    )
+  `);
+
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_meses_metaId ON meses(metaId)`);
+}
+
 function ensureAnoColumn() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -53,6 +84,7 @@ function ensureAnoColumn() {
   }
 }
 
+ensureMetasTables();
 ensureAnoColumn();
 ensureDadosFinanceirosPorUsuario();
 router.use(autenticarToken);
