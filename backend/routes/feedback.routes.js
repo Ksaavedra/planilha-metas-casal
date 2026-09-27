@@ -1,6 +1,7 @@
 const express = require("express");
 const db = require("../scripts/db");
 const { autenticarToken } = require("../middlewares/auth.middleware");
+const { enviarFeedback } = require("../utils/email.service");
 
 const router = express.Router();
 
@@ -61,6 +62,9 @@ router.post("/", (req, res) => {
       .get(result.lastInsertRowid);
 
     res.status(201).json(created);
+
+    // O feedback já está salvo; falha no email não deve virar erro para o usuário.
+    enviarFeedback(created, req.usuario).catch(() => {});
   } catch (error) {
     console.error("Erro ao salvar feedback:", error);
     res.status(500).json({ error: "Erro ao salvar feedback" });
