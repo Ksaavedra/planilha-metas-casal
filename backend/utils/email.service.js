@@ -66,6 +66,8 @@ async function enviarCodigoRecuperacaoSenha(email, codigo) {
    }
 }
 
+const FEEDBACK_DESTINATARIO_PADRAO = 'kellymichelesaavedra@gmail.com';
+
 const LABELS_NOTA = {
    1: 'Muito ruim',
    2: 'Ruim',
@@ -75,7 +77,8 @@ const LABELS_NOTA = {
 };
 
 async function enviarFeedback(feedback, usuario) {
-   const destinatario = process.env.CONTACT_MAIL_TO;
+   const destinatario =
+      process.env.CONTACT_MAIL_TO || FEEDBACK_DESTINATARIO_PADRAO;
    const tela = feedback.pagina || 'Não informada';
    const assunto = `Novo feedback (${feedback.nota}/5) - ${tela} - ORBIS`;
    const texto = [
@@ -88,9 +91,9 @@ async function enviarFeedback(feedback, usuario) {
       feedback.comentario || '(sem comentário)',
    ].join('\n');
 
-   if (!smtpConfigurado() || !destinatario) {
+   if (!smtpConfigurado()) {
       console.log(
-         'Feedback recebido (email não enviado: configure SMTP_* e CONTACT_MAIL_TO):\n' +
+         'Feedback recebido (email não enviado: configure SMTP_HOST, SMTP_USER e SMTP_PASS):\n' +
             texto,
       );
       return;
