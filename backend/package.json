@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
     "dev": "nodemon --exec \"node --env-file-if-exists=.env\" server.js",
+    "test": "node --test \"tests/**/*.test.js\"",
     "db:create": "node scripts/database/create-database.js",
     "db:migrate": "node scripts/metas/migrate-data.js",
     "db:receitas": "node scripts/database/add-receitas-table.js",
