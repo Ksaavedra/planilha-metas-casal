@@ -89,6 +89,14 @@ describe('AppComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('deve exibir o rodapé com a marca e o ano atual', () => {
+    const footer: HTMLElement =
+      fixture.nativeElement.querySelector('.app-footer');
+    expect(footer.textContent).toContain('ORBIS');
+    expect(footer.textContent).toContain('Planejamento Financeiro');
+    expect(footer.textContent).toContain(`© ${new Date().getFullYear()}`);
+  });
+
   describe('ngOnInit – subscriptions', () => {
     it('deve atualizar sucessoState quando sucessoState$ emite', () => {
       sucessoStateSubject.next({
