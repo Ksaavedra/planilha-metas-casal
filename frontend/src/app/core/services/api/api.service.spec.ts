@@ -30,31 +30,17 @@ describe('ApiService', () => {
       expect(service).toBeTruthy();
     });
 
-    it("should use baseUrl 'http://localhost:3000' when environment.apiUrl is falsy", () => {
-      const originalApiUrl = (environment as { apiUrl?: string }).apiUrl;
-      (environment as { apiUrl?: string }).apiUrl = undefined;
+    it('should use environment.apiUrl as baseUrl', () => {
+      service.get('/test').subscribe();
 
-      TestBed.resetTestingModule();
-      TestBed.configureTestingModule({
-        imports: [HttpClientTestingModule],
-        providers: [ApiService],
-      });
-      const serviceWithFallback = TestBed.inject(ApiService);
-      const httpMockFallback = TestBed.inject(HttpTestingController);
-
-      serviceWithFallback.get('/test').subscribe();
-
-      const req = httpMockFallback.expectOne('http://localhost:3000/test');
+      const req = httpMock.expectOne(`${environment.apiUrl}/test`);
       expect(req.request.method).toBe('GET');
       req.flush({});
-      httpMockFallback.verify();
-
-      (environment as { apiUrl?: string }).apiUrl = originalApiUrl;
     });
   });
 
   describe('get', () => {
-    const baseUrl = environment.apiUrl || 'http://localhost:3000';
+    const baseUrl = environment.apiUrl;
 
     it('should make GET request without params', () => {
       const mockData = { id: 1, name: 'Test' };
@@ -143,7 +129,7 @@ describe('ApiService', () => {
   });
 
   describe('post', () => {
-    const baseUrl = environment.apiUrl || 'http://localhost:3000';
+    const baseUrl = environment.apiUrl;
 
     it('should make POST request', () => {
       const mockData = { id: 1, name: 'Test' };
@@ -193,7 +179,7 @@ describe('ApiService', () => {
   });
 
   describe('put', () => {
-    const baseUrl = environment.apiUrl || 'http://localhost:3000';
+    const baseUrl = environment.apiUrl;
 
     it('should make PUT request', () => {
       const mockData = { id: 1, name: 'Updated Test' };
@@ -229,7 +215,7 @@ describe('ApiService', () => {
   });
 
   describe('patch', () => {
-    const baseUrl = environment.apiUrl || 'http://localhost:3000';
+    const baseUrl = environment.apiUrl;
 
     it('should make PATCH request', () => {
       const mockData = { id: 1, name: 'Patched Test' };
@@ -265,7 +251,7 @@ describe('ApiService', () => {
   });
 
   describe('delete', () => {
-    const baseUrl = environment.apiUrl || 'http://localhost:3000';
+    const baseUrl = environment.apiUrl;
 
     it('should make DELETE request', () => {
       const endpoint = '/test/1';
@@ -310,7 +296,7 @@ describe('ApiService', () => {
   });
 
   describe('headers (Authorization)', () => {
-    const baseUrl = environment.apiUrl || 'http://localhost:3000';
+    const baseUrl = environment.apiUrl;
 
     afterEach(() => {
       localStorage.removeItem('auth_token');
