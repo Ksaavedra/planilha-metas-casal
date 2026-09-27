@@ -274,4 +274,53 @@ describe('AuthService', () => {
       });
     });
   });
+
+  describe('recuperação de senha', () => {
+    it('forgotPassword deve chamar api.post /auth/forgot-password', (done) => {
+      const resposta = { message: 'Código enviado.' };
+      (apiService.post as jest.Mock).mockReturnValue(of(resposta));
+
+      service.forgotPassword({ email: 'a@b.com' }).subscribe((r) => {
+        expect(r).toEqual(resposta);
+        expect(apiService.post).toHaveBeenCalledWith('/auth/forgot-password', {
+          email: 'a@b.com',
+        });
+        done();
+      });
+    });
+
+    it('verifyResetCode deve chamar api.post /auth/verify-reset-code', (done) => {
+      const resposta = { resetToken: 'reset-123' };
+      (apiService.post as jest.Mock).mockReturnValue(of(resposta));
+
+      service
+        .verifyResetCode({ email: 'a@b.com', codigo: '123456' })
+        .subscribe((r) => {
+          expect(r).toEqual(resposta);
+          expect(apiService.post).toHaveBeenCalledWith(
+            '/auth/verify-reset-code',
+            { email: 'a@b.com', codigo: '123456' },
+          );
+          done();
+        });
+    });
+
+    it('resetPassword deve chamar api.post /auth/reset-password sem alterar auth', (done) => {
+      const resposta = { message: 'Senha redefinida.' };
+      (apiService.post as jest.Mock).mockReturnValue(of(resposta));
+
+      service
+        .resetPassword({ resetToken: 'reset-123', novaSenha: '123456' })
+        .subscribe((r) => {
+          expect(r).toEqual(resposta);
+          expect(apiService.post).toHaveBeenCalledWith('/auth/reset-password', {
+            resetToken: 'reset-123',
+            novaSenha: '123456',
+          });
+          expect(localStorageMock['auth_token']).toBeUndefined();
+          expect(service.getCurrentUser()).toBeNull();
+          done();
+        });
+    });
+  });
 });

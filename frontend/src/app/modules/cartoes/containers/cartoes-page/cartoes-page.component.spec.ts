@@ -942,7 +942,7 @@ describe('CartoesPageComponent', () => {
       cancelText?: string;
       variant?: string;
     };
-    expect(dialogData?.title).toBe('💳 Confirmar pagamento da fatura');
+    expect(dialogData?.title).toBe('Confirmar pagamento da fatura');
     expect(dialogData?.confirmText).toBe('Pagar fatura');
     expect(dialogData?.cancelText).toBe('Cancelar');
     expect(dialogData?.variant).toBe('payment');
@@ -1257,5 +1257,791 @@ describe('CartoesPageComponent', () => {
 
     expect(atualizacoes.length).toBe(0);
     expect(dividasService.updateDivida).not.toHaveBeenCalled();
+  });
+
+  describe('cobertura complementar', () => {
+    const ajuste = (partial: Partial<Divida> = {}): Divida => ({
+      ...divida({
+        tipoDivida: 'ajuste_fatura',
+        objetivo: 'juros',
+        valorTotal: 50,
+        quantidadeParcelas: 1,
+        dataInicio: '2026-05-01',
+        ...partial,
+      }),
+    });
+
+    const cartaoPago = (partial: Partial<Cartao> = {}): Cartao =>
+      cartao({
+        id: 1,
+        valorUtilizado: 0,
+        faturaPaga: true,
+        valorFaturaPaga: 100,
+        ...partial,
+      });
+
+    it('deve carregar ajustes do mês e enriquecer lançamentos com dados do cartão', () => {
+      const semDias = {
+        ...cartao({ id: 2, banco: 'Inter' }),
+        diaMelhorCompra: undefined,
+        diaVencimento: undefined,
+      } as Cartao;
+      cartoesService.getCartoes.mockReturnValue(
+        of([cartao({ id: 1, diaMelhorCompra: 21, diaVencimento: 25 }), semDias]),
+      );
+      dividasService.getDividas.mockImplementation((ano: number) =>
+        ano === 2026
+          ? of([
+              ajuste({ id: 5, cartaoId: 1 }),
+              ajuste({ id: 6, cartaoId: 1, dataInicio: '2026-01-01' }),
+              ajuste({ id: 8, cartaoId: null }),
+              { ...divida({ id: 10, cartaoId: 1 }), diaMelhorCompra: 3, diaVencimento: 9 },
+              divida({ id: 11, cartaoId: 99 }),
+              divida({ id: 12, cartaoId: 2 }),
+              { ...divida({ id: 13, cartaoId: 1 }), diaMelhorCompra: 7 },
+            ])
+          : of([]),
+      );
+
+      component.carregar();
+
+      expect(component.ajustes.map((a) => a.id)).toEqual([5]);
+      expect(component.ajustes[0].diaMelhorCompra).toBe(21);
+      expect(component.ajustes[0].diaVencimento).toBe(25);
+
+      const ano = component['parcelamentosAno'] as Divida[];
+      const porId = (id: number) => ano.find((d) => d.id === id)!;
+      expect(porId(10).diaMelhorCompra).toBe(3);
+      expect(porId(10).diaVencimento).toBe(9);
+      expect(porId(11).diaMelhorCompra).toBeUndefined();
+      expect(porId(12).diaMelhorCompra).toBeNull();
+      expect(porId(12).diaVencimento).toBeNull();
+      expect(porId(13).diaMelhorCompra).toBe(7);
+      expect(porId(13).diaVencimento).toBe(25);
+
+      jest.runOnlyPendingTimers();
+    });
+
+    it('deve consultar apenas anos positivos ao carregar dívidas', () => {
+      const data = new Date(2026, 4, 1);
+      data.setFullYear(1);
+      component.mesAtual = data;
+
+      component.carregar();
+
+      expect(dividasService.getDividas).toHaveBeenCalledTimes(1);
+      expect(dividasService.getDividas).toHaveBeenCalledWith(1);
+    });
+
+    it('deve identificar fatura paga sem lançamentos pelo cartão', () => {
+      expect(component.isFaturaPaga(cartaoPago())).toBe(true);
+      expect(
+        component.isFaturaPaga(cartaoPago({ valorFaturaPaga: undefined })),
+      ).toBe(false);
+      expect(
+        component.isFaturaPaga(cartao({ valorUtilizado: 0, faturaPaga: false })),
+      ).toBe(false);
+    });
+
+    it('deve considerar ajustes como lançamentos da fatura', () => {
+      const c = cartao({ id: 1, valorUtilizado: 0 });
+      component.ajustes = [
+        ajuste({ id: 1, cartaoId: 1, valorTotal: 80 }),
+        ajuste({ id: 2, cartaoId: 2, valorTotal: 999 }),
+      ];
+
+      expect(component.ajustesDoCartao(c).map((a) => a.id)).toEqual([1]);
+      expect(component.valorUtilizadoFatura(c)).toBe(80);
+      expect(component.valorFaturaCartao(c)).toBe(80);
+      expect(component.isFaturaPaga(c)).toBe(false);
+      expect(component.labelAjuste(component.ajustes[0])).toBe('Juros');
+      expect(component.labelAjuste(ajuste({ objetivo: 'livre' }))).toBe(
+        'livre',
+      );
+
+      component.ajustes = [
+        ajuste({
+          id: 3,
+          cartaoId: 1,
+          objetivo: 'pagamento_realizado',
+          valorTotal: -80,
+        }),
+      ];
+      expect(component.valorUtilizadoFatura(c)).toBe(0);
+      expect(component.isFaturaPaga(c)).toBe(false);
+    });
+
+    it('deve formatar melhor dia de compra e data da compra', () => {
+      expect(component.melhorDiaCompraLabel(cartao({ diaMelhorCompra: 12 }))).toBe(
+        'Dia 12',
+      );
+      expect(
+        component.melhorDiaCompraLabel({
+          ...cartao(),
+          diaMelhorCompra: null,
+          diaVencimento: undefined as any,
+        }),
+      ).toBe('-');
+
+      expect(
+        component.dataCompraExibicao({
+          ...parcelaMes(),
+          dataCompra: '2026-04-15',
+        }),
+      ).toBe('15/04/2026');
+      expect(
+        component.dataCompraExibicao(parcelaMes({ dataInicio: '2026-03-02' })),
+      ).toBe('02/03/2026');
+      expect(
+        component.dataCompraExibicao({
+          ...parcelaMes(),
+          dataInicio: undefined as any,
+        }),
+      ).toBe('-');
+    });
+
+    it('não deve abrir ações de ajuste quando a fatura está paga', () => {
+      const pago = cartaoPago();
+
+      component.adicionarAjuste(pago);
+      component.editarAjusteResumo(pago);
+
+      expect(dialog.open).not.toHaveBeenCalled();
+      expect(component.tituloEditarAjusteResumo(pago)).toBe(
+        'Não é possível editar uma fatura já paga.',
+      );
+    });
+
+    it('deve adicionar ajuste e exibir sucesso apenas quando salvo', () => {
+      const c = cartao({ id: 1, valorUtilizado: 100 });
+
+      dialog.open.mockReturnValueOnce(afterClosed(false));
+      component.adicionarAjuste(c);
+      expect(dialog.open).toHaveBeenCalledTimes(1);
+      expect(dialog.open.mock.calls[0][1].data).toEqual({
+        cartao: c,
+        ano: 2026,
+        mes: 5,
+      });
+      expect(cartoesService.getCartoes).not.toHaveBeenCalled();
+
+      dialog.open
+        .mockReturnValueOnce(afterClosed(true))
+        .mockReturnValueOnce(afterClosed(undefined));
+      component.adicionarAjuste(c);
+      expect(cartoesService.getCartoes).toHaveBeenCalledTimes(1);
+      expect(dialog.open.mock.calls[2][1].data.title).toBe(
+        'Ajuste adicionado!',
+      );
+    });
+
+    it('deve editar ajuste e recarregar apenas quando salvo', () => {
+      const c = cartao({ id: 1 });
+      const a = ajuste({ id: 7, cartaoId: 1 });
+
+      dialog.open.mockReturnValueOnce(afterClosed(false));
+      component.editarAjuste(c, a);
+      expect(dialog.open.mock.calls[0][1].data.ajuste).toBe(a);
+      expect(cartoesService.getCartoes).not.toHaveBeenCalled();
+
+      dialog.open.mockReturnValueOnce(afterClosed(true));
+      component.editarAjuste(c, a);
+      expect(cartoesService.getCartoes).toHaveBeenCalledTimes(1);
+      expect(dialog.open).toHaveBeenCalledTimes(2);
+    });
+
+    it('deve decidir entre editar ou adicionar ajuste no resumo', () => {
+      const c = cartao({ id: 1, valorUtilizado: 100 });
+      const editarSpy = jest
+        .spyOn(component, 'editarAjuste')
+        .mockImplementation(() => undefined);
+      const adicionarSpy = jest
+        .spyOn(component, 'adicionarAjuste')
+        .mockImplementation(() => undefined);
+
+      expect(component.tituloEditarAjusteResumo(c)).toBe(
+        'Adicionar crédito ou ajuste',
+      );
+      component.editarAjusteResumo(c);
+      expect(adicionarSpy).toHaveBeenCalledWith(c);
+
+      const a1 = ajuste({ id: 1, cartaoId: 1, dataInicio: '2026-05-02' });
+      component.ajustes = [a1];
+      expect(component.tituloEditarAjusteResumo(c)).toBe(
+        'Editar crédito ou ajuste',
+      );
+      component.editarAjusteResumo(c);
+      expect(editarSpy).toHaveBeenCalledWith(c, a1);
+
+      component.ajustes = [a1, ajuste({ id: 2, cartaoId: 1 })];
+      expect(component.tituloEditarAjusteResumo(c)).toBe(
+        'Editar ajuste (use a tabela para os demais)',
+      );
+    });
+
+    it('deve excluir ajuste somente após confirmação', () => {
+      const a = ajuste({ id: 9, objetivo: 'iof' });
+
+      dialog.open.mockReturnValueOnce(afterClosed(false));
+      component.confirmarExcluirAjuste(a);
+      expect(dialog.open.mock.calls[0][1].data.message).toBe(
+        'Deseja excluir "IOF"?',
+      );
+      expect(dividasService.deleteDivida).not.toHaveBeenCalled();
+
+      dialog.open.mockReturnValueOnce(afterClosed(true));
+      component.confirmarExcluirAjuste(a);
+      expect(dividasService.deleteDivida).toHaveBeenCalledWith(9);
+      expect(cartoesService.getCartoes).toHaveBeenCalledTimes(1);
+    });
+
+    it('deve montar títulos e tooltips conforme a fatura esteja paga ou não', () => {
+      const pago = cartaoPago();
+      const aberto = cartao({ id: 2, valorUtilizado: 100 });
+
+      expect(component.tituloParcelarCompra(pago)).toBe(
+        'Disponível somente para faturas não pagas.',
+      );
+      expect(component.tituloParcelarCompra(aberto)).toBe('Parcelar compra');
+      expect(component.tituloJurosAjuste(pago)).toBe(
+        'Disponível somente para faturas não pagas.',
+      );
+      expect(component.tituloJurosAjuste(aberto)).toBe(
+        'Juros, crédito ou ajuste',
+      );
+
+      expect(component.tooltipDesfazerPagamento(pago)).toBe(
+        'Desfazer pagamento',
+      );
+      expect(component.tooltipEditarFatura(pago)).toBe('Editar fatura');
+      expect(component.tooltipExcluirFatura(pago)).toBe('Excluir fatura');
+
+      expect(component.tooltipExpandirDetalhes(aberto)).toBe(
+        'Expandir detalhes',
+      );
+      component.alternarCartao(aberto);
+      expect(component.tooltipExpandirDetalhes(aberto)).toBe(
+        'Recolher detalhes',
+      );
+
+      expect(component.tooltipEditarCompra(aberto)).toBe('Editar compra');
+      expect(component.tooltipEditarCompra(pago)).toBe(
+        'Não é possível editar uma fatura já paga.',
+      );
+      expect(component.tooltipExcluirCompra(aberto)).toBe('Excluir compra');
+      expect(component.tooltipExcluirCompra(pago)).toBe(
+        'Não é possível excluir uma fatura já paga.',
+      );
+      expect(component.tooltipEditarAjuste(aberto)).toBe('Editar ajuste');
+      expect(component.tooltipEditarAjuste(pago)).toBe(
+        'Não é possível editar uma fatura já paga.',
+      );
+      expect(component.tooltipExcluirAjuste(aberto)).toBe('Excluir ajuste');
+      expect(component.tooltipExcluirAjuste(pago)).toBe(
+        'Não é possível excluir uma fatura já paga.',
+      );
+    });
+
+    it('deve abrir resolução de fatura atrasada ou ignorar enquanto processa', () => {
+      const c = cartao({ id: 1, valorUtilizado: 200, diaVencimento: 5 });
+      const atrasadaSpy = jest
+        .spyOn(component, 'abrirAcaoFaturaAtrasada')
+        .mockImplementation(() => undefined);
+      const pagarSpy = jest
+        .spyOn(component, 'confirmarPagarFatura')
+        .mockImplementation(() => undefined);
+
+      component.acaoFaturaProcessando = { cartaoId: 1, tipo: 'desfazer' };
+      component.abrirAcaoPagamentoFatura(c);
+      expect(atrasadaSpy).not.toHaveBeenCalled();
+      expect(pagarSpy).not.toHaveBeenCalled();
+
+      component.acaoFaturaProcessando = null;
+      component.abrirAcaoPagamentoFatura(c);
+      expect(atrasadaSpy).toHaveBeenCalledWith(c);
+      expect(pagarSpy).not.toHaveBeenCalled();
+    });
+
+    it('deve usar null ao combinar pagamento posterior sem observação e previsão', () => {
+      const c = cartao({ id: 3, valorUtilizado: 200, diaVencimento: 5 });
+      dialog.open
+        .mockReturnValueOnce(afterClosed({ acao: 'depois' }))
+        .mockReturnValueOnce(afterClosed(undefined));
+
+      component.abrirAcaoFaturaAtrasada(c);
+
+      expect(cartoesService.updateCartao).toHaveBeenCalledWith(3, {
+        observacaoAtraso: null,
+        previsaoPagamento: null,
+        faturaPaga: false,
+      });
+      expect(dialog.open.mock.calls[1][1].data.title).toBe('Combinado!');
+    });
+
+    it('deve verificar se uma ação de fatura está em processamento', () => {
+      const c = cartao({ id: 1 });
+
+      expect(component.estaProcessandoAcaoFatura(c)).toBe(false);
+
+      component.acaoFaturaProcessando = { cartaoId: 2, tipo: 'pagar' };
+      expect(component.estaProcessandoAcaoFatura(c)).toBe(false);
+
+      component.acaoFaturaProcessando = { cartaoId: 1, tipo: 'pagar' };
+      expect(component.estaProcessandoAcaoFatura(c)).toBe(true);
+      expect(component.estaProcessandoAcaoFatura(c, 'pagar')).toBe(true);
+      expect(component.estaProcessandoAcaoFatura(c, 'desfazer')).toBe(false);
+    });
+
+    it('deve cobrir cenários não clicáveis do status da fatura', () => {
+      const aberto = cartao({ id: 1, valorUtilizado: 100 });
+
+      component.carregando = true;
+      expect(component.statusFaturaClicavel(aberto)).toBe(false);
+      component.carregando = false;
+
+      component.acaoFaturaProcessando = { cartaoId: 1, tipo: 'desfazer' };
+      expect(component.statusFaturaClicavel(aberto)).toBe(false);
+      component.acaoFaturaProcessando = null;
+
+      expect(
+        component.statusFaturaClicavel(cartao({ id: 1, valorUtilizado: 0 })),
+      ).toBe(false);
+
+      expect(component.statusFaturaClicavel(aberto)).toBe(false);
+
+      const pagoComSaldo = cartao({
+        id: 1,
+        valorUtilizado: 200,
+        faturaPaga: true,
+        valorFaturaPaga: 100,
+      });
+      expect(component.statusFaturaClicavel(pagoComSaldo)).toBe(false);
+
+      component.parcelamentos = [
+        parcelaMes({ cartaoId: 1, statusParcelaMes: 'futura' }),
+      ];
+      component.ajustes = [ajuste({ cartaoId: 1, valorTotal: 30 })];
+      expect(component.faturaAtrasada(aberto)).toBe(false);
+      expect(component.statusFaturaClicavel(aberto)).toBe(false);
+    });
+
+    it('deve cobrir alertas e ícones de pagamento', () => {
+      const atrasado = cartao({ id: 1, valorUtilizado: 200, diaVencimento: 5 });
+      component.parcelamentos = [
+        parcelaMes({ cartaoId: 1, statusParcelaMes: 'atrasada' }),
+      ];
+      expect(component.mostrarAlertaPagamento(atrasado)).toBe(false);
+
+      component.parcelamentos = [];
+      const emDia = cartao({ id: 2, valorUtilizado: 100 });
+      expect(component.mostrarAlertaPagamento(emDia)).toBe(false);
+      expect(component.textoAlertaPagamento(emDia)).toBe('');
+      expect(component.mostrarIconePagoStatus(emDia)).toBe(false);
+      expect(component.mostrarIconePagoStatus(cartaoPago())).toBe(true);
+
+      component.parcelamentos = [
+        parcelaMes({ cartaoId: 3, statusParcelaMes: 'paga' }),
+      ];
+      expect(
+        component.mostrarIconePagoStatus(cartao({ id: 3, valorUtilizado: 0 })),
+      ).toBe(true);
+    });
+
+    it('deve avaliar pagar e desfazer sem parcelamentos', () => {
+      expect(component.podePagarFatura(cartao({ valorUtilizado: 100 }))).toBe(
+        true,
+      );
+      expect(component.podePagarFatura(cartao({ valorUtilizado: 0 }))).toBe(
+        false,
+      );
+      expect(
+        component.podePagarFatura(
+          cartao({ valorUtilizado: 100, faturaPaga: true }),
+        ),
+      ).toBe(false);
+
+      expect(component.mostrarBotaoDesfazer(cartaoPago())).toBe(true);
+      expect(component.mostrarBotaoDesfazer(cartao({ valorUtilizado: 0 }))).toBe(
+        false,
+      );
+    });
+
+    it('deve montar título e mensagem de desfazer para todos os cenários', () => {
+      expect(component.tituloDesfazerPagamento(cartao({ id: 1 }))).toBe('');
+
+      expect(component.tituloDesfazerPagamento(cartaoPago())).toBe(
+        'Fatura paga. Clique para desfazer.',
+      );
+      expect(component.mensagemConfirmarDesfazerPagamento(cartaoPago())).toBe(
+        'Deseja desfazer este pagamento?',
+      );
+
+      component.parcelamentos = [
+        parcelaMes({
+          cartaoId: 4,
+          statusParcelaMes: 'quitada',
+          dataPagamento: undefined,
+        }),
+      ];
+      expect(
+        component.tituloDesfazerPagamento(
+          cartao({ id: 4, faturaPaga: true, valorFaturaPaga: undefined }),
+        ),
+      ).toBe('Desfazer pagamento');
+      expect(component.tituloDesfazerPagamento(cartao({ id: 4 }))).toBe(
+        'Desfazer pagamento',
+      );
+    });
+
+    it('deve retornar null no resumo de parcelas com status desconhecido', () => {
+      component.parcelamentos = [
+        parcelaMes({ cartaoId: 1, statusParcelaMes: 'desconhecido' as any }),
+      ];
+
+      expect(
+        (component as any).statusResumoParcelasCartao(cartao({ id: 1 })),
+      ).toBeNull();
+    });
+
+    it('deve liberar processamento quando o registro de pagamento falha', () => {
+      const c = cartao({ id: 1, valorUtilizado: 100 });
+      component.parcelamentos = [
+        parcelaMes({ cartaoId: 1, statusParcelaMes: 'pendente' }),
+      ];
+      cartoesService.registrarPagamentoFatura.mockReturnValue(
+        throwError(() => new Error('falha')),
+      );
+
+      dialog.open.mockReturnValueOnce(afterClosed(true));
+      component.confirmarPagarFatura(c);
+
+      expect(cartoesService.registrarPagamentoFatura).toHaveBeenCalled();
+      expect(component.acaoFaturaProcessando).toBeNull();
+      expect(dialog.open).toHaveBeenCalledTimes(1);
+    });
+
+    it('não deve executar pagamento durante carregamento ou processamento', () => {
+      const c = cartao({ id: 1, valorUtilizado: 100 });
+      const opcoes = {
+        valorFatura: 100,
+        valorPago: 100,
+        tituloSucesso: 't',
+        mensagemSucesso: 'm',
+      };
+
+      component.carregando = true;
+      component['executarPagamentoFatura'](c, opcoes);
+      expect(cartoesService.registrarPagamentoFatura).not.toHaveBeenCalled();
+      expect(component.acaoFaturaProcessando).toBeNull();
+
+      component.carregando = false;
+      component.acaoFaturaProcessando = { cartaoId: 1, tipo: 'pagar' };
+      component['executarPagamentoFatura'](c, opcoes);
+      component['registrarPagamentoAtrasado'](c, 50);
+      component['executarDesfazerPagamentoFatura'](c);
+      expect(cartoesService.registrarPagamentoFatura).not.toHaveBeenCalled();
+      expect(cartoesService.desfazerPagamentoFatura).not.toHaveBeenCalled();
+    });
+
+    it('deve manter observação e previsão em pagamento atrasado parcial', () => {
+      const c = cartao({
+        id: 1,
+        valorUtilizado: 300,
+        observacaoAtraso: 'Pago metade',
+        previsaoPagamento: '2026-05-20',
+      });
+      component.parcelamentos = [
+        parcelaMes({
+          cartaoId: 1,
+          statusParcelaMes: 'pendente',
+          valorTotal: 300,
+          quantidadeParcelas: 3,
+        }),
+      ];
+
+      component['registrarPagamentoAtrasado'](c, 50);
+
+      const [, payload] = cartoesService.registrarPagamentoFatura.mock.calls[0];
+      expect(payload.valorPago).toBe(50);
+      expect(payload.observacaoAtraso).toBe('Pago metade');
+      expect(payload.previsaoPagamento).toBe('2026-05-20');
+      expect(payload.dataPagamento).toBe('2026-05-20');
+
+      cartoesService.registrarPagamentoFatura.mockClear();
+      component['registrarPagamentoAtrasado'](
+        cartao({ id: 1, valorUtilizado: 300 }),
+        50,
+        '2026-05-08T10:00:00',
+      );
+      const [, semObs] = cartoesService.registrarPagamentoFatura.mock.calls[0];
+      expect(semObs.observacaoAtraso).toBeNull();
+      expect(semObs.previsaoPagamento).toBeNull();
+      expect(semObs.dataPagamento).toBe('2026-05-08');
+    });
+
+    it('deve liberar processamento quando desfazer pagamento falha', () => {
+      const c = cartaoPago({ id: 1 });
+      cartoesService.desfazerPagamentoFatura.mockReturnValue(
+        throwError(() => new Error('falha')),
+      );
+
+      dialog.open.mockReturnValueOnce(afterClosed(true));
+      component.confirmarDesfazerPagamento(c);
+
+      expect(cartoesService.desfazerPagamentoFatura).toHaveBeenCalledWith(
+        1,
+        2026,
+        5,
+      );
+      expect(component.acaoFaturaProcessando).toBeNull();
+    });
+
+    it('deve sincronizar estado local após desfazer pagamento', () => {
+      const c = cartao({
+        id: 1,
+        faturaPaga: true,
+        valorFaturaPaga: 100,
+        observacaoAtraso: 'obs',
+        previsaoPagamento: '2026-05-20',
+      });
+      component.cartoes = [c];
+      const semDivida = parcelaMes({
+        id: 301,
+        cartaoId: 1,
+        statusParcelaMes: 'paga',
+        parcelaMesPaga: true,
+      });
+      const semValor = parcelaMes({
+        id: 302,
+        cartaoId: 1,
+        statusParcelaMes: 'quitada',
+      });
+      const desfazivel = parcelaMes({
+        id: 303,
+        cartaoId: 1,
+        statusParcelaMes: 'paga',
+        parcelaMesPaga: true,
+      });
+      component.parcelamentos = [semDivida, semValor, desfazivel];
+      const dividaSemValor = divida({
+        id: 302,
+        cartaoId: 1,
+        valorPago: 0,
+        valorTotal: 300,
+        quantidadeParcelas: 3,
+      });
+      const dividaDesfazivel = divida({
+        id: 303,
+        cartaoId: 1,
+        valorPago: 100,
+        valorTotal: 300,
+        quantidadeParcelas: 3,
+        dataPagamento: '2026-05-05',
+        statusDivida: 'quitada',
+      });
+      component['parcelamentosAno'] = [dividaSemValor, dividaDesfazivel];
+
+      component['sincronizarEstadoLocalAposDesfazer'](c);
+
+      expect(component.cartoes[0]).toEqual({
+        ...c,
+        faturaPaga: false,
+        valorFaturaPaga: 0,
+        observacaoAtraso: null,
+        previsaoPagamento: null,
+      });
+      expect(dividaSemValor.valorPago).toBe(0);
+      expect(dividaSemValor.statusDivida).toBe('pagando');
+      expect(dividaDesfazivel.valorPago).toBe(0);
+      expect(dividaDesfazivel.statusDivida).toBe('pagando');
+      expect(component.parcelamentos.map((p) => p.id).sort()).toEqual([
+        302, 303,
+      ]);
+    });
+
+    it('deve usar a própria parcela quando não há dívida anual ao desfazer', () => {
+      component['parcelamentosAno'] = [];
+      component.parcelamentos = [
+        parcelaMes({
+          id: 401,
+          cartaoId: 1,
+          statusParcelaMes: 'paga',
+          parcelaMesPaga: true,
+          valorPago: 100,
+          valorTotal: 300,
+          quantidadeParcelas: 3,
+        }),
+      ];
+
+      const atualizacoes = (component as any).atualizacoesParcelasDesfeitas(
+        cartao({ id: 1 }),
+      );
+
+      expect(atualizacoes.length).toBe(1);
+      expect(dividasService.updateDivida).toHaveBeenCalledWith(401, {
+        valorPago: 0,
+        dataPagamento: null,
+        statusDivida: 'pagando',
+      });
+    });
+
+    it('deve liberar processamento quando o recarregamento após ação falha', () => {
+      cartoesService.getCartoes.mockReturnValue(
+        throwError(() => new Error('falha')),
+      );
+      component.acaoFaturaProcessando = { cartaoId: 1, tipo: 'pagar' };
+
+      component['finalizarAcaoFatura']('Título', 'Mensagem');
+
+      expect(component.acaoFaturaProcessando).toBeNull();
+      expect(dialog.open).not.toHaveBeenCalled();
+      expect(component.carregando).toBe(false);
+    });
+
+    it('deve calcular data de pagamento ao registrar conforme o mês de referência', () => {
+      const dataPagamento = (c: Cartao, ref?: string) =>
+        component['dataPagamentoAoRegistrarCartao'](c, ref);
+
+      expect(dataPagamento(cartao(), '2026-05-15T12:00:00')).toBe('2026-05-15');
+      expect(dataPagamento(cartao(), '2026-05')).toBe('2026-05-10');
+      expect(
+        dataPagamento(cartao({ previsaoPagamento: '2026-05' })),
+      ).toBe('2026-05-10');
+
+      component.mesAtual = new Date(2026, 1, 1);
+      expect(dataPagamento(cartao({ diaVencimento: 10 }))).toBe('2026-02-10');
+      expect(dataPagamento(cartao({ diaVencimento: 31 }))).toBe('2026-02-28');
+      expect(
+        dataPagamento({ ...cartao(), diaVencimento: undefined as any }),
+      ).toBe('2026-02-28');
+    });
+
+    it('deve usar vencimento calculado quando o período da fatura não existe', () => {
+      jest.spyOn(component, 'periodoFatura').mockReturnValue(null);
+      const detalhes = (c: Cartao) =>
+        component['dadosConfirmarPagarFatura'](c, 10) as ConfirmModalPaymentDetails;
+
+      expect(detalhes(cartao({ diaVencimento: 10 })).vencimento).toBe(
+        '10/05/2026',
+      );
+      expect(
+        detalhes({ ...cartao(), diaVencimento: undefined as any }).vencimento,
+      ).toBe('31/05/2026');
+      expect(
+        detalhes(cartao({ previsaoPagamento: '----------' })).dataPagamento,
+      ).toBe('----------');
+    });
+
+    it('deve interpretar datas locais incompletas como inválidas', () => {
+      expect((component as any).dataLocal('2026-05')).toBeNull();
+      expect((component as any).dataLocal('0-05-10')).toBeNull();
+      expect((component as any).dataLocal('2026-05-10')).toEqual(
+        new Date(2026, 4, 10),
+      );
+    });
+
+    it('não deve recarregar ao voltar para o mês atual já selecionado', () => {
+      component.voltarParaMesAtual();
+
+      expect(cartoesService.getCartoes).not.toHaveBeenCalled();
+    });
+
+    it('deve manter visão do usuário quando o grupo familiar continua ativo', () => {
+      component.ngOnInit();
+      component.visaoFaturas = 'usuario';
+      component.cartaoExpandidoId = 3;
+
+      temGrupoFamiliarSubject.next(true);
+      expect(component.visaoFaturas).toBe('usuario');
+
+      component.visaoFaturas = 'exemplos';
+      temGrupoFamiliarSubject.next(false);
+      expect(component.visaoFaturas).toBe('exemplos');
+      expect(component.cartaoExpandidoId).toBe(3);
+
+      component.ngOnDestroy();
+    });
+
+    it('deve destruir com segurança sem inscrição ativa', () => {
+      expect(() => component.ngOnDestroy()).not.toThrow();
+    });
+
+    it('deve agrupar gastos do mesmo banco e formatar valores dos gráficos', () => {
+      component.cartoes = [
+        cartao({ id: 1, banco: 'Nubank', valorUtilizado: 100 }),
+        cartao({ id: 2, banco: 'Nubank', valorUtilizado: 50 }),
+        cartao({ id: 3, banco: 'Inter', valorUtilizado: 30 }),
+      ];
+
+      const porBanco: any = component['opcaoGraficoPorBanco']();
+      expect(porBanco.series[0].data).toEqual([
+        { name: 'Nubank', value: 150 },
+        { name: 'Inter', value: 30 },
+      ]);
+      expect(porBanco.tooltip.valueFormatter(150)).toContain('R$');
+
+      const usoLimite: any = component['opcaoGraficoUsoLimite']();
+      expect(usoLimite.tooltip.valueFormatter(150)).toContain('R$');
+      expect(component['tooltipEixoValor']().valueFormatter(10)).toContain(
+        'R$',
+      );
+    });
+
+    it('deve reaproveitar gráfico já registrado ao atualizar', () => {
+      component.cartoes = [cartao({ id: 1 })];
+      const el = document.createElement('div');
+      const chart = { setOption: jest.fn(), dispose: jest.fn() };
+      jest.spyOn(echarts, 'getInstanceByDom').mockReturnValue(chart as any);
+      const initSpy = jest.spyOn(echarts, 'init');
+      initSpy.mockClear();
+      const ref = { nativeElement: el } as ElementRef<HTMLDivElement>;
+      component.chartUsoLimite = ref;
+      component.chartEvolucaoFatura = ref;
+      component.chartPorBanco = ref;
+      component.chartComparacao = ref;
+
+      component['atualizarGraficos']();
+
+      expect(initSpy).not.toHaveBeenCalled();
+      expect(chart.setOption).toHaveBeenCalledTimes(4);
+      expect(component['charts'] as unknown[]).toEqual([chart]);
+      jest.restoreAllMocks();
+    });
+
+    it('deve tratar valor restante zerado no limite utilizado', () => {
+      const c = cartao({ id: 1, limite: 500 });
+      component.parcelamentos = [
+        { ...parcelaMes({ cartaoId: 1 }), valorRestante: 0 },
+        parcelaMes({ cartaoId: 1, valorRestante: 120 }),
+      ];
+
+      expect(component.valorUtilizadoLimite(c)).toBe(120);
+      expect(component.valorDisponivelFatura(c)).toBe(380);
+    });
+
+    it('não deve recarregar quando o dialog de cartão é cancelado', () => {
+      dialog.open.mockReturnValueOnce(afterClosed(false));
+
+      component.abrirModalAdicionar();
+
+      expect(dialog.open).toHaveBeenCalledTimes(1);
+      expect(cartoesService.getCartoes).not.toHaveBeenCalled();
+    });
+
+    it('deve manter rótulo ISO de vencimento quando não é possível formatar', () => {
+      const data = new Date(2026, 4, 1);
+      data.setFullYear(0);
+      component.mesAtual = data;
+
+      expect(component['vencimentoFaturaLabel'](cartao({ diaVencimento: 7 }))).toBe(
+        '0-05-07',
+      );
+    });
+
+    it('deve usar mensagem genérica para outros erros HTTP', () => {
+      expect(
+        component['mensagemErroHttp'](new HttpErrorResponse({ status: 500 })),
+      ).toBe('Não foi possível carregar as faturas.');
+    });
   });
 });

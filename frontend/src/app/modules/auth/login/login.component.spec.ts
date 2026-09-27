@@ -79,6 +79,59 @@ describe('LoginComponent', () => {
     );
   });
 
+  it('não deve exibir sucesso quando senhaRedefinida está ausente', () => {
+    const component = criar();
+
+    component.ngOnInit();
+
+    expect(component.sucesso).toBeNull();
+  });
+
+  it('deve bloquear quando já está carregando', () => {
+    const component = criar();
+    component.form.patchValue({ usuarioOuEmail: 'usuario1', senha: '123456' });
+    component.carregando = true;
+
+    component.entrar();
+
+    expect(component.erro).toBe('Informe usuário ou email e senha para entrar.');
+    expect(authService.login).not.toHaveBeenCalled();
+  });
+
+  it('deve remover espaços do usuário e limpar sucesso anterior', () => {
+    const component = criar();
+    component.sucesso = 'anterior';
+    component.form.patchValue({ usuarioOuEmail: '  usuario1  ', senha: '123456' });
+
+    component.entrar();
+
+    expect(authService.login).toHaveBeenCalledWith({
+      usuarioOuEmail: 'usuario1',
+      senha: '123456',
+    });
+    expect(component.sucesso).toBeNull();
+  });
+
+  it.each([
+    ['erro como string', 'falhou'],
+    ['erro nulo', null],
+    ['objeto sem chave error', { message: 'x' }],
+    ['mensagem vazia', { error: '' }],
+  ])('deve usar fallback em HttpErrorResponse com %s', (_desc, error) => {
+    authService.login.mockReturnValueOnce(
+      throwError(() => new HttpErrorResponse({ status: 500, error })),
+    );
+    const component = criar();
+    component.form.patchValue({ usuarioOuEmail: 'usuario1', senha: '123456' });
+
+    component.entrar();
+
+    expect(component.carregando).toBe(false);
+    expect(component.erro).toBe(
+      'Não foi possível entrar. Verifique seus dados e tente novamente.',
+    );
+  });
+
   it('deve exibir erro amigável da API ou fallback', () => {
     authService.login.mockReturnValueOnce(
       throwError(

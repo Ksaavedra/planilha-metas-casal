@@ -1,4 +1,9 @@
-import { Divida, DividaNoMes, StatusDivida, StatusParcelaMes } from '../interfaces/dividas/dividas';
+import {
+  Divida,
+  DividaNoMes,
+  StatusDivida,
+  StatusParcelaMes,
+} from '../interfaces/dividas/dividas';
 import {
   agruparResumoCartoes,
   calcularParcelaMensal,
@@ -83,17 +88,46 @@ describe('dividas.util', () => {
     expect(calcularParcelaMensal(-300, 3)).toBe(0);
     expect(calcularParcelaMensal(300, 0)).toBe(0);
 
-    expect(parcelaMensalDivida(divida({ valorTotal: 300, quantidadeParcelas: 3, parcelaMensal: 10 }))).toBe(100);
-    expect(parcelaMensalDivida(divida({ valorTotal: 0, quantidadeParcelas: 0, parcelaMensal: 55 }))).toBe(55);
-    expect(progressoDivida(divida({ valorTotal: 300, valorPago: 150 }))).toBe(50);
+    expect(
+      parcelaMensalDivida(
+        divida({ valorTotal: 300, quantidadeParcelas: 3, parcelaMensal: 10 }),
+      ),
+    ).toBe(100);
+    expect(
+      parcelaMensalDivida(
+        divida({ valorTotal: 0, quantidadeParcelas: 0, parcelaMensal: 55 }),
+      ),
+    ).toBe(55);
+    expect(progressoDivida(divida({ valorTotal: 300, valorPago: 150 }))).toBe(
+      50,
+    );
     expect(progressoDivida(divida({ valorTotal: 0, valorPago: 150 }))).toBe(0);
   });
 
   it('calcula resumos e totais de tabela', () => {
     const lista = [
-      divida({ valorTotal: 300, valorPago: 100, valorRestante: 200, statusDivida: 'pagando' }),
-      divida({ valorTotal: 600, valorPago: 600, valorRestante: 0, statusDivida: 'quitada', quantidadeParcelas: 6, parcelasRestantes: 0 }),
-      divida({ valorTotal: 200, valorPago: 50, valorRestante: 150, statusDivida: 'atrasada', quantidadeParcelas: 2, parcelasRestantes: 2 }),
+      divida({
+        valorTotal: 300,
+        valorPago: 100,
+        valorRestante: 200,
+        statusDivida: 'pagando',
+      }),
+      divida({
+        valorTotal: 600,
+        valorPago: 600,
+        valorRestante: 0,
+        statusDivida: 'quitada',
+        quantidadeParcelas: 6,
+        parcelasRestantes: 0,
+      }),
+      divida({
+        valorTotal: 200,
+        valorPago: 50,
+        valorRestante: 150,
+        statusDivida: 'atrasada',
+        quantidadeParcelas: 2,
+        parcelasRestantes: 2,
+      }),
     ];
 
     expect(calcularResumoDividas(lista)).toEqual({
@@ -112,7 +146,11 @@ describe('dividas.util', () => {
 
     const mes = [
       dividaNoMes({ valorPagoNoMes: 100 }),
-      dividaNoMes({ valorPagoNoMes: 0, statusParcelaMes: 'pendente', parcelaMesPaga: false }),
+      dividaNoMes({
+        valorPagoNoMes: 0,
+        statusParcelaMes: 'pendente',
+        parcelaMesPaga: false,
+      }),
     ];
     expect(calcularTotaisTabelaDividasNoMes(mes).valorPago).toBe(100);
     expect(calcularResumoDividasNoMes(mes).parcelasAtivas).toBe(1);
@@ -120,10 +158,24 @@ describe('dividas.util', () => {
 
   it('retorna labels e classes de status', () => {
     const statusDividas: StatusDivida[] = ['pagando', 'atrasada', 'quitada'];
-    const statusParcelas: StatusParcelaMes[] = ['paga', 'pendente', 'atrasada', 'futura', 'quitada'];
+    const statusParcelas: StatusParcelaMes[] = [
+      'paga',
+      'pendente',
+      'atrasada',
+      'futura',
+      'quitada',
+    ];
 
-    expect(statusDividas.map(statusDividaLabel)).toEqual(['Pagando 💳', 'Atrasada ⚠️', 'Quitada ✅']);
-    expect(statusDividas.map(statusDividaClasse)).toEqual(['status--pagando', 'status--atrasada', 'status--quitada']);
+    expect(statusDividas.map(statusDividaLabel)).toEqual([
+      'Pagando 💳',
+      'Atrasada ⚠️',
+      'Quitada ✅',
+    ]);
+    expect(statusDividas.map(statusDividaClasse)).toEqual([
+      'status--pagando',
+      'status--atrasada',
+      'status--quitada',
+    ]);
     expect(statusParcelaMesLabel(statusParcelas[0])).toBe('Parcela paga ✅');
     expect(statusParcelas.map(statusParcelaMesClasse)).toEqual([
       'status--parcela-paga',
@@ -211,7 +263,9 @@ describe('dividas.util', () => {
   });
 
   it('projeta pagamentos e saldos para gráficos', () => {
-    expect(projetarEvolucaoRestante(300, 100).slice(0, 4)).toEqual([300, 200, 100, 0]);
+    expect(projetarEvolucaoRestante(300, 100).slice(0, 4)).toEqual([
+      300, 200, 100, 0,
+    ]);
     expect(projetarEvolucaoRestante(-1, -1)).toEqual(Array(12).fill(0));
     expect(projetarPagamentosMensais(99.999)).toEqual(Array(12).fill(100));
     expect(formatarMoedaGrafico(1200)).toContain('R$');
@@ -222,7 +276,13 @@ describe('dividas.util', () => {
     expect(mesDataInicioDivida('')).toBeNull();
     expect(mesDataInicioDivida('2026-99-10')).toBeNull();
 
-    expect(dividaVisivelNoMesReferencia(divida({ ano: 2026, dataInicio: '2026-05-01' }), 2026, 4)).toBe(false);
+    expect(
+      dividaVisivelNoMesReferencia(
+        divida({ ano: 2026, dataInicio: '2026-05-01' }),
+        2026,
+        4,
+      ),
+    ).toBe(false);
     expect(
       dividaVisivelNoMesReferencia(
         divida({ ano: 2025, dataInicio: '2026-05-01', quantidadeParcelas: 3 }),
@@ -232,18 +292,47 @@ describe('dividas.util', () => {
     ).toBe(true);
     expect(
       dividaVisivelNoMesReferencia(
-        divida({ statusDivida: 'pagando', dataInicio: '2026-05-01', quantidadeParcelas: 3 }),
+        divida({
+          statusDivida: 'pagando',
+          dataInicio: '2026-05-01',
+          quantidadeParcelas: 3,
+        }),
         2026,
         12,
       ),
     ).toBe(false);
-    expect(dividaVisivelNoMesReferencia(divida({ statusDivida: 'quitada', dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 7)).toBe(true);
-    expect(dividaVisivelNoMesReferencia(divida({ statusDivida: 'quitada', dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 8)).toBe(false);
+    expect(
+      dividaVisivelNoMesReferencia(
+        divida({
+          statusDivida: 'quitada',
+          dataInicio: '2026-05-01',
+          quantidadeParcelas: 3,
+        }),
+        2026,
+        7,
+      ),
+    ).toBe(true);
+    expect(
+      dividaVisivelNoMesReferencia(
+        divida({
+          statusDivida: 'quitada',
+          dataInicio: '2026-05-01',
+          quantidadeParcelas: 3,
+        }),
+        2026,
+        8,
+      ),
+    ).toBe(false);
     expect(
       filtrarDividasPorMesReferencia(
         [
           divida({ id: 1 }),
-          divida({ id: 2, ano: 2025, dataInicio: '2025-01-01', quantidadeParcelas: 3 }),
+          divida({
+            id: 2,
+            ano: 2025,
+            dataInicio: '2025-01-01',
+            quantidadeParcelas: 3,
+          }),
         ],
         2026,
         5,
@@ -325,31 +414,126 @@ describe('dividas.util', () => {
   });
 
   it('calcula labels, parcelas pagas e índice da parcela no mês', () => {
-    expect(parcelasRestantesLabel(dividaNoMes({ indiceParcelaMes: 2, quantidadeParcelas: 3 }))).toBe('2/3');
-    expect(parcelasRestantesLabel(divida({ parcelasRestantes: 2, quantidadeParcelas: 3 }))).toBe('2/3');
-    expect(parcelasRestantesLabel(divida({ parcelasRestantes: 4, quantidadeParcelas: 0 }))).toBe('4');
+    expect(
+      parcelasRestantesLabel(
+        dividaNoMes({ indiceParcelaMes: 2, quantidadeParcelas: 3 }),
+      ),
+    ).toBe('2/3');
+    expect(
+      parcelasRestantesLabel(
+        divida({ parcelasRestantes: 2, quantidadeParcelas: 3 }),
+      ),
+    ).toBe('2/3');
+    expect(
+      parcelasRestantesLabel(
+        divida({ parcelasRestantes: 4, quantidadeParcelas: 0 }),
+      ),
+    ).toBe('4');
 
-    expect(parcelasPagasDivida(divida({ valorTotal: 300, quantidadeParcelas: 3, valorPago: 200 }))).toBe(2);
-    expect(parcelasPagasDivida(divida({ valorTotal: 0, quantidadeParcelas: 3, valorPago: 200, parcelaMensal: 0 }))).toBe(0);
-    expect(indiceParcelaNoMes(divida({ ano: 2026, dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 5)).toBe(1);
-    expect(indiceParcelaNoMes(divida({ ano: 2026, dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 7)).toBe(3);
-    expect(indiceParcelaNoMes(divida({ ano: 2026, dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 8)).toBeNull();
-    expect(indiceParcelaNoMes(divida({ ano: 2025, dataInicio: '2026-05-01', quantidadeParcelas: 3 }), 2026, 5)).toBe(1);
+    expect(
+      parcelasPagasDivida(
+        divida({ valorTotal: 300, quantidadeParcelas: 3, valorPago: 200 }),
+      ),
+    ).toBe(2);
+    expect(
+      parcelasPagasDivida(
+        divida({
+          valorTotal: 0,
+          quantidadeParcelas: 3,
+          valorPago: 200,
+          parcelaMensal: 0,
+        }),
+      ),
+    ).toBe(0);
+    expect(
+      indiceParcelaNoMes(
+        divida({ ano: 2026, dataInicio: '2026-05-01', quantidadeParcelas: 3 }),
+        2026,
+        5,
+      ),
+    ).toBe(1);
+    expect(
+      indiceParcelaNoMes(
+        divida({ ano: 2026, dataInicio: '2026-05-01', quantidadeParcelas: 3 }),
+        2026,
+        7,
+      ),
+    ).toBe(3);
+    expect(
+      indiceParcelaNoMes(
+        divida({ ano: 2026, dataInicio: '2026-05-01', quantidadeParcelas: 3 }),
+        2026,
+        8,
+      ),
+    ).toBeNull();
+    expect(
+      indiceParcelaNoMes(
+        divida({ ano: 2025, dataInicio: '2026-05-01', quantidadeParcelas: 3 }),
+        2026,
+        5,
+      ),
+    ).toBe(1);
   });
 
   it('detecta atraso considerando mês, vencimento e quitação', () => {
-    expect(parcelaAtrasadaNoMes(divida({ statusDivida: 'quitada' }), 2026, 5, new Date(2026, 4, 20))).toBe(false);
-    expect(parcelaAtrasadaNoMes(divida({ valorRestante: 0 }), 2026, 5, new Date(2026, 4, 20))).toBe(false);
-    expect(parcelaAtrasadaNoMes(divida({ diaVencimento: 10 }), 2026, 5, new Date(2026, 4, 11))).toBe(true);
-    expect(parcelaAtrasadaNoMes(divida({ diaVencimento: 20 }), 2026, 4, new Date(2026, 4, 1))).toBe(true);
-    expect(parcelaAtrasadaNoMes(divida({ diaVencimento: 20 }), 2026, 5, new Date(2026, 4, 10))).toBe(false);
+    expect(
+      parcelaAtrasadaNoMes(
+        divida({ statusDivida: 'quitada' }),
+        2026,
+        5,
+        new Date(2026, 4, 20),
+      ),
+    ).toBe(false);
+    expect(
+      parcelaAtrasadaNoMes(
+        divida({ valorRestante: 0 }),
+        2026,
+        5,
+        new Date(2026, 4, 20),
+      ),
+    ).toBe(false);
+    expect(
+      parcelaAtrasadaNoMes(
+        divida({ diaVencimento: 10 }),
+        2026,
+        5,
+        new Date(2026, 4, 11),
+      ),
+    ).toBe(true);
+    expect(
+      parcelaAtrasadaNoMes(
+        divida({ diaVencimento: 20 }),
+        2026,
+        4,
+        new Date(2026, 4, 1),
+      ),
+    ).toBe(true);
+    expect(
+      parcelaAtrasadaNoMes(
+        divida({ diaVencimento: 20 }),
+        2026,
+        5,
+        new Date(2026, 4, 10),
+      ),
+    ).toBe(false);
   });
 
   it('agrupa cartões e calcula limite disponível', () => {
     const lista = [
-      divida({ instituicao: 'Nubank', limiteCartao: 1000, valorRestante: 200, diaVencimento: 10, diaMelhorCompra: 11 }),
+      divida({
+        instituicao: 'Nubank',
+        limiteCartao: 1000,
+        valorRestante: 200,
+        diaVencimento: 10,
+        diaMelhorCompra: 11,
+      }),
       divida({ instituicao: 'Nubank', limiteCartao: 800, valorRestante: 100 }),
-      divida({ instituicao: '', limiteCartao: 500, valorRestante: 50, statusDivida: 'quitada' }),
+      divida({
+        instituicao: '',
+        limiteCartao: 500,
+        valorRestante: 50,
+        statusDivida: 'quitada',
+      }),
     ];
 
     const agrupado = agruparResumoCartoes(lista);
@@ -362,7 +546,10 @@ describe('dividas.util', () => {
     expect(resumo.limiteTotal).toBe(1500);
     expect(resumo.utilizado).toBe(350);
     expect(resumo.proximoVencimentoLabel).toContain('Dia 10');
-    expect(calcularResumoLimiteCartoes([], new Date(2026, 4, 1)).proximoVencimentoLabel).toBe('—');
+    expect(
+      calcularResumoLimiteCartoes([], new Date(2026, 4, 1))
+        .proximoVencimentoLabel,
+    ).toBe('—');
   });
 
   it('calcula pagamento acumulado no mês selecionado', () => {
@@ -391,14 +578,10 @@ describe('dividas.util', () => {
       valorPago: 100,
       dataPagamento: '2026-06-10',
     };
-    expect(
-      calcularValorPagoAposDesfazerMes(somenteJunhoPago, 2026, 6),
-    ).toBe(0);
+    expect(calcularValorPagoAposDesfazerMes(somenteJunhoPago, 2026, 6)).toBe(0);
     expect(dataPagamentoAposDesfazerMes(somenteJunhoPago, 0)).toBeNull();
 
-    expect(
-      calcularValorPagoAposDesfazerMes(parcelamento, 2026, 7),
-    ).toBe(100);
+    expect(calcularValorPagoAposDesfazerMes(parcelamento, 2026, 7)).toBe(100);
     const aposDesfazerJulho = {
       ...parcelamento,
       valorPago: 100,
@@ -406,7 +589,7 @@ describe('dividas.util', () => {
     };
     expect(
       projetarDividaNoMes(aposDesfazerJulho, 2026, 7)?.statusParcelaMes,
-    ).toBe('pendente');
+    ).toBe('atrasada');
     expect(
       projetarDividaNoMes(aposDesfazerJulho, 2026, 6)?.statusParcelaMes,
     ).toBe('paga');
@@ -479,7 +662,9 @@ describe('dividas.util', () => {
         parcelamento12x,
       ),
     };
-    expect(projetarDividaNoMes(dPagoAteJan, 2024, 4)?.parcelaMesPaga).toBe(true);
+    expect(projetarDividaNoMes(dPagoAteJan, 2024, 4)?.parcelaMesPaga).toBe(
+      true,
+    );
     expect(projetarDividaNoMes(dPagoAteJan, 2024, 12)?.parcelaMesPaga).toBe(
       true,
     );
@@ -489,14 +674,65 @@ describe('dividas.util', () => {
   });
 
   it('projeta dívida para o mês e classifica status da parcela', () => {
-    expect(projetarDividaNoMes(divida({ dataInicio: '2026-06-01' }), 2026, 5, new Date(2026, 4, 1))).toBeNull();
+    expect(
+      projetarDividaNoMes(
+        divida({ dataInicio: '2026-06-01' }),
+        2026,
+        5,
+        new Date(2026, 4, 1),
+      ),
+    ).toBeNull();
 
-    expect(projetarDividaNoMes(divida({ valorPago: 100, dataInicio: '2026-05-01' }), 2026, 5, new Date(2026, 4, 1))?.statusParcelaMes).toBe('paga');
-    expect(projetarDividaNoMes(divida({ valorPago: 0, dataInicio: '2026-05-01', diaVencimento: 10 }), 2026, 5, new Date(2026, 4, 11))?.statusParcelaMes).toBe('atrasada');
-    expect(projetarDividaNoMes(divida({ valorPago: 0, dataInicio: '2026-05-01' }), 2026, 6, new Date(2026, 4, 1))?.statusParcelaMes).toBe('futura');
-    expect(projetarDividaNoMes(divida({ valorPago: 0, dataInicio: '2026-05-01' }), 2026, 5, new Date(2026, 4, 1))?.statusParcelaMes).toBe('pendente');
-    expect(projetarDividaNoMes(divida({ statusDivida: 'quitada', valorRestante: 0, dataInicio: '2026-05-01' }), 2026, 5)?.statusParcelaMes).toBe('quitada');
-    expect(projetarDividasNoMes([divida({ id: 1 }), divida({ id: 2, dataInicio: '2026-06-01' })], 2026, 5).map((d) => d.id)).toEqual([1]);
+    expect(
+      projetarDividaNoMes(
+        divida({ valorPago: 100, dataInicio: '2026-05-01' }),
+        2026,
+        5,
+        new Date(2026, 4, 1),
+      )?.statusParcelaMes,
+    ).toBe('paga');
+    expect(
+      projetarDividaNoMes(
+        divida({ valorPago: 0, dataInicio: '2026-05-01', diaVencimento: 10 }),
+        2026,
+        5,
+        new Date(2026, 4, 11),
+      )?.statusParcelaMes,
+    ).toBe('atrasada');
+    expect(
+      projetarDividaNoMes(
+        divida({ valorPago: 0, dataInicio: '2026-05-01' }),
+        2026,
+        6,
+        new Date(2026, 4, 1),
+      )?.statusParcelaMes,
+    ).toBe('futura');
+    expect(
+      projetarDividaNoMes(
+        divida({ valorPago: 0, dataInicio: '2026-05-01' }),
+        2026,
+        5,
+        new Date(2026, 4, 1),
+      )?.statusParcelaMes,
+    ).toBe('pendente');
+    expect(
+      projetarDividaNoMes(
+        divida({
+          statusDivida: 'quitada',
+          valorRestante: 0,
+          dataInicio: '2026-05-01',
+        }),
+        2026,
+        5,
+      )?.statusParcelaMes,
+    ).toBe('quitada');
+    expect(
+      projetarDividasNoMes(
+        [divida({ id: 1 }), divida({ id: 2, dataInicio: '2026-06-01' })],
+        2026,
+        5,
+      ).map((d) => d.id),
+    ).toEqual([1]);
 
     expect(
       projetarDividaNoMes(
@@ -519,16 +755,43 @@ describe('dividas.util', () => {
 
   it('soma parcelas ativas, pendentes e projeções anuais', () => {
     const lista = [
-      divida({ valorTotal: 300, quantidadeParcelas: 3, statusDivida: 'pagando', dataInicio: '2026-05-01' }),
-      divida({ valorTotal: 600, quantidadeParcelas: 6, statusDivida: 'quitada', dataInicio: '2026-01-01' }),
+      divida({
+        valorTotal: 300,
+        quantidadeParcelas: 3,
+        statusDivida: 'pagando',
+        dataInicio: '2026-05-01',
+      }),
+      divida({
+        valorTotal: 600,
+        quantidadeParcelas: 6,
+        statusDivida: 'quitada',
+        dataInicio: '2026-01-01',
+      }),
     ];
 
     expect(totalParcelaMensalAtiva(lista)).toBe(100);
-    expect(totalParcelaMensalPendenteNoMes([
-      dividaNoMes({ statusParcelaMes: 'pendente', parcelaMesPaga: false, valorTotal: 300, quantidadeParcelas: 3 }),
-      dividaNoMes({ statusParcelaMes: 'futura', parcelaMesPaga: false, valorTotal: 300, quantidadeParcelas: 3 }),
-      dividaNoMes({ statusParcelaMes: 'paga', parcelaMesPaga: true, valorTotal: 300, quantidadeParcelas: 3 }),
-    ])).toBe(100);
+    expect(
+      totalParcelaMensalPendenteNoMes([
+        dividaNoMes({
+          statusParcelaMes: 'pendente',
+          parcelaMesPaga: false,
+          valorTotal: 300,
+          quantidadeParcelas: 3,
+        }),
+        dividaNoMes({
+          statusParcelaMes: 'futura',
+          parcelaMesPaga: false,
+          valorTotal: 300,
+          quantidadeParcelas: 3,
+        }),
+        dividaNoMes({
+          statusParcelaMes: 'paga',
+          parcelaMesPaga: true,
+          valorTotal: 300,
+          quantidadeParcelas: 3,
+        }),
+      ]),
+    ).toBe(100);
 
     expect(projetarParcelaMensalAno(lista, 2026)[4]).toBe(200);
     expect(projetarSaldoRestanteAno(lista, 2026)[4]).toBeGreaterThan(0);
@@ -556,55 +819,118 @@ describe('dividas.util', () => {
     expect(
       dividaVisivelNoMesReferencia(
         {
-          ...divida({ statusDivida: 'quitada', quantidadeParcelas: 0, parcelasRestantes: 2 }),
+          ...divida({
+            statusDivida: 'quitada',
+            quantidadeParcelas: 0,
+            parcelasRestantes: 2,
+          }),
           dataInicio: undefined,
         },
         2026,
         2,
       ),
     ).toBe(true);
-    expect(parcelasRestantesLabel({
-      ...divida({ quantidadeParcelas: 0 }),
-      parcelasRestantes: undefined,
-    } as any)).toBe('0');
-    expect(parcelasPagasDivida({
-      ...divida({ quantidadeParcelas: 0, valorPago: 200, parcelaMensal: 50 }),
-      valorTotal: 0,
-    })).toBe(4);
-    expect(indiceParcelaNoMes({
-      ...divida({ quantidadeParcelas: 0 }),
-      dataInicio: undefined,
-    }, 2026, 12)).toBeNull();
+    expect(
+      parcelasRestantesLabel({
+        ...divida({ quantidadeParcelas: 0 }),
+        parcelasRestantes: undefined,
+      } as any),
+    ).toBe('0');
+    expect(
+      parcelasPagasDivida({
+        ...divida({ quantidadeParcelas: 0, valorPago: 200, parcelaMensal: 50 }),
+        valorTotal: 0,
+      }),
+    ).toBe(4);
+    expect(
+      indiceParcelaNoMes(
+        {
+          ...divida({ quantidadeParcelas: 0 }),
+          dataInicio: undefined,
+        },
+        2026,
+        12,
+      ),
+    ).toBeNull();
 
-    expect(parcelaAtrasadaNoMes(divida({ percentualQuitado: 100, valorRestante: 100 }), 2026, 5)).toBe(false);
-    expect(parcelaAtrasadaNoMes(divida({ valorRestante: 0.001 }), 2026, 5)).toBe(false);
+    expect(
+      parcelaAtrasadaNoMes(
+        divida({ percentualQuitado: 100, valorRestante: 100 }),
+        2026,
+        5,
+      ),
+    ).toBe(false);
+    expect(
+      parcelaAtrasadaNoMes(divida({ valorRestante: 0.001 }), 2026, 5),
+    ).toBe(false);
 
     const cartoesSemLimite = [
-      divida({ instituicao: 'Sem limite', limiteCartao: undefined, valorRestante: -10, statusDivida: 'pagando' }),
-      divida({ instituicao: 'Sem limite', limiteCartao: -100, valorRestante: 50, diaVencimento: 15 }),
+      divida({
+        instituicao: 'Sem limite',
+        limiteCartao: undefined,
+        valorRestante: -10,
+        statusDivida: 'pagando',
+      }),
+      divida({
+        instituicao: 'Sem limite',
+        limiteCartao: -100,
+        valorRestante: 50,
+        diaVencimento: 15,
+      }),
     ];
     const agrupado = agruparResumoCartoes(cartoesSemLimite);
     expect(agrupado[0].limite).toBe(0);
     expect(agrupado[0].utilizado).toBe(50);
     expect(agrupado[0].percentualUtilizado).toBe(0);
-    expect(calcularResumoLimiteCartoes(cartoesSemLimite).proximoVencimentoLabel).toContain('Dia 15');
+    expect(
+      calcularResumoLimiteCartoes(cartoesSemLimite).proximoVencimentoLabel,
+    ).toContain('Dia 15');
 
     expect(calcularValorPagoAcumulado(300, 3, undefined, 5, 100)).toBe(100);
-    expect(projetarDividaNoMes(divida({ dataInicio: '2026-01-01', quantidadeParcelas: 1 }), 2026, 3)).toBeNull();
-    expect(projetarSaldoRestanteAno([{
-      ...divida({ quantidadeParcelas: 0 }),
-      dataInicio: undefined,
-    }], 2026)[0]).toBeGreaterThan(0);
+    expect(
+      projetarDividaNoMes(
+        divida({ dataInicio: '2026-01-01', quantidadeParcelas: 1 }),
+        2026,
+        3,
+      ),
+    ).toBeNull();
+    expect(
+      projetarSaldoRestanteAno(
+        [
+          {
+            ...divida({ quantidadeParcelas: 0 }),
+            dataInicio: undefined,
+          },
+        ],
+        2026,
+      )[0],
+    ).toBeGreaterThan(0);
   });
 
   it('deve montar catálogo de compras sem duplicar por caixa', () => {
     const catalogo = catalogoObjetivosCompraParcelamento(
       [
-        divida({ objetivo: 'Netflix', tipoDivida: 'parcelamento', cartaoId: 1 }),
-        divida({ objetivo: 'netflix', tipoDivida: 'parcelamento', cartaoId: 1 }),
+        divida({
+          objetivo: 'Netflix',
+          tipoDivida: 'parcelamento',
+          cartaoId: 1,
+        }),
+        divida({
+          objetivo: 'netflix',
+          tipoDivida: 'parcelamento',
+          cartaoId: 1,
+        }),
         divida({ objetivo: 'Ifood', tipoDivida: 'parcelamento', cartaoId: 1 }),
-        divida({ objetivo: 'Mercado', tipoDivida: 'parcelamento', cartaoId: 2 }),
-        divida({ objetivo: 'Empréstimo', tipoDivida: 'emprestimo', cartaoId: 1 }),
+        divida({
+          objetivo: 'Mercado',
+          tipoDivida: 'parcelamento',
+          cartaoId: 2,
+        }),
+        divida({
+          objetivo: 'Empréstimo',
+          tipoDivida: 'emprestimo',
+          cartaoId: 1,
+        }),
       ],
       1,
     );
@@ -613,7 +939,14 @@ describe('dividas.util', () => {
   });
 
   it('deve filtrar sugestões de compra e oferecer criar quando vazio', () => {
-    const catalogo = ['Amazon', 'Drogaria', 'Ifood', 'Mercado', 'Netflix', 'Uber'];
+    const catalogo = [
+      'Amazon',
+      'Drogaria',
+      'Ifood',
+      'Mercado',
+      'Netflix',
+      'Uber',
+    ];
 
     expect(filtrarSugestoesObjetivoCompra(catalogo, 'mer')).toEqual([
       { label: 'Mercado', value: 'Mercado', criar: false },

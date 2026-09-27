@@ -8,7 +8,10 @@ const {
    autenticarToken,
 } = require('../middlewares/auth.middleware');
 const { migrarDadosLegadosParaUsuario } = require('../utils/user-data-scope');
-const { enviarCodigoRecuperacaoSenha } = require('../utils/email.service');
+const {
+   enviarCodigoRecuperacaoSenha,
+   enviarBoasVindas,
+} = require('../utils/email.service');
 
 const router = express.Router();
 const TOKEN_EXPIRATION = '7d';
@@ -485,6 +488,9 @@ router.post('/registrar', async (req, res) => {
          token,
          usuario: usuarioResponse(usuario),
       });
+
+      // A conta já foi criada; falha no email não deve virar erro para o usuário.
+      enviarBoasVindas(usuario).catch(() => {});
    } catch (error) {
       console.error('Erro ao registrar usuário:', error);
       res.status(500).json({ error: 'Erro ao criar conta.' });

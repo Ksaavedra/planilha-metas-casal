@@ -65,7 +65,10 @@ describe('CartoesUsuarioComponent', () => {
   });
 
   it('deve reconciliar seleção quando cartoes mudarem', () => {
-    const spy = jest.spyOn(component as any, 'reconciliarSelecaoAposMudancaLista');
+    const spy = jest.spyOn(
+      component as any,
+      'reconciliarSelecaoAposMudancaLista',
+    );
 
     component.ngOnChanges({
       cartoes: new SimpleChange([], [], false),
@@ -115,7 +118,13 @@ describe('CartoesUsuarioComponent', () => {
   it('deve agrupar cartões por pessoa e calcular totais', () => {
     component.cartoes = [
       cartao({ id: 1, pessoa: 'Kelly', limite: 1000, valorUtilizado: 100 }),
-      cartao({ id: 2, banco: 'C6', pessoa: 'Kelly', limite: 500, valorUtilizado: 200 }),
+      cartao({
+        id: 2,
+        banco: 'C6',
+        pessoa: 'Kelly',
+        limite: 500,
+        valorUtilizado: 200,
+      }),
       cartao({ id: 3, pessoa: '', limite: 300, valorUtilizado: 50 }),
     ];
     component.parcelamentos = [
@@ -139,14 +148,37 @@ describe('CartoesUsuarioComponent', () => {
 
   it('deve filtrar cartões e totais do usuário selecionado', () => {
     component.cartoes = [
-      cartao({ id: 1, pessoa: 'Kelly', banco: 'Nubank', limite: 1000, valorUtilizado: 100, diaVencimento: 20 }),
-      cartao({ id: 2, pessoa: 'Kelly', banco: 'C6', limite: 500, valorUtilizado: 200, diaVencimento: 10 }),
-      cartao({ id: 3, pessoa: 'David', banco: 'Itaú', limite: 300, valorUtilizado: 50 }),
+      cartao({
+        id: 1,
+        pessoa: 'Kelly',
+        banco: 'Nubank',
+        limite: 1000,
+        valorUtilizado: 100,
+        diaVencimento: 20,
+      }),
+      cartao({
+        id: 2,
+        pessoa: 'Kelly',
+        banco: 'C6',
+        limite: 500,
+        valorUtilizado: 200,
+        diaVencimento: 10,
+      }),
+      cartao({
+        id: 3,
+        pessoa: 'David',
+        banco: 'Itaú',
+        limite: 300,
+        valorUtilizado: 50,
+      }),
     ];
     component.usuarioFiltro = 'Kelly';
 
     expect(component.linhasVisiveis.length).toBe(1);
-    expect(component.cartoesUsuario.map((c) => c.banco)).toEqual(['C6', 'Nubank']);
+    expect(component.cartoesUsuario.map((c) => c.banco)).toEqual([
+      'C6',
+      'Nubank',
+    ]);
     expect(component.totalLimiteUsuario).toBe(1500);
     expect(component.totalUtilizadoUsuario).toBe(300);
     expect(component.totalDisponivelUsuario).toBe(1200);
@@ -216,32 +248,48 @@ describe('CartoesUsuarioComponent', () => {
   it('deve calcular status da linha com prioridade de fatura e parcelas', () => {
     const c = cartao({ id: 1, valorUtilizado: 100, diaVencimento: 10 });
     component.mesReferencia = new Date(2026, 4, 1);
-    component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'atrasada' })];
+    component.parcelamentos = [
+      parcela({ cartaoId: 1, statusParcelaMes: 'atrasada' }),
+    ];
 
     expect(component.faturaAtrasada(c)).toBe(true);
     expect(component.statusLinhaLabel(c)).toContain('Fatura');
     expect(component.statusLinhaClasse(c)).toContain('atrasado');
 
     component.mesReferencia = new Date(2026, 6, 1);
-    const emDia = cartao({ id: 1, valorUtilizado: 100, diaFechamento: 31, diaVencimento: 30 });
-    component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'pendente' })];
-    expect(component.statusLinhaLabel(emDia)).toContain('Pendente');
+    const emDia = cartao({
+      id: 1,
+      valorUtilizado: 100,
+      diaFechamento: 31,
+      diaVencimento: 30,
+    });
+    component.parcelamentos = [
+      parcela({ cartaoId: 1, statusParcelaMes: 'pendente' }),
+    ];
+    expect(component.statusLinhaLabel(emDia)).toContain('Fatura atrasada');
 
-    component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'paga' })];
+    component.parcelamentos = [
+      parcela({ cartaoId: 1, statusParcelaMes: 'paga' }),
+    ];
     expect(component.statusLinhaLabel(c)).toContain('Parcela paga');
 
     const pago = cartao({ id: 2, faturaPaga: true, valorUtilizado: 0 });
     expect(component.statusLinhaLabel(pago)).toContain('Fatura paga');
 
     component.parcelamentos = [];
-    expect(component.statusLinhaLabel(emDia)).toContain('Fatura em dia');
-    expect(component.statusLinhaClasse(emDia)).toBe('status--em-dia');
+    expect(component.statusLinhaLabel(emDia)).toContain('Fatura atrasada');
+    expect(component.statusLinhaClasse(emDia)).toBe('status--atrasado');
     expect(component.statusLinhaClasse(pago)).toBe('status--fatura-paga');
   });
 
   it('deve tratar vencimento ausente, pessoa com espaços e limite negativo', () => {
     const semVencimento = {
-      ...cartao({ id: 1, pessoa: '  Carla  ', limite: -100, valorUtilizado: -50 }),
+      ...cartao({
+        id: 1,
+        pessoa: '  Carla  ',
+        limite: -100,
+        valorUtilizado: -50,
+      }),
       diaVencimento: null,
     };
     component.cartoes = [semVencimento];
@@ -269,11 +317,17 @@ describe('CartoesUsuarioComponent', () => {
   });
 
   it('deve priorizar totalAPagarMes e arredondar valores', () => {
-    const c = { ...cartao({ id: 1, valorUtilizado: 999 }), totalAPagarMes: 123.456 };
+    const c = {
+      ...cartao({ id: 1, valorUtilizado: 999 }),
+      totalAPagarMes: 123.456,
+    };
 
     expect(component.valorUtilizadoFatura(c)).toBe(123.46);
 
-    const negativo = { ...cartao({ id: 2, valorUtilizado: 999 }), totalAPagarMes: -10 };
+    const negativo = {
+      ...cartao({ id: 2, valorUtilizado: 999 }),
+      totalAPagarMes: -10,
+    };
     expect(component.valorUtilizadoFatura(negativo)).toBe(0);
   });
 
@@ -287,14 +341,153 @@ describe('CartoesUsuarioComponent', () => {
     ];
     expect(component.statusLinhaLabel(c)).toContain('Parcela paga');
 
-    component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'futura' })];
+    component.parcelamentos = [
+      parcela({ cartaoId: 1, statusParcelaMes: 'futura' }),
+    ];
     expect((component as any).statusResumoParcelasCartao(c)).toBe('futura');
 
-    component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'quitada' })];
+    component.parcelamentos = [
+      parcela({ cartaoId: 1, statusParcelaMes: 'quitada' }),
+    ];
     expect((component as any).statusResumoParcelasCartao(c)).toBe('paga');
 
-    component.parcelamentos = [parcela({ cartaoId: 1, statusParcelaMes: 'desconhecida' as any })];
+    component.parcelamentos = [
+      parcela({ cartaoId: 1, statusParcelaMes: 'desconhecida' as any }),
+    ];
     expect((component as any).statusResumoParcelasCartao(c)).toBeNull();
     expect(component.statusLinhaClasse(c)).toBe('status--atrasado');
+  });
+
+  it('deve exibir melhor dia de compra ou traço quando ausente', () => {
+    expect(component.melhorDiaCompraLabel(cartao({ diaMelhorCompra: 21 }))).toBe(
+      'Dia 21',
+    );
+    expect(
+      component.melhorDiaCompraLabel({
+        ...cartao(),
+        diaMelhorCompra: null,
+        diaVencimento: null,
+      }),
+    ).toBe('-');
+  });
+
+  it('deve calcular período da fatura pelo mês de referência', () => {
+    component.mesReferencia = new Date(2026, 4, 1);
+
+    const periodo = component.periodoFatura(cartao());
+
+    expect(periodo?.titulo).toBe('Fatura Maio');
+    expect(
+      component.periodoFatura({
+        ...cartao(),
+        diaMelhorCompra: null,
+        diaVencimento: null,
+      }),
+    ).toBeNull();
+  });
+
+  it('deve exibir data da compra, data de início ou traço', () => {
+    expect(
+      component.dataCompraExibicao(
+        { ...parcela(), dataCompra: '2026-04-15' },
+      ),
+    ).toBe('15/04/2026');
+    expect(
+      component.dataCompraExibicao(
+        parcela({ dataInicio: '2026-05-01T00:00:00.000Z' }),
+      ),
+    ).toBe('01/05/2026');
+    expect(
+      component.dataCompraExibicao({
+        ...parcela(),
+        dataCompra: undefined,
+        dataInicio: undefined as any,
+      }),
+    ).toBe('-');
+  });
+
+  describe('status da linha com data fixa', () => {
+    const emDia = cartao({
+      id: 1,
+      limite: 1000,
+      valorUtilizado: 100,
+      diaFechamento: 20,
+      diaVencimento: 25,
+    });
+
+    beforeEach(() => {
+      jest.useFakeTimers().setSystemTime(new Date(2026, 4, 2, 10, 0, 0));
+      component.mesReferencia = new Date(2026, 4, 1);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('deve usar status do cartão quando não houver parcelas nem atraso', () => {
+      component.parcelamentos = [];
+
+      expect(component.faturaAtrasada(emDia)).toBe(false);
+      expect(component.statusLinhaLabel(emDia)).toBe('Fatura em dia');
+      expect(component.statusLinhaClasse(emDia)).toBe('status--em-dia');
+    });
+
+    it('deve usar status das parcelas quando fatura não estiver atrasada', () => {
+      component.parcelamentos = [
+        parcela({ cartaoId: 1, statusParcelaMes: 'pendente' }),
+      ];
+
+      expect(component.faturaAtrasada(emDia)).toBe(false);
+      expect(component.statusLinhaLabel(emDia)).toBe(
+        component.statusParcelaLabel('pendente'),
+      );
+      expect(component.statusLinhaClasse(emDia)).toBe(
+        component.statusParcelaClasse('pendente'),
+      );
+    });
+
+    it('deve usar classe de parcela paga quando todas estiverem pagas', () => {
+      component.parcelamentos = [
+        parcela({ cartaoId: 1, statusParcelaMes: 'paga' }),
+      ];
+
+      expect(component.statusLinhaClasse(emDia)).toBe(
+        component.statusParcelaClasse('paga'),
+      );
+    });
+
+    it('deve priorizar fatura paga do cartão na classe da linha', () => {
+      const pago = cartao({ id: 1, faturaPaga: true, valorUtilizado: 100 });
+      component.parcelamentos = [
+        parcela({ cartaoId: 1, statusParcelaMes: 'pendente' }),
+      ];
+
+      expect(component.statusLinhaLabel(pago)).toBe('Fatura paga');
+      expect(component.statusLinhaClasse(pago)).toBe('status--fatura-paga');
+    });
+
+    it('não deve considerar atrasada quando o resumo das parcelas for quitada', () => {
+      jest.setSystemTime(new Date(2026, 5, 20, 10, 0, 0));
+      component.parcelamentos = [
+        parcela({ cartaoId: 1, statusParcelaMes: 'quitada' }),
+        parcela({ cartaoId: 1, statusParcelaMes: 'desconhecida' as any }),
+      ];
+
+      expect((component as any).statusResumoParcelasCartao(emDia)).toBe(
+        'quitada',
+      );
+      expect(component.faturaAtrasada(emDia)).toBe(false);
+    });
+
+    it('deve considerar atrasada com parcela pendente após o vencimento', () => {
+      jest.setSystemTime(new Date(2026, 5, 20, 10, 0, 0));
+      component.parcelamentos = [
+        parcela({ cartaoId: 1, statusParcelaMes: 'pendente' }),
+      ];
+
+      expect(component.faturaAtrasada(emDia)).toBe(true);
+      expect(component.statusLinhaLabel(emDia)).toBe('Fatura atrasada');
+      expect(component.statusLinhaClasse(emDia)).toBe('status--atrasado');
+    });
   });
 });
